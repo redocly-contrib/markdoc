@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it/lib';
 import annotations from './plugins/annotations';
 import frontmatter from './plugins/frontmatter';
 import comments from './plugins/comments';
+import githubAdmonitions from './plugins/githubAdmonitions';
 import type Token from 'markdown-it/lib/token';
 
 export default class Tokenizer {
@@ -11,6 +12,7 @@ export default class Tokenizer {
     config: MarkdownIt.Options & {
       allowIndentation?: boolean;
       allowComments?: boolean;
+      githubAdmonitions?: boolean;
     } = {}
   ) {
     this.parser = new MarkdownIt(config);
@@ -23,6 +25,8 @@ export default class Tokenizer {
     ]);
 
     if (config.allowComments) this.parser.use(comments, 'comments', {});
+    if (config.githubAdmonitions)
+      this.parser.use(githubAdmonitions, 'githubAdmonitions', {});
   }
 
   tokenize(content: string): Token[] {

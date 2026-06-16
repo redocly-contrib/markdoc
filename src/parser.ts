@@ -69,6 +69,13 @@ function handleAttrs(token: Token, type: string) {
         ? { content: token.content }
         : { content: token.content, language };
     }
+    case 'blockquote': {
+      if (token.attrs) {
+        const attrs = Object.fromEntries(token.attrs);
+        if (attrs.kind) return { kind: attrs.kind };
+      }
+      return {};
+    }
     case 'td':
     case 'th': {
       if (token.attrs) {
