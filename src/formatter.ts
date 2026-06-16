@@ -95,7 +95,7 @@ function* formatAttributes(n: Node) {
 }
 
 function* formatAnnotations(n: Node) {
-  if (n.annotations.length) {
+  if (n.annotations?.length) {
     yield OPEN + SPACE;
     yield n.annotations.map(formatAnnotationValue).join(SPACE);
     yield SPACE + CLOSE;
@@ -260,7 +260,7 @@ function* formatNode(n: Node, o: Options = {}) {
 
       yield boundary;
       if (n.attributes.language) yield n.attributes.language;
-      if (n.annotations.length) yield SPACE;
+      if (n.annotations?.length) yield SPACE;
       yield* formatAnnotations(n);
       yield NL;
       yield indent;

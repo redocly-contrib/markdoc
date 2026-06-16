@@ -4,6 +4,7 @@ import Tokenizer from '../src/tokenizer';
 import parser from '../src/parser';
 import Variable from '../src/ast/variable';
 import { any } from 'deep-assert';
+import Markdoc from '../index';
 
 describe('Markdown parser', function () {
   const fence = '```';
@@ -70,6 +71,16 @@ describe('Markdown parser', function () {
 
       const example2 = convert(`# This is a test`, { file: 'foo.md' });
       expect(example2.children[0].location).toDeepEqualSubset(expected);
+    });
+
+    it('location off suppresses lines on closing block-tag tokens', function () {
+      const example = convert(`{% mytag %}\nContent\n{% /mytag %}`, {
+        location: false,
+      });
+      const tag = example.children[0];
+      expect(tag.type).toEqual('tag');
+      expect(tag.location).toBeUndefined();
+      expect(tag.lines).toBeUndefined();
     });
   });
 
@@ -763,7 +774,7 @@ describe('Markdown parser', function () {
   describe('handles attribute errors correctly', function () {
     it('with error for duplicate attributes', function () {
       const example = convert(`{% foo bar=1 bar=2 bar=3 bar=4 /%}`);
-      expect(example.children[0].errors.length).toBe(3);
+      expect(example.children[0].errors?.length).toBe(3);
       expect(example).toDeepEqualSubset({
         type: 'document',
         children: [
@@ -781,7 +792,7 @@ describe('Markdown parser', function () {
 
     it('with error for duplicate ids', function () {
       const example = convert(`{% foo #bar #baz #qux /%}`);
-      expect(example.children[0].errors.length).toBe(2);
+      expect(example.children[0].errors?.length).toBe(2);
       expect(example).toDeepEqualSubset({
         type: 'document',
         children: [
@@ -798,7 +809,7 @@ describe('Markdown parser', function () {
 
     it('with annotation values', function () {
       const example = convert(`testing {% foo=1 foo=2 %}`);
-      expect(example.children[0].errors.length).toBe(1);
+      expect(example.children[0].errors?.length).toBe(1);
       expect(example).toDeepEqualSubset({
         type: 'document',
         children: [
@@ -812,7 +823,7 @@ describe('Markdown parser', function () {
 
     it('across annotations on the same node', function () {
       const example = convert(`testing {% foo=1 %} another test {% foo=1 %}`);
-      expect(example.children[0].errors.length).toBe(1);
+      expect(example.children[0].errors?.length).toBe(1);
       expect(example).toDeepEqualSubset({
         type: 'document',
         children: [
@@ -826,7 +837,7 @@ describe('Markdown parser', function () {
 
     it('with no error for multiple classes', function () {
       const example = convert(`{% foo .bar .baz .qux /%}`);
-      expect(example.children[0].errors.length).toBe(0);
+      expect(example.children[0].errors).toBeUndefined();
     });
   });
 
@@ -839,7 +850,7 @@ describe('Markdown parser', function () {
     ~~~
     `);
 
-    expect(Object.values(example.annotations).length).toEqual(0);
+    expect(example.annotations?.length ?? 0).toEqual(0);
     expect(example.children[0].errors[0]?.id).toEqual('no-inline-annotations');
   });
 
@@ -944,6 +955,64 @@ describe('Markdown parser', function () {
     `);
 
       expect(example.children[0].errors[0].id).toEqual('missing-closing');
+    });
+  });
+
+  describe('compact mode', function () {
+    it('omits lines and location from every node', function () {
+      const example = convert(`# Hello\n\nWorld`, { compact: true });
+      expect(example.location).toBeUndefined();
+      expect(example.lines).toBeUndefined();
+      for (const node of example.walk()) {
+        expect(node.location).toBeUndefined();
+        expect(node.lines).toBeUndefined();
+      }
+    });
+
+    it('does not create inline wrapper nodes', function () {
+      const example = convert(`A **bold** word`, { compact: true });
+      // paragraph children should be the inline content directly, not [inline]
+      const paragraph = example.children[0];
+      expect(paragraph.type).toEqual('paragraph');
+      expect(paragraph.children.length).toBeGreaterThan(1);
+      expect(paragraph.children.some((c) => c.type === 'inline')).toBe(false);
+      expect(paragraph.children.some((c) => c.type === 'strong')).toBe(true);
+      expect(paragraph.children.some((c) => c.type === 'text')).toBe(true);
+    });
+
+    it('still creates inline wrapper when compact is off (compat)', function () {
+      const example = convert(`A **bold** word`);
+      const paragraph = example.children[0];
+      expect(paragraph.children[0].type).toEqual('inline');
+    });
+
+    it('inline annotations attach to paragraph in compact mode', function () {
+      const example = convert(`text {% #my-id %}`, { compact: true });
+      const paragraph = example.children[0];
+      expect(paragraph.type).toEqual('paragraph');
+      expect(paragraph.attributes.id).toEqual('my-id');
+    });
+
+    it('drops top-level document when single child', function () {
+      const example = Markdoc.parse(`# Just one heading`, { compact: true });
+      expect(example.type).toEqual('heading');
+    });
+
+    it('keeps document when there are multiple children', function () {
+      const example = Markdoc.parse(`# heading\n\nparagraph`, { compact: true });
+      expect(example.type).toEqual('document');
+      expect(example.children.length).toBe(2);
+    });
+
+    it('keeps document when frontmatter is present', function () {
+      const example = Markdoc.parse(`---\nfoo: bar\n---\n# heading`, { compact: true });
+      expect(example.type).toEqual('document');
+      expect(example.attributes.frontmatter).toContain('foo: bar');
+    });
+
+    it('keeps document when there are errors', function () {
+      const example = Markdoc.parse(`{% mytag %}\nhi\n`, { compact: true });
+      expect(example.type).toEqual('document');
     });
   });
 
