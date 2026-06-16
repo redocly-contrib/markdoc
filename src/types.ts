@@ -189,4 +189,9 @@ export type ParserArgs = {
   //    no slots, no errors, and no frontmatter
   // @default false
   compact?: boolean;
+  // When true, a markdoc tag that appears alone in an implicit paragraph
+  // (e.g. `{% tag %}content{% /tag %}` on its own line) is lifted out of
+  // the paragraph so it becomes a direct child of its surrounding container.
+  // @default false
+  noParagraphForLoneTag?: boolean;
 };

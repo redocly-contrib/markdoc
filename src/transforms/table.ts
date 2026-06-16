@@ -1,6 +1,6 @@
 import Ast from '../ast/index';
 
-import type { Node, NodeType, ValidationError } from '../types';
+import type { Node, NodeType, ValidationError, ParserArgs } from '../types';
 
 function convertToRow(node: Node, cellType: NodeType = 'td') {
   node.type = 'tr';
@@ -36,8 +36,9 @@ function unexpectedNodeError(node: Node): ValidationError {
 
 export default function transform(
   document: Node,
-  conditionalTags: string[] = ['if']
+  args?: ParserArgs
 ) {
+  const conditionalTags = args?.conditionalTags ?? ['if'];
   for (const node of document.walk()) {
     if (node.type !== 'tag' || node.tag !== 'table') continue;
 
@@ -71,7 +72,7 @@ export default function transform(
           ) {
             // Allow structural tags: else, nested conditionals, and comments
           } else {
-            row.errors.push(unexpectedNodeError(child));
+            row.addError(unexpectedNodeError(child));
             continue;
           }
           children.push(child);
@@ -79,7 +80,7 @@ export default function transform(
 
         row.children = children;
       } else if (row.type !== 'hr' && !isComment(row)) {
-        node.errors.push(unexpectedNodeError(row));
+        node.addError(unexpectedNodeError(row));
         continue;
       } else continue;
       tbody.push(row);
