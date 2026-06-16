@@ -3,6 +3,7 @@ import annotations from './plugins/annotations';
 import frontmatter from './plugins/frontmatter';
 import comments from './plugins/comments';
 import link from './plugins/link';
+import githubAdmonitions from './plugins/githubAdmonitions';
 import type Token from 'markdown-it/lib/token';
 
 export type LinkPluginOptions = { validatedProtocols: string[] };
@@ -16,6 +17,7 @@ export default class Tokenizer {
       allowComments?: boolean;
       allowLinkValidation?: boolean;
       linkValidationOptions?: LinkPluginOptions;
+      githubAdmonitions?: boolean;
     } = {}
   ) {
     this.parser = new MarkdownIt(config);
@@ -38,6 +40,8 @@ export default class Tokenizer {
         }
       );
     }
+    if (config.githubAdmonitions)
+      this.parser.use(githubAdmonitions, 'githubAdmonitions', {});
   }
 
   tokenize(content: string): Token[] {
