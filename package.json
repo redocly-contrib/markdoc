@@ -1,5 +1,5 @@
 {
-  "name": "@markdoc/markdoc",
+  "name": "@redocly/markdoc",
   "author": "Ryan Paul",
   "version": "0.5.10",
   "description": "A text markup language for documentation",
