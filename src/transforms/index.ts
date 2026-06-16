@@ -1,2 +1,3 @@
 import table from './table';
-export default [table];
+import loneTag from './lone-tag';
+export default [table, loneTag];
