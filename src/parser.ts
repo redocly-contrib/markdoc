@@ -16,12 +16,12 @@ const mappings: Record<string, string> = {
 
 function annotate(node: Node, attributes: AttributeValue[]) {
   for (const attribute of attributes) {
-    node.annotations.push(attribute);
+    node.addAnnotation(attribute);
 
     const { name, value, type } = attribute;
     if (type === 'attribute') {
       if (node.attributes[name] !== undefined)
-        node.errors.push({
+        node.addError({
           id: 'duplicate-attribute',
           level: 'warning',
           message: `Attribute '${name}' already set`,
@@ -102,6 +102,7 @@ function handleToken(
   file?: string,
   handleSlots?: boolean,
   addLocation?: boolean,
+  compact?: boolean,
   inlineParent?: Node
 ) {
   if (token.type === 'frontmatter') {
@@ -118,7 +119,7 @@ function handleToken(
   if (token.type === 'annotation') {
     if (inlineParent) return annotate(inlineParent, attributes);
 
-    return parent.errors.push({
+    return parent.addError({
       id: 'no-inline-annotations',
       level: 'error',
       message: `Can't apply inline annotations to '${parent.type}'`,
@@ -135,7 +136,7 @@ function handleToken(
 
   if (token.nesting < 0) {
     if (parent.type === typeName && parent.tag === tag) {
-      if (parent.lines && token.map) parent.lines.push(...token.map);
+      if (!compact && addLocation !== false && token.map) parent.pushLines(token.map);
       return nodes.pop();
     }
 
@@ -146,21 +147,34 @@ function handleToken(
     });
   }
 
+  // Compact mode: don't materialize the inline wrapper Node — recurse
+  // children straight into the surrounding parent (paragraph/heading/etc.).
+  if (compact && typeName === 'inline') {
+    if (Array.isArray(token.children)) {
+      const newInlineParent = parent;
+      for (const child of token.children)
+        handleToken(child, nodes, file, handleSlots, addLocation, compact, newInlineParent);
+    }
+    return;
+  }
+
   const attrs = handleAttrs(token, typeName);
   const node = new Node(typeName, attrs, undefined, tag || undefined);
   const { position = {} } = token;
 
-  node.errors = errors;
-  if (addLocation !== false) {
-    node.lines = token.map || parent.lines || [];
+  if (errors.length) for (const e of errors) node.addError(e);
+
+  if (!compact && addLocation !== false) {
+    const lines = token.map || parent.lines || [];
+    if (lines.length) node.pushLines(lines);
     node.location = {
       file,
       start: {
-        line: node.lines[0],
+        line: lines[0],
         character: position.start,
       },
       end: {
-        line: node.lines[1],
+        line: lines[1],
         character: position.end,
       },
     };
@@ -190,7 +204,7 @@ function handleToken(
   const isLeafNode = typeName === 'image';
   if (!isLeafNode) {
     for (const child of token.children)
-      handleToken(child, nodes, file, handleSlots, addLocation, inlineParent);
+      handleToken(child, nodes, file, handleSlots, addLocation, compact, inlineParent);
   }
 
   nodes.pop();
@@ -203,17 +217,17 @@ export default function parser(tokens: Token[], args?: string | ParserArgs) {
   if (typeof args === 'string') args = { file: args };
 
   for (const token of tokens)
-    handleToken(token, nodes, args?.file, args?.slots, args?.location);
+    handleToken(token, nodes, args?.file, args?.slots, args?.location, args?.compact);
 
   if (nodes.length > 1)
     for (const node of nodes.slice(1))
-      node.errors.push({
+      node.addError({
         id: 'missing-closing',
         level: 'critical',
         message: `Node '${node.tag || node.type}' is missing closing`,
       });
 
-  for (const transform of transforms) transform(doc, args?.conditionalTags);
+  for (const transform of transforms) transform(doc, args);
 
   return doc;
 }

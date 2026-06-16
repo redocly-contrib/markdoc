@@ -33,6 +33,11 @@ export type ConfigType<R = string> = Partial<{
     validateFunctions?: boolean;
     environment?: string;
   };
+  // When true, the transformer elides `<article>` around a single-child
+  // `document` and `<p>` around a single block-level tag, producing a
+  // more compact renderable tree.
+  // @default false
+  compact?: boolean;
 }>;
 
 export type ConfigFunction = {
@@ -175,4 +180,11 @@ export type ParserArgs = {
   // Tags not in this list that appear between table rows are dropped, which prevents arbitrary custom components from wrapping rows in ways that could produce invalid HTML.
   // @default ['if'] - By default, only the markdoc native conditional tag (`if`) is set
   conditionalTags?: string[];
+  // When true, the parser produces a compact AST:
+  //  - no `lines` or `location` is set on any Node
+  //  - the implicit `inline` wrapper Node around inline content is dropped
+  //  - the top-level `document` Node is dropped when it has a single child,
+  //    no slots, no errors, and no frontmatter
+  // @default false
+  compact?: boolean;
 };

@@ -19,11 +19,11 @@ export default class Node implements AstType {
   attributes: Record<string, any>;
   slots: Record<string, Node>;
   children: Node[];
-  errors: ValidationError[] = [];
-  lines: number[] = [];
+  errors?: ValidationError[];
+  lines?: number[];
   type: NodeType;
   tag?: string;
-  annotations: AttributeValue[];
+  annotations?: AttributeValue[];
 
   inline = false;
   location?: Location;
@@ -38,8 +38,22 @@ export default class Node implements AstType {
     this.children = children;
     this.type = type;
     this.tag = tag;
-    this.annotations = [];
     this.slots = {};
+  }
+
+  addError(error: ValidationError) {
+    if (!this.errors) this.errors = [];
+    this.errors.push(error);
+  }
+
+  addAnnotation(annotation: AttributeValue) {
+    if (!this.annotations) this.annotations = [];
+    this.annotations.push(annotation);
+  }
+
+  pushLines(lines: number[]) {
+    if (!this.lines) this.lines = [];
+    this.lines.push(...lines);
   }
 
   *walk(): Generator<Node, void, unknown> {

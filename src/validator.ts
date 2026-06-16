@@ -318,7 +318,7 @@ function hasValidLocation(
 }
 
 function toValidateError(
-  node: { type: string; lines: number[]; location?: Location },
+  node: { type: string; lines?: number[]; location?: Location },
   error: ValidationError
 ): ValidateError {
   if (hasValidLocation(error)) {
@@ -329,7 +329,7 @@ function toValidateError(
       error,
     };
   }
-  return { type: node.type, lines: node.lines, location: node.location, error };
+  return { type: node.type, lines: node.lines ?? [], location: node.location, error };
 }
 
 export function validateTree(content: Node, config: Config) {

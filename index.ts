@@ -16,7 +16,7 @@ import validator, { validateTree } from './src/validator';
 
 import type { ParserArgs } from './src/types';
 import type Token from 'markdown-it/lib/token';
-import type { Config, RenderableTreeNode, ValidateError } from './src/types';
+import type { Config, RenderableTreeNode, RenderableTreeNodes, ValidateError } from './src/types';
 
 export * from './src/types';
 
@@ -45,7 +45,22 @@ export function parse(
   args?: string | ParserArgs
 ): Node {
   if (typeof content === 'string') content = tokenizer.tokenize(content);
-  return parser(content, args);
+  const doc = parser(content, args);
+
+  const opts = typeof args === 'object' ? args : undefined;
+  if (
+    opts?.compact &&
+    doc.type === 'document' &&
+    doc.children.length === 1 &&
+    Object.keys(doc.slots).length === 0 &&
+    !doc.errors?.length &&
+    !doc.children[0].errors?.length &&
+    !doc.attributes.frontmatter
+  ) {
+    return doc.children[0];
+  }
+
+  return doc;
 }
 
 export function resolve<C extends Config = Config>(
@@ -69,7 +84,7 @@ export function resolve<C extends Config = Config>(
 export function transform<C extends Config = Config>(
   node: Node,
   config?: C
-): RenderableTreeNode;
+): RenderableTreeNodes;
 export function transform<C extends Config = Config>(
   nodes: Node[],
   config?: C

@@ -1,5 +1,6 @@
 import type { Schema } from './types';
 import Tag from './tag';
+import { isPromise } from './utils';
 
 export const document: Schema = {
   render: 'article',
@@ -17,6 +18,23 @@ export const document: Schema = {
   ],
   attributes: {
     frontmatter: { render: false },
+  },
+  transform(node, config) {
+    if (
+      config.compact &&
+      node.children.length === 1 &&
+      !node.attributes.frontmatter
+    ) {
+      return node.transformChildren(config);
+    }
+    const attributes = node.transformAttributes(config);
+    const children = node.transformChildren(config);
+    if (isPromise(attributes) || isPromise(children)) {
+      return Promise.all([attributes, children]).then(
+        (values) => new Tag('article', ...values)
+      );
+    }
+    return new Tag('article', attributes, children);
   },
 };
 
@@ -37,6 +55,32 @@ export const heading: Schema = {
 export const paragraph: Schema = {
   render: 'p',
   children: ['inline'],
+  transform(node, config) {
+    if (config.compact && node.children.length === 1) {
+      const child = node.children[0];
+      // Check direct tag child
+      let tagChild = child.type === 'tag' ? child : null;
+      // Check inline wrapper containing a single tag child
+      if (!tagChild && child.type === 'inline' && child.children.length === 1) {
+        const grandchild = child.children[0];
+        if (grandchild.type === 'tag') tagChild = grandchild;
+      }
+      if (tagChild && tagChild.tag) {
+        const schema = config.tags?.[tagChild.tag];
+        if (schema && schema.inline !== true) {
+          return node.transformChildren(config);
+        }
+      }
+    }
+    const attributes = node.transformAttributes(config);
+    const children = node.transformChildren(config);
+    if (isPromise(attributes) || isPromise(children)) {
+      return Promise.all([attributes, children]).then(
+        (values) => new Tag('p', ...values)
+      );
+    }
+    return new Tag('p', attributes, children);
+  },
 };
 
 export const image: Schema = {
