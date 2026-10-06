@@ -406,11 +406,10 @@ describe('transform', function () {
 });
 
 describe('lazy-init arrays', function () {
-  it('leaves errors/annotations/lines undefined when nothing pushed', function () {
+  it('leaves errors/annotations undefined when nothing pushed', function () {
     const n = new Node('paragraph');
     expect(n.errors).toBeUndefined();
     expect(n.annotations).toBeUndefined();
-    expect(n.lines).toBeUndefined();
   });
 
   it('addError lazily creates the errors array', function () {
@@ -425,16 +424,4 @@ describe('lazy-init arrays', function () {
     expect(n.annotations).toEqual([{ type: 'attribute', name: 'a', value: 1 }]);
   });
 
-  it('pushLines lazily creates the lines array', function () {
-    const n = new Node('paragraph');
-    n.pushLines([3, 5]);
-    expect(n.lines).toEqual([3, 5]);
-  });
-
-  it('pushLines appends to an existing lines array', function () {
-    const n = new Node('paragraph');
-    n.pushLines([3, 5]);
-    n.pushLines([7, 9]);
-    expect(n.lines).toEqual([3, 5, 7, 9]);
-  });
 });

@@ -73,14 +73,22 @@ describe('Markdown parser', function () {
       expect(example2.children[0].location).toDeepEqualSubset(expected);
     });
 
-    it('location off suppresses lines on closing block-tag tokens', function () {
+    it('location off suppresses location on closing block-tag tokens', function () {
       const example = convert(`{% mytag %}\nContent\n{% /mytag %}`, {
         location: false,
       });
       const tag = example.children[0];
       expect(tag.type).toEqual('tag');
       expect(tag.location).toBeUndefined();
-      expect(tag.lines).toBeUndefined();
+    });
+
+    it('extends a block tag location to cover its closing token', function () {
+      const example = convert(`{% mytag %}\nContent\n{% /mytag %}`);
+      const tag = example.children[0];
+      expect(tag.type).toEqual('tag');
+      // Opens on line 0, closes on line 2 -> exclusive end 3.
+      expect(tag.location?.start.line).toEqual(0);
+      expect(tag.location?.end.line).toEqual(3);
     });
   });
 
@@ -959,13 +967,11 @@ describe('Markdown parser', function () {
   });
 
   describe('compact mode', function () {
-    it('omits lines and location from every node', function () {
+    it('omits location from every node', function () {
       const example = convert(`# Hello\n\nWorld`, { compact: true });
       expect(example.location).toBeUndefined();
-      expect(example.lines).toBeUndefined();
       for (const node of example.walk()) {
         expect(node.location).toBeUndefined();
-        expect(node.lines).toBeUndefined();
       }
     });
 

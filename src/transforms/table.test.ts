@@ -177,10 +177,12 @@ This is not a valid row
     expect(tableSyntaxErrors.length).toBe(1);
     expect(tableSyntaxErrors[0].error.level).toBe('critical');
     expect(tableSyntaxErrors[0].error.message).toContain('tag callout');
-    // Error should point to the callout tag, not the if tag or table
+    // Error should point to the callout tag, not the if tag or table.
+    // `end.line` is the exclusive end of the whole tag block (open through
+    // close), so the callout on lines 5-7 reports end 8.
     expect(tableSyntaxErrors[0].location?.start.line).toBe(5);
-    expect(tableSyntaxErrors[0].location?.end.line).toBe(6);
-    expect(tableSyntaxErrors[0].lines).toEqual([5, 6]);
+    expect(tableSyntaxErrors[0].location?.end.line).toBe(8);
+    expect(tableSyntaxErrors[0].lines).toEqual([5, 8]);
   });
 
   it('produces an error for non-conditional tags at the row level of a table', function () {
@@ -205,9 +207,11 @@ This is not a valid row
     expect(tableSyntaxErrors.length).toBe(1);
     expect(tableSyntaxErrors[0].error.level).toBe('critical');
     expect(tableSyntaxErrors[0].error.message).toContain('tag');
-    // Error should point to the callout tag, not the table
+    // Error should point to the callout tag, not the table.
+    // `end.line` is the exclusive end of the whole tag block (open through
+    // close), so the callout on lines 4-6 reports end 7.
     expect(tableSyntaxErrors[0].location?.start.line).toBe(4);
-    expect(tableSyntaxErrors[0].location?.end.line).toBe(5);
-    expect(tableSyntaxErrors[0].lines).toEqual([4, 5]);
+    expect(tableSyntaxErrors[0].location?.end.line).toBe(7);
+    expect(tableSyntaxErrors[0].lines).toEqual([4, 7]);
   });
 });

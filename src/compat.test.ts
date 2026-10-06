@@ -37,8 +37,6 @@ describe('compat guard', function () {
         // Child nodes have location by default.
         if (ast.children.length > 0) {
           expect(ast.children[0].location).toBeDefined();
-          // Lines are present by default.
-          expect(ast.children[0].lines).toBeDefined();
         }
       });
     }

@@ -143,7 +143,14 @@ function handleToken(
 
   if (token.nesting < 0) {
     if (parent.type === typeName && parent.tag === tag) {
-      if (!compact && addLocation !== false && token.map) parent.pushLines(token.map);
+      // Extend the container's location to cover its closing token. Without
+      // this, a multi-line construct (notably a markdoc `{% tag %}` block)
+      // would report `location.end` as the end of its *opening* token.
+      if (!compact && addLocation !== false && token.map && parent.location)
+        parent.location.end = {
+          line: token.map[1],
+          character: token.position?.end ?? parent.location.end.character,
+        };
       return nodes.pop();
     }
 
@@ -172,16 +179,21 @@ function handleToken(
   if (errors.length) for (const e of errors) node.addError(e);
 
   if (!compact && addLocation !== false) {
-    const lines = token.map || parent.lines || [];
-    if (lines.length) node.pushLines(lines);
+    // Inline tokens carry no `map` of their own, so they inherit the span of
+    // the enclosing block from its location.
+    const span =
+      token.map ||
+      (parent.location
+        ? [parent.location.start.line, parent.location.end.line]
+        : []);
     node.location = {
       file,
       start: {
-        line: lines[0],
+        line: span[0],
         character: position.start,
       },
       end: {
-        line: lines[1],
+        line: span[1],
         character: position.end,
       },
     };

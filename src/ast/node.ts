@@ -20,7 +20,6 @@ export default class Node implements AstType {
   slots: Record<string, Node>;
   children: Node[];
   errors?: ValidationError[];
-  lines?: number[];
   type: NodeType;
   tag?: string;
   annotations?: AttributeValue[];
@@ -49,11 +48,6 @@ export default class Node implements AstType {
   addAnnotation(annotation: AttributeValue) {
     if (!this.annotations) this.annotations = [];
     this.annotations.push(annotation);
-  }
-
-  pushLines(lines: number[]) {
-    if (!this.lines) this.lines = [];
-    this.lines.push(...lines);
   }
 
   *walk(): Generator<Node, void, unknown> {

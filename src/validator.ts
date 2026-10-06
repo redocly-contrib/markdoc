@@ -318,7 +318,7 @@ function hasValidLocation(
 }
 
 function toValidateError(
-  node: { type: string; lines?: number[]; location?: Location },
+  node: { type: string; location?: Location },
   error: ValidationError
 ): ValidateError {
   if (hasValidLocation(error)) {
@@ -329,7 +329,15 @@ function toValidateError(
       error,
     };
   }
-  return { type: node.type, lines: node.lines ?? [], location: node.location, error };
+  // `lines` is kept on the public error shape for compatibility, but it is
+  // now purely derived from `location` rather than stored per Node.
+  const loc = node.location;
+  return {
+    type: node.type,
+    lines: loc ? [loc.start.line, loc.end.line] : [],
+    location: loc,
+    error,
+  };
 }
 
 export function validateTree(content: Node, config: Config) {
