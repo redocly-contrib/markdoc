@@ -40,7 +40,9 @@ export default class Tokenizer {
         }
       );
     }
-    if (config.githubAdmonitions)
+    // GitHub-style admonitions (`> [!NOTE]`) are recognized by default.
+    // Pass `githubAdmonitions: false` to opt out.
+    if (config.githubAdmonitions !== false)
       this.parser.use(githubAdmonitions, 'githubAdmonitions', {});
   }
 

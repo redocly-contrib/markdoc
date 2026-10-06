@@ -55,9 +55,13 @@ describe('compat guard', function () {
     }
   });
 
-  it('Tokenizer with no flags does not surface admonition kind', function () {
-    // Same input as the gh-admonitions test, but with default tokenizer.
+  it('GitHub admonitions are recognized by default', function () {
     const ast = Markdoc.parse(`> [!NOTE]\n> body`);
+    expect(ast.children[0].attributes.kind).toEqual('note');
+  });
+
+  it('GitHub admonitions can be opted out via githubAdmonitions: false', function () {
+    const ast = Markdoc.parse(`> [!NOTE]\n> body`, { githubAdmonitions: false });
     expect(ast.children[0].attributes.kind).toBeUndefined();
   });
 });

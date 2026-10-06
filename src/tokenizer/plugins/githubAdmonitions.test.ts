@@ -2,7 +2,9 @@ import Tokenizer from '../index';
 import parser from '../../parser';
 
 function parse(src: string, opts: any = {}) {
-  const tokenizer = new Tokenizer({ githubAdmonitions: true, ...opts });
+  // Default Tokenizer now has githubAdmonitions enabled; tests can drop
+  // the explicit flag.
+  const tokenizer = new Tokenizer(opts);
   return parser(tokenizer.tokenize(src));
 }
 
@@ -53,8 +55,8 @@ describe('github admonitions plugin', function () {
     expect(bq.attributes.kind).toBeUndefined();
   });
 
-  it('does nothing when plugin is off (compat)', function () {
-    const tokenizer = new Tokenizer({});
+  it('does nothing when explicitly disabled via githubAdmonitions: false', function () {
+    const tokenizer = new Tokenizer({ githubAdmonitions: false });
     const doc = parser(tokenizer.tokenize(`> [!NOTE]\n> body`));
     const bq = doc.children[0];
     expect(bq.attributes.kind).toBeUndefined();

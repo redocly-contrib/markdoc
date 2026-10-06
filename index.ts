@@ -21,6 +21,9 @@ import type { Config, RenderableTreeNode, RenderableTreeNodes, ValidateError } f
 export * from './src/types';
 
 const tokenizer = new Tokenizer();
+// Alternate tokenizer for callers that pass `githubAdmonitions: false` to
+// `parse()`. Lazily constructed because most callers want the default behavior.
+let plainTokenizer: Tokenizer | undefined;
 
 function mergeConfig(config: Config = {}): Config {
   return {
@@ -44,7 +47,15 @@ export function parse(
   content: string | Token[],
   args?: string | ParserArgs
 ): Node {
-  if (typeof content === 'string') content = tokenizer.tokenize(content);
+  if (typeof content === 'string') {
+    const opts = typeof args === 'object' ? args : undefined;
+    if (opts?.githubAdmonitions === false) {
+      plainTokenizer ??= new Tokenizer({ githubAdmonitions: false });
+      content = plainTokenizer.tokenize(content);
+    } else {
+      content = tokenizer.tokenize(content);
+    }
+  }
   const doc = parser(content, args);
 
   const opts = typeof args === 'object' ? args : undefined;

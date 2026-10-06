@@ -194,4 +194,11 @@ export type ParserArgs = {
   // the paragraph so it becomes a direct child of its surrounding container.
   // @default false
   noParagraphForLoneTag?: boolean;
+  // GitHub-style admonitions (`> [!NOTE]\n> body`) are recognized by the
+  // default tokenizer used when `parse()` is given a string. Pass `false`
+  // here to opt out — the convenience `parse(string)` path will use an
+  // alternate tokenizer without the plugin. Ignored when `content` is
+  // already a Token[] (you control the tokenizer in that case).
+  // @default true
+  githubAdmonitions?: boolean;
 };
