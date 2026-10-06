@@ -209,7 +209,7 @@ function handleToken(
     tag === 'slot' &&
     typeof node.attributes.primary === 'string'
   )
-    parent.slots[node.attributes.primary] = node;
+    parent.addSlot(node.attributes.primary, node);
   else parent.push(node);
 
   if (token.nesting > 0) nodes.push(node);

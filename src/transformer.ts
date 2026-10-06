@@ -51,7 +51,8 @@ export default {
       for (const [key, slot] of Object.entries(schema.slots)) {
         if (slot.render === false) continue;
         const name = typeof slot.render === 'string' ? slot.render : key;
-        if (node.slots[key]) output[name] = this.node(node.slots[key], config);
+        const slotNode = node.slots?.[key];
+        if (slotNode) output[name] = this.node(slotNode, config);
       }
     }
 

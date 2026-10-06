@@ -27,7 +27,7 @@ function unwrapIn(node: Node) {
     }
   }
   // Slots too — they're alternative children trees.
-  for (const slot of Object.values(node.slots)) {
+  for (const slot of Object.values(node.slots ?? {})) {
     unwrapIn(slot);
   }
 }

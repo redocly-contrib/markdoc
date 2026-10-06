@@ -406,10 +406,23 @@ describe('transform', function () {
 });
 
 describe('lazy-init arrays', function () {
-  it('leaves errors/annotations undefined when nothing pushed', function () {
+  it('leaves errors/annotations/slots undefined when nothing pushed', function () {
     const n = new Node('paragraph');
     expect(n.errors).toBeUndefined();
     expect(n.annotations).toBeUndefined();
+    expect(n.slots).toBeUndefined();
+  });
+
+  it('addSlot lazily creates the slots object', function () {
+    const n = new Node('tag', {}, [], 'mytag');
+    const slot = new Node('paragraph');
+    n.addSlot('footer', slot);
+    expect(n.slots).toEqual({ footer: slot });
+  });
+
+  it('resolve() keeps slots undefined when there are none', function () {
+    const n = new Node('paragraph');
+    expect(n.resolve({}).slots).toBeUndefined();
   });
 
   it('addError lazily creates the errors array', function () {

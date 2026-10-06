@@ -63,7 +63,7 @@ export function parse(
     opts?.compact &&
     doc.type === 'document' &&
     doc.children.length === 1 &&
-    Object.keys(doc.slots).length === 0 &&
+    !doc.slots &&
     !doc.errors?.length &&
     !doc.children[0].errors?.length &&
     !doc.attributes.frontmatter

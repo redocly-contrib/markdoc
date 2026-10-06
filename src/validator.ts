@@ -167,7 +167,7 @@ export default function validator(node: Node, config: Config) {
     ...schema.attributes,
   };
 
-  for (const key of Object.keys(node.slots)) {
+  for (const key of Object.keys(node.slots ?? {})) {
     const slot = schema.slots?.[key];
     if (!slot)
       errors.push({
@@ -268,7 +268,7 @@ export default function validator(node: Node, config: Config) {
 
   if (schema.slots)
     for (const [key, { required }] of Object.entries(schema.slots))
-      if (required && node.slots[key] === undefined)
+      if (required && node.slots?.[key] === undefined)
         errors.push({
           id: 'slot-missing-required',
           level: 'error',
@@ -301,7 +301,7 @@ export function* walkWithParents(
   parents: Node[] = []
 ): Generator<[Node, Node[]]> {
   yield [node, parents];
-  for (const child of [...Object.values(node.slots), ...node.children])
+  for (const child of [...Object.values(node.slots ?? {}), ...node.children])
     yield* walkWithParents(child, [...parents, node]);
 }
 

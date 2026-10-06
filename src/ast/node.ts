@@ -17,7 +17,7 @@ export default class Node implements AstType {
   readonly $$mdtype = 'Node';
 
   attributes: Record<string, any>;
-  slots: Record<string, Node>;
+  slots?: Record<string, Node>;
   children: Node[];
   errors?: ValidationError[];
   type: NodeType;
@@ -37,7 +37,6 @@ export default class Node implements AstType {
     this.children = children;
     this.type = type;
     this.tag = tag;
-    this.slots = {};
   }
 
   addError(error: ValidationError) {
@@ -50,8 +49,14 @@ export default class Node implements AstType {
     this.annotations.push(annotation);
   }
 
+  addSlot(name: string, node: Node) {
+    if (!this.slots) this.slots = {};
+    this.slots[name] = node;
+  }
+
   *walk(): Generator<Node, void, unknown> {
-    for (const child of [...Object.values(this.slots), ...this.children]) {
+    const slots = this.slots ? Object.values(this.slots) : [];
+    for (const child of [...slots, ...this.children]) {
       yield child;
       yield* child.walk();
     }
@@ -65,12 +70,16 @@ export default class Node implements AstType {
     return Object.assign(new Node(), this, {
       children: this.children.map((child) => child.resolve(config)),
       attributes: resolve(this.attributes, config),
-      slots: Object.fromEntries(
-        Object.entries(this.slots).map(([name, slot]) => [
-          name,
-          slot.resolve(config),
-        ])
-      ),
+      // Preserve `undefined` so a node without slots stays slot-less rather
+      // than gaining an empty object on every resolve.
+      slots: this.slots
+        ? Object.fromEntries(
+            Object.entries(this.slots).map(([name, slot]) => [
+              name,
+              slot.resolve(config),
+            ])
+          )
+        : undefined,
     });
   }
 
