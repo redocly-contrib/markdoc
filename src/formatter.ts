@@ -8,6 +8,13 @@ type Options = {
   orderedListMode?: 'increment' | 'repeat';
   parent?: Node;
   indent?: number;
+  /** `false` writes every text node as it is, for a caller that escaped the text itself. */
+  escapeText?: boolean;
+  /**
+   * Internal. Set while formatting a GFM pipe table so cells escape `|`.
+   * Markdoc's own `{% table %}` list syntax needs no escaping.
+   */
+  gfmCell?: boolean;
 };
 
 const SPACE = ' ';
@@ -132,6 +139,18 @@ function* trimStart(g: Generator<string>) {
   yield* g;
 }
 
+// A URL and a title are written by the formatter and read back by the parser, so each is
+// written the way the parser will read it whole: in angle brackets where it holds
+// whitespace, and with the delimiter of its own place escaped.
+function* formatDestination(v: string) {
+  const escaped = v.replace(/[\\<>]/g, '\\$&');
+  yield /\s/.test(v) ? '<' + escaped + '>' : escaped.replace(/[()]/g, '\\$&');
+}
+
+function formatTitle(v: unknown) {
+  return String(v).replace(/[\\"]/g, '\\$&');
+}
+
 function* escapeMarkdownCharacters(s: string, characters: RegExp) {
   yield s
     .replace(characters, '\\$&')
@@ -181,32 +200,29 @@ function* formatNode(n: Node, o: Options = {}) {
       yield ']';
       yield '(';
       yield* typeof n.attributes.src === 'string'
-        ? escapeMarkdownCharacters(n.attributes.src, /[()]/g)
+        ? formatDestination(n.attributes.src)
         : formatValue(n.attributes.src, no);
       if (n.attributes.title) {
-        yield SPACE + `"${n.attributes.title}"`;
+        yield SPACE + '"' + formatTitle(n.attributes.title) + '"';
       }
       yield ')';
       break;
     }
     case 'link': {
+      // Always written as `[text](href)`. The autolink form `<href>` is not used
+      // even when the text equals the href, so that a destination needing escaping
+      // round-trips through the parser unchanged.
       const children = [...formatChildren(n, no)].join('');
-
-      // https://spec.commonmark.org/0.31.2/#autolinks
-      if (children === n.attributes.href && !n.attributes.title) {
-        yield `<${n.attributes.href}>`;
-        break;
-      }
 
       yield '[';
       yield children;
       yield ']';
       yield '(';
       yield* typeof n.attributes.href === 'string'
-        ? escapeMarkdownCharacters(n.attributes.href, /[()]/g)
+        ? formatDestination(n.attributes.href)
         : formatValue(n.attributes.href, no);
       if (n.attributes.title) {
-        yield SPACE + `"${n.attributes.title}"`;
+        yield SPACE + '"' + formatTitle(n.attributes.title) + '"';
       }
       yield ')';
       break;
@@ -219,7 +235,8 @@ function* formatNode(n: Node, o: Options = {}) {
         yield* formatValue(content, no);
         yield SPACE + CLOSE;
       } else {
-        if (o.parent && WRAPPING_TYPES.includes(o.parent.type)) {
+        if (o.escapeText === false) yield content;
+        else if (o.parent && WRAPPING_TYPES.includes(o.parent.type)) {
           // Escape **strong**, _em_, and ~~s~~
           yield* escapeMarkdownCharacters(content, /[*_~]/g);
         } else {
@@ -231,11 +248,22 @@ function* formatNode(n: Node, o: Options = {}) {
       break;
     }
     case 'blockquote': {
-      const prefix = NL + indent + '>' + SPACE;
-      const inner = n.children
-        .map((child) => format(child, { ...no, indent: 0 }).trim())
-        .join(NL + NL);
-      yield prefix + inner.split(NL).join(prefix) + NL;
+      const prefix = indent + '>' + SPACE;
+      // Blank lines inside the quote get a bare `>` rather than `> ` so the
+      // output carries no trailing whitespace.
+      const quote = (d: string) =>
+        d
+          .split(NL)
+          .map((line) => (line.length ? prefix + line : prefix.trimEnd()))
+          .join(NL);
+      const parts = n.children.map((child) =>
+        quote(format(child, { ...no, indent: 0 }).trim())
+      );
+      yield NL +
+        (parts.length ? parts : [quote('')]).join(
+          NL + prefix.trimEnd() + NL
+        ) +
+        NL;
       break;
     }
     case 'hr': {
@@ -256,7 +284,8 @@ function* formatNode(n: Node, o: Options = {}) {
         .reduce(max, 0);
 
       const boundary = '`'.repeat(innerFenceLength ? innerFenceLength + 1 : 3);
-      const needsNlBeforeEndBoundary = !n.attributes.content.endsWith(NL);
+      const needsNlBeforeEndBoundary =
+        n.attributes.content !== '' && !n.attributes.content.endsWith(NL);
 
       yield boundary;
       if (n.attributes.language) yield n.attributes.language;
@@ -360,9 +389,21 @@ function* formatNode(n: Node, o: Options = {}) {
       break;
     }
     case 'code': {
-      yield '`';
-      yield* formatInline(formatValue(n.attributes.content, no));
-      yield '`';
+      // https://spec.commonmark.org/0.31.2/#code-spans — the delimiter must be
+      // longer than any backtick run in the content, and the content needs a space
+      // of padding when it would otherwise start or end with a backtick (or is
+      // entirely space-padded already).
+      const code = String(n.attributes.content ?? '');
+      const runs = code.match(/`+/g) || [];
+      const boundary = '`'.repeat(
+        runs.map((s: string) => s.length).reduce(max, 0) + 1
+      );
+      const needsPadding =
+        code.startsWith('`') ||
+        code.endsWith('`') ||
+        (code.startsWith(SPACE) && code.endsWith(SPACE));
+      const padding = needsPadding ? SPACE : '';
+      yield boundary + padding + code + padding + boundary;
       break;
     }
     case 's': {
@@ -382,8 +423,12 @@ function* formatNode(n: Node, o: Options = {}) {
       break;
     }
     case 'table': {
-      const table = [...formatChildren(n, increment(no))] as any as any[];
-      if (o.parent && o.parent.type === 'tag' && o.parent.tag === 'table') {
+      const isTagTable =
+        o.parent && o.parent.type === 'tag' && o.parent.tag === 'table';
+      const table = [
+        ...formatChildren(n, increment({ ...no, gfmCell: !isTagTable })),
+      ] as any as any[];
+      if (isTagTable) {
         for (let i = 0; i < table.length; i++) {
           const row = table[i];
           // format tags like "if" in the middle of a table list
@@ -404,26 +449,47 @@ function* formatNode(n: Node, o: Options = {}) {
         }
         yield NL;
       } else {
+        // Column alignment lives on the header cells and is written back as the
+        // `:---`/`:---:`/`---:` markers in the delimiter row.
+        const aligns: (string | undefined)[] = (
+          n.children[0]?.children[0]?.children ?? []
+        ).map((cell) => cell.attributes.align);
         const widths: number[] = [];
 
         for (const row of table) {
           for (let i = 0; i < row.length; i++) {
-            widths[i] = widths[i]
-              ? Math.max(widths[i], row[i].length)
-              : row[i].length;
+            // An aligned column needs room for its markers.
+            widths[i] = Math.max(
+              widths[i] ?? 0,
+              row[i].length,
+              aligns[i] ? 3 : 1
+            );
           }
         }
 
         const [head, ...rows] = table as string[][];
 
         yield NL;
+        yield indent;
         yield* formatTableRow(
           head.map((cell, i) => cell + SPACE.repeat(widths[i] - cell.length))
         );
         yield NL;
-        yield* formatTableRow(head.map((cell, i) => '-'.repeat(widths[i])));
+        yield indent;
+        yield* formatTableRow(
+          head.map((_cell, i) => {
+            const start =
+              aligns[i] === 'left' || aligns[i] === 'center' ? ':' : '';
+            const end =
+              aligns[i] === 'right' || aligns[i] === 'center' ? ':' : '';
+            return (
+              start + '-'.repeat(widths[i] - start.length - end.length) + end
+            );
+          })
+        );
         yield NL;
         for (const row of rows) {
+          yield indent;
           yield* formatTableRow(
             row.map((cell, i) => cell + SPACE.repeat(widths[i] - cell.length))
           );
@@ -443,7 +509,11 @@ function* formatNode(n: Node, o: Options = {}) {
     }
     case 'td':
     case 'th': {
-      yield [...formatChildren(n, no), ...formatAnnotations(n)].join('').trim();
+      const cell = [...formatChildren(n, no), ...formatAnnotations(n)]
+        .join('')
+        .trim();
+      // A literal `|` would end the cell in GFM pipe-table syntax.
+      yield o.gfmCell ? cell.replace(/\|/g, '\\|') : cell;
       break;
     }
     case 'tbody': {

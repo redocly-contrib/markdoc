@@ -214,4 +214,43 @@ This is not a valid row
     expect(tableSyntaxErrors[0].location?.end.line).toBe(7);
     expect(tableSyntaxErrors[0].lines).toEqual([4, 7]);
   });
+
+  describe('header row validation', function () {
+    const config = { tags: { callout: { render: 'div' } } };
+
+    function tableSyntaxErrors(input: string) {
+      return validate(input, config).filter((e) => e.error.id === 'table-syntax');
+    }
+
+    it('produces an error when the header row is a tag', function () {
+      const errors = tableSyntaxErrors(
+        `{% table %}\n{% callout %}\nnope\n{% /callout %}\n---\n* a\n{% /table %}`
+      );
+
+      expect(errors.length).toBe(1);
+      expect(errors[0].error.message).toContain('tag callout');
+      expect(errors[0].error.message).toContain('where a list was expected');
+    });
+
+    it('produces an error when the header row is a paragraph', function () {
+      const errors = tableSyntaxErrors(
+        `{% table %}\nplain text header\n---\n* a\n{% /table %}`
+      );
+
+      expect(errors.length).toBe(1);
+      expect(errors[0].error.message).toContain('paragraph');
+    });
+
+    it('accepts a list header row', function () {
+      expect(
+        tableSyntaxErrors(`{% table %}\n* Head\n---\n* a\n{% /table %}`).length
+      ).toBe(0);
+    });
+
+    it('accepts a leading separator with no header row', function () {
+      expect(
+        tableSyntaxErrors(`{% table %}\n---\n* a\n{% /table %}`).length
+      ).toBe(0);
+    });
+  });
 });

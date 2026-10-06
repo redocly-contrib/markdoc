@@ -166,7 +166,7 @@ Text > not a blockquote
 \`\`\`
 
 {% table %}
-- <https://autolink.com>
+- [https://autolink.com](https://autolink.com)
 - **[Link](https://example.com?q=()**
 - **[Link](https://example.com?q=\\()**
 - **[Link](https://example.com?q=\\(\\))**
@@ -826,7 +826,7 @@ ${'`'.repeat(4)}
 
     const expected = `
 > Blockquote {% .class %}
-> 
+>
 > with two paragraphs
 `;
 
@@ -847,13 +847,13 @@ ${'`'.repeat(4)}
 
     const expected = `
 > Intro:
-> 
+>
 > - One
 > - Two
-> 
+>
 > 1. First
 > 1. Second
-> 
+>
 > After
 `;
 
@@ -865,10 +865,10 @@ ${'`'.repeat(4)}
 > - One
 >   - Nested
 > - Two
-> 
+>
 > > Inner
 > > quote
-> 
+>
 > \`\`\`js
 > code();
 > \`\`\`
@@ -881,7 +881,7 @@ ${'`'.repeat(4)}
 - Item
 
   > Quote
-  > 
+  >
   > - One
   > - Two
 `;
@@ -909,5 +909,106 @@ ${'`'.repeat(4)}
   it('makes sure fences are formatted correctly if content has no ending newline', () => {
     const node = new Markdoc.Ast.Node('fence', { content: 'foo' });
     expect(format(node)).toEqual('```\nfoo\n```\n');
+  });
+
+  it('does not add a blank line to a fence with empty content', () => {
+    const node = new Markdoc.Ast.Node('fence', { content: '' });
+    expect(format(node)).toEqual('```\n```\n');
+    stable('```js\n```\n');
+  });
+
+  describe('link and image destinations', () => {
+    it('wraps a destination containing whitespace in angle brackets', () => {
+      const node = new Markdoc.Ast.Node('link', { href: '/my path/x.md' }, [
+        new Markdoc.Ast.Node('text', { content: 'a' }),
+      ]);
+      expect(format(node)).toEqual('[a](</my path/x.md>)');
+    });
+
+    it('escapes backslashes and angle brackets in a destination', () => {
+      const node = new Markdoc.Ast.Node('link', { href: 'a<b>c\\d' }, [
+        new Markdoc.Ast.Node('text', { content: 'x' }),
+      ]);
+      expect(format(node)).toEqual('[x](a\\<b\\>c\\\\d)');
+    });
+
+    it('escapes quotes and backslashes in a title', () => {
+      const node = new Markdoc.Ast.Node(
+        'link',
+        { href: '/x', title: 'He said "hi" \\ bye' },
+        [new Markdoc.Ast.Node('text', { content: 'a' })]
+      );
+      expect(format(node)).toEqual(
+        '[a](/x "He said \\"hi\\" \\\\ bye")'
+      );
+    });
+
+    it('round-trips parens and quotes', () => {
+      stable('[a](https://e.com?q=\\(\\))\n');
+      stable('[a](/x "He said \\"hi\\"")\n');
+    });
+
+    it('writes a link whose text equals its href in explicit form', () => {
+      // The autolink `<href>` shortcut is deliberately not used, so a
+      // destination needing escaping survives a round-trip.
+      check(
+        '<https://example.com>',
+        '[https://example.com](https://example.com)\n'
+      );
+    });
+  });
+
+  describe('code spans', () => {
+    it('uses a delimiter longer than any backtick run in the content', () => {
+      const node = new Markdoc.Ast.Node('code', { content: '`' });
+      expect(format(node)).toEqual('`` ` ``');
+    });
+
+    it('pads content that starts or ends with a backtick', () => {
+      expect(format(new Markdoc.Ast.Node('code', { content: '`a' }))).toEqual(
+        '`` `a ``'
+      );
+      expect(format(new Markdoc.Ast.Node('code', { content: 'a`' }))).toEqual(
+        '`` a` ``'
+      );
+    });
+
+    it('does not pad ordinary content', () => {
+      expect(format(new Markdoc.Ast.Node('code', { content: 'a' }))).toEqual(
+        '`a`'
+      );
+    });
+
+    it('round-trips nested backticks', () => {
+      stable('a `` ` `` b\n');
+      stable('a ``` `` ``` b\n');
+    });
+  });
+
+  describe('GFM tables', () => {
+    it('preserves column alignment markers', () => {
+      stable(
+        '| a   | b   | c   |\n| :-- | :-: | --: |\n| 1   | 2   | 3   |\n'
+      );
+    });
+
+    it('escapes a pipe inside a cell', () => {
+      stable('| a      |\n| ------ |\n| x \\| y |\n');
+    });
+
+    it('does not escape pipes in a markdoc {% table %}', () => {
+      // The list-based table syntax has no cell delimiter to collide with.
+      stable('{% table %}\n- a | b\n{% /table %}\n');
+    });
+  });
+
+  describe('escapeText option', () => {
+    it('escapes text by default', () => {
+      stable('\\# not heading\n');
+    });
+
+    it('writes text verbatim when escapeText is false', () => {
+      check('\\# not heading', '# not heading\n', { escapeText: false });
+    });
   });
 });

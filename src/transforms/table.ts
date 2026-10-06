@@ -53,6 +53,10 @@ export default function transform(
     const [thead, tbody] = table.children;
 
     if (first.type === 'list') thead.push(convertToRow(first, 'th'));
+    // A header row must be a list. Anything else (other than a separator or a
+    // comment) is a syntax error rather than something to silently drop.
+    else if (first.type !== 'hr' && !isComment(first))
+      node.addError(unexpectedNodeError(first));
 
     for (const row of rest) {
       // Convert lists to rows with special-case support for conditionals
