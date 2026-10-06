@@ -54,3 +54,57 @@ describe('transformer compact mode', function () {
     expect(tag.name).toEqual('article');
   });
 });
+
+describe('schema render overrides', function () {
+  function render(src: string, nodes: any, config: any = {}) {
+    const out: any = Markdoc.transform(Markdoc.parse(src), {
+      ...config,
+      nodes: { ...Markdoc.nodes, ...nodes },
+    });
+    return Array.isArray(out) ? out : [out];
+  }
+
+  it('honors a document render override', function () {
+    const document = { ...Markdoc.nodes.document, render: 'div' };
+    expect(render('hello', { document })[0].name).toEqual('div');
+  });
+
+  it('honors a document render override with multiple children', function () {
+    const document = { ...Markdoc.nodes.document, render: 'section' };
+    expect(render('# h\n\nbody', { document })[0].name).toEqual('section');
+  });
+
+  it('honors a paragraph render override', function () {
+    const paragraph = { ...Markdoc.nodes.paragraph, render: 'span' };
+    const out = render('# h\n\nbody', { paragraph });
+    expect(out[0].name).toEqual('article');
+    expect(out[0].children.map((c: any) => c.name)).toEqual(['h1', 'span']);
+  });
+
+  it('honors a document render override in compact mode when not elided', function () {
+    // Two children, so compact does not elide the wrapper and `render` applies.
+    const document = { ...Markdoc.nodes.document, render: 'div' };
+    expect(
+      render('# h\n\nbody', { document }, { compact: true })[0].name
+    ).toEqual('div');
+  });
+
+  it('still elides a single-child document in compact mode despite an override', function () {
+    // Compact's whole purpose is to drop the wrapper, so there is nothing for
+    // `render` to apply to here.
+    const document = { ...Markdoc.nodes.document, render: 'div' };
+    const out = render('hello', { document }, { compact: true });
+    expect(out.length).toBe(1);
+    expect(out[0].name).toEqual('p');
+  });
+
+  it('lets a custom transform win over compact elision', function () {
+    const document = {
+      ...Markdoc.nodes.document,
+      transform: () => new Markdoc.Tag('custom', {}, []),
+    };
+    expect(
+      render('hello', { document }, { compact: true })[0].name
+    ).toEqual('custom');
+  });
+});

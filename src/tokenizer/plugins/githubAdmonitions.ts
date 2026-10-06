@@ -1,7 +1,14 @@
 import type MarkdownIt from 'markdown-it/lib';
 import type StateCore from 'markdown-it/lib/rules_core/state_core';
 
-const KINDS = new Set([
+/**
+ * The admonition kinds recognized in `> [!KIND]` markers. The first five are
+ * GitHub's own set; the rest are common extensions in other dialects.
+ *
+ * Exported so the `blockquote` schema can validate the `kind` attribute and the
+ * formatter can write the marker back out, keeping one source of truth.
+ */
+export const ADMONITION_KINDS = [
   'note',
   'tip',
   'important',
@@ -10,7 +17,9 @@ const KINDS = new Set([
   'info',
   'success',
   'danger',
-]);
+] as const;
+
+const KINDS: Set<string> = new Set(ADMONITION_KINDS);
 
 const MARKER_RE = /^\[!([A-Za-z]+)]\s*(?:\n|$)/;
 

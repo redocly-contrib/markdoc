@@ -1,6 +1,6 @@
 import type { Schema } from './types';
 import Tag from './tag';
-import { isPromise } from './utils';
+import { ADMONITION_KINDS } from './tokenizer/plugins/githubAdmonitions';
 
 export const document: Schema = {
   render: 'article',
@@ -19,23 +19,8 @@ export const document: Schema = {
   attributes: {
     frontmatter: { render: false },
   },
-  transform(node, config) {
-    if (
-      config.compact &&
-      node.children.length === 1 &&
-      !node.attributes.frontmatter
-    ) {
-      return node.transformChildren(config);
-    }
-    const attributes = node.transformAttributes(config);
-    const children = node.transformChildren(config);
-    if (isPromise(attributes) || isPromise(children)) {
-      return Promise.all([attributes, children]).then(
-        (values) => new Tag('article', ...values)
-      );
-    }
-    return new Tag('article', attributes, children);
-  },
+  // No custom `transform`: compact-mode wrapper elision lives in
+  // `transformer.node` so that a `render` override on this schema is honored.
 };
 
 export const heading: Schema = {
@@ -55,32 +40,7 @@ export const heading: Schema = {
 export const paragraph: Schema = {
   render: 'p',
   children: ['inline'],
-  transform(node, config) {
-    if (config.compact && node.children.length === 1) {
-      const child = node.children[0];
-      // Check direct tag child
-      let tagChild = child.type === 'tag' ? child : null;
-      // Check inline wrapper containing a single tag child
-      if (!tagChild && child.type === 'inline' && child.children.length === 1) {
-        const grandchild = child.children[0];
-        if (grandchild.type === 'tag') tagChild = grandchild;
-      }
-      if (tagChild && tagChild.tag) {
-        const schema = config.tags?.[tagChild.tag];
-        if (schema && schema.inline !== true) {
-          return node.transformChildren(config);
-        }
-      }
-    }
-    const attributes = node.transformAttributes(config);
-    const children = node.transformChildren(config);
-    if (isPromise(attributes) || isPromise(children)) {
-      return Promise.all([attributes, children]).then(
-        (values) => new Tag('p', ...values)
-      );
-    }
-    return new Tag('p', attributes, children);
-  },
+  // No custom `transform`: see the note on `document` above.
 };
 
 export const image: Schema = {
@@ -112,6 +72,16 @@ export const fence: Schema = {
 
 export const blockquote: Schema = {
   render: 'blockquote',
+  attributes: {
+    // Set by the `githubAdmonitions` tokenizer plugin for a `> [!NOTE]` marker.
+    // Rendered as a data attribute so a consumer that does not rewrite these
+    // into its own admonition component still sees which kind was requested.
+    kind: {
+      type: String,
+      matches: [...ADMONITION_KINDS],
+      render: 'data-kind',
+    },
+  },
   children: [
     'heading',
     'paragraph',

@@ -1,5 +1,7 @@
 import Tokenizer from '../index';
 import parser from '../../parser';
+import Markdoc from '../../../index';
+import { ADMONITION_KINDS } from './githubAdmonitions';
 
 function parse(src: string, opts: any = {}) {
   // Default Tokenizer now has githubAdmonitions enabled; tests can drop
@@ -111,5 +113,72 @@ describe('github admonitions plugin', function () {
     const inner = outer.children[0];
     expect(inner.type).toEqual('blockquote');
     expect(inner.attributes.kind).toEqual('note');
+  });
+
+  describe('validation', function () {
+    it('accepts the kind attribute on blockquote', function () {
+      const errors = Markdoc.validate(
+        Markdoc.parse('> [!NOTE]\n> body\n'),
+        {}
+      );
+      expect(errors).toEqual([]);
+    });
+
+    it('accepts every recognized kind', function () {
+      for (const kind of ADMONITION_KINDS) {
+        const errors = Markdoc.validate(
+          Markdoc.parse(`> [!${kind.toUpperCase()}]\n> body\n`),
+          {}
+        );
+        expect(errors).toEqual([]);
+      }
+    });
+
+    it('reports an unrecognized kind set directly on the node', function () {
+      // The tokenizer never produces this, but a consumer building an AST by
+      // hand should still be told the value is not valid.
+      const ast = Markdoc.parse('> body\n');
+      ast.children[0].attributes.kind = 'nonsense';
+      const errors = Markdoc.validate(ast, {});
+      expect(errors.length).toBe(1);
+      expect(errors[0].error.id).toEqual('attribute-value-invalid');
+    });
+
+    it('renders kind as a data attribute', function () {
+      const out: any = Markdoc.transform(Markdoc.parse('> [!TIP]\n> body\n'));
+      const tag = Array.isArray(out) ? out[0] : out;
+      const bq = tag.children[0];
+      expect(bq.name).toEqual('blockquote');
+      expect(bq.attributes['data-kind']).toEqual('tip');
+    });
+  });
+
+  describe('formatter round-trip', function () {
+    for (const kind of ADMONITION_KINDS) {
+      const upper = kind.toUpperCase();
+
+      it(`round-trips [!${upper}] with a body`, function () {
+        const src = `> [!${upper}]\n> Body text.\n`;
+        expect(Markdoc.format(Markdoc.parse(src))).toEqual(src);
+      });
+
+      it(`round-trips [!${upper}] with no body`, function () {
+        const src = `> [!${upper}]\n`;
+        expect(Markdoc.format(Markdoc.parse(src))).toEqual(src);
+      });
+
+      it(`round-trips [!${upper}] with a multi-block body`, function () {
+        const src = `> [!${upper}]\n> First para.\n>\n> - one\n> - two\n`;
+        // Re-formatting the output is stable, and the kind survives.
+        const once = Markdoc.format(Markdoc.parse(src));
+        expect(Markdoc.format(Markdoc.parse(once))).toEqual(once);
+        expect(Markdoc.parse(once).children[0].attributes.kind).toEqual(kind);
+      });
+    }
+
+    it('leaves a plain blockquote unchanged', function () {
+      const src = '> Just a quote.\n';
+      expect(Markdoc.format(Markdoc.parse(src))).toEqual(src);
+    });
   });
 });

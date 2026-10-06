@@ -105,7 +105,13 @@ export type RenderableTreeNodes = RenderableTreeNode | RenderableTreeNode[];
 
 export type Scalar = Primitive | Scalar[] | { [key: string]: Scalar };
 
-export type SchemaChild = NodeType;
+/**
+ * A node type that may appear as a child. `NodeType` covers the built-ins and
+ * drives autocomplete, but node types are derived from token types at runtime
+ * and consumers add their own (e.g. `html_block`, `html_inline` from custom
+ * HTML token processing), so any string is accepted.
+ */
+export type SchemaChild = NodeType | (string & {});
 
 export type Schema<C extends Config = Config, R = string> = {
   render?: R;

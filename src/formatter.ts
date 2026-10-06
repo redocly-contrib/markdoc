@@ -259,11 +259,22 @@ function* formatNode(n: Node, o: Options = {}) {
       const parts = n.children.map((child) =>
         quote(format(child, { ...no, indent: 0 }).trim())
       );
-      yield NL +
-        (parts.length ? parts : [quote('')]).join(
-          NL + prefix.trimEnd() + NL
-        ) +
-        NL;
+      // A GitHub-style admonition marker lives on the node as `kind` rather
+      // than as a child, so write it back as the first quoted line. It joins
+      // the body with a single newline (not a blank quote line) so the output
+      // re-parses to the same node and is textually stable.
+      const kind = n.attributes.kind;
+      const marker =
+        typeof kind === 'string' && kind
+          ? quote(`[!${kind.toUpperCase()}]`)
+          : undefined;
+      const separator = NL + prefix.trimEnd() + NL;
+      const inner = marker
+        ? parts.length
+          ? marker + NL + parts.join(separator)
+          : marker
+        : (parts.length ? parts : [quote('')]).join(separator);
+      yield NL + inner + NL;
       break;
     }
     case 'hr': {
