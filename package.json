@@ -1,7 +1,7 @@
 {
   "name": "@redocly/markdoc",
   "author": "Ryan Paul",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "A text markup language for documentation",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
