@@ -200,6 +200,16 @@ export type ParserArgs = {
   // the paragraph so it becomes a direct child of its surrounding container.
   // @default false
   noParagraphForLoneTag?: boolean;
+  // When true, malformed `{% table %}` content (a row or header that is not a
+  // list) is reported as a critical `table-syntax` error. The offending node is
+  // dropped either way; this only controls the diagnostic.
+  //
+  // Off by default, which diverges from upstream 0.5.10+: content written
+  // before the check existed renders identically, so reporting by default would
+  // turn previously-building pages into build failures. Turn it on for tools
+  // that must not silently discard content, such as a visual editor.
+  // @default false
+  strictTables?: boolean;
   // GitHub-style admonitions (`> [!NOTE]\n> body`) are recognized by the
   // default tokenizer used when `parse()` is given a string. Pass `false`
   // here to opt out — the convenience `parse(string)` path will use an

@@ -39,6 +39,16 @@ export default function transform(
   args?: ParserArgs
 ) {
   const conditionalTags = args?.conditionalTags ?? ['if'];
+  // Reporting malformed table content is opt-in. Upstream reports it by
+  // default, but content that predates the check still renders the same way
+  // (the offending node was always dropped), so defaulting to on would turn
+  // previously-building content into a build failure. The node is dropped
+  // either way — only the diagnostic is gated.
+  const strictTables = args?.strictTables ?? false;
+  const report = (target: Node, offender: Node) => {
+    if (strictTables) target.addError(unexpectedNodeError(offender));
+  };
+
   for (const node of document.walk()) {
     if (node.type !== 'tag' || node.tag !== 'table') continue;
 
@@ -54,9 +64,8 @@ export default function transform(
 
     if (first.type === 'list') thead.push(convertToRow(first, 'th'));
     // A header row must be a list. Anything else (other than a separator or a
-    // comment) is a syntax error rather than something to silently drop.
-    else if (first.type !== 'hr' && !isComment(first))
-      node.addError(unexpectedNodeError(first));
+    // comment) is dropped, and reported when `strictTables` is set.
+    else if (first.type !== 'hr' && !isComment(first)) report(node, first);
 
     for (const row of rest) {
       // Convert lists to rows with special-case support for conditionals
@@ -76,7 +85,7 @@ export default function transform(
           ) {
             // Allow structural tags: else, nested conditionals, and comments
           } else {
-            row.addError(unexpectedNodeError(child));
+            report(row, child);
             continue;
           }
           children.push(child);
@@ -84,7 +93,7 @@ export default function transform(
 
         row.children = children;
       } else if (row.type !== 'hr' && !isComment(row)) {
-        node.addError(unexpectedNodeError(row));
+        report(node, row);
         continue;
       } else continue;
       tbody.push(row);

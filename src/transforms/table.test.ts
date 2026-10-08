@@ -1,7 +1,13 @@
 import Markdoc from '../../index';
 
+// These tests are about the `table-syntax` diagnostic, which is opt-in via
+// `strictTables`. See the `strictTables` describe block below for the default
+// (silent-drop) behavior.
 function validate(string: string, config = {}) {
-  return Markdoc.validate(Markdoc.parse(string), config);
+  return Markdoc.validate(
+    Markdoc.parse(string, { strictTables: true }),
+    config
+  );
 }
 
 describe('table transform validation', function () {
@@ -124,7 +130,10 @@ This is invalid non-conditional content at the row level.
     function validateWithComments(string: string, config = {}) {
       const tokenizer = new Markdoc.Tokenizer({ allowComments: true });
       const tokens = tokenizer.tokenize(string);
-      return Markdoc.validate(Markdoc.parse(tokens), config);
+      return Markdoc.validate(
+        Markdoc.parse(tokens, { strictTables: true }),
+        config
+      );
     }
     const input = `{% table %}
 * Heading 1
@@ -251,6 +260,62 @@ This is not a valid row
       expect(
         tableSyntaxErrors(`{% table %}\n---\n* a\n{% /table %}`).length
       ).toBe(0);
+    });
+  });
+
+  describe('strictTables option', function () {
+    // Each of these drops the offending node and renders the same as it did
+    // before the check existed; only the diagnostic is new.
+    const MALFORMED: [string, string][] = [
+      [
+        'paragraph header row',
+        '{% table %}\nSome text\n\n---\n\n- a\n- b\n{% /table %}\n',
+      ],
+      ['paragraph body row', '{% table %}\n- Head\n---\nSome text\n{% /table %}\n'],
+      [
+        'unindented cell continuation',
+        '{% table %}\n- Head\n---\n- Cell\n\nNot indented\n{% /table %}\n',
+      ],
+      [
+        'stray paragraph inside a conditional',
+        '{% table %}\n- Head\n---\n{% if $x %}\nstray\n{% /if %}\n{% /table %}\n',
+      ],
+    ];
+
+    function syntaxErrors(src: string, args: Record<string, unknown> = {}) {
+      return Markdoc.validate(Markdoc.parse(src, args), {}).filter(
+        (e) => e.error.id === 'table-syntax'
+      );
+    }
+
+    for (const [label, src] of MALFORMED) {
+      it(`reports nothing by default for a ${label}`, function () {
+        expect(syntaxErrors(src)).toEqual([]);
+      });
+
+      it(`reports a critical error for a ${label} when strictTables is set`, function () {
+        const errors = syntaxErrors(src, { strictTables: true });
+        expect(errors.length).toBe(1);
+        expect(errors[0].error.level).toEqual('critical');
+        expect(errors[0].error.message).toContain('where a list was expected');
+      });
+
+      it(`renders a ${label} identically either way`, function () {
+        // The flag must gate only the diagnostic, never the output.
+        expect(
+          JSON.stringify(Markdoc.transform(Markdoc.parse(src)))
+        ).toEqual(
+          JSON.stringify(
+            Markdoc.transform(Markdoc.parse(src, { strictTables: true }))
+          )
+        );
+      });
+    }
+
+    it('reports nothing for a well-formed table in either mode', function () {
+      const src = '{% table %}\n- H1\n- H2\n---\n- a\n- b\n{% /table %}\n';
+      expect(syntaxErrors(src)).toEqual([]);
+      expect(syntaxErrors(src, { strictTables: true })).toEqual([]);
     });
   });
 });
