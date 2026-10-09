@@ -25,7 +25,22 @@ Current upstream base: **0.5.10**.
   store(JSON.stringify(Markdoc.compact(ast)));
   ```
 
-  Measured ~48% smaller serialized JSON for a heading-and-list heavy page.
+  Measured ~44% smaller stored ASTs across 3,334 real pages (971.5 MB → 544.9
+  MB), and ~49% on a synthetic heading-and-list heavy page.
+
+  Reach it through the default import:
+
+  ```js
+  import Markdoc from '@redocly/markdoc';
+  Markdoc.compact(ast);
+  ```
+
+  A **named** import (`import { compact } from '@redocly/markdoc'`) resolves
+  under bundlers, which read the `module` field, but **not when Node itself
+  loads the package from ESM**: Node reads `main` (CJS) and `cjs-module-lexer`
+  misdetects the export names. This affects every binding in the package, not
+  just `compact`, and is inherited from upstream rather than new here. Use the
+  default import for code Node loads directly.
 
   Accepts a `Node` or a `Node[]`, and returns the same shape. Never mutates its
   input — callers may still be holding the full AST. New Nodes, attribute
