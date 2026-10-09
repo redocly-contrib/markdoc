@@ -1,5 +1,6 @@
 import Ast from './src/ast';
 import Node from './src/ast/node';
+import compact from './src/ast/compact';
 import format from './src/formatter';
 import functions from './src/functions';
 import parser from './src/parser';
@@ -148,6 +149,7 @@ export {
   validator,
   truthy,
   format,
+  compact,
 };
 
 export default class Markdoc {
@@ -169,6 +171,7 @@ export default class Markdoc {
   static createElement = createElement;
   static truthy = truthy;
   static format = format;
+  static compact = compact;
 
   config;
   constructor(config: Config) {

@@ -2,6 +2,7 @@ import Node from './node';
 import Function from './function';
 import Variable from './variable';
 import * as base from './base';
+import compact from './compact';
 
 import type { AstType } from '../types';
 
@@ -25,4 +26,5 @@ export default {
   ...AstTypes,
   ...base,
   fromJSON,
+  compact,
 };

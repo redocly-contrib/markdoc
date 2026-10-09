@@ -10,6 +10,39 @@ Current upstream base: **0.5.10**.
 
 ### Added
 
+- **`Markdoc.compact(node)`** (also `Markdoc.Ast.compact`) — rewrites a parsed
+  AST into the shape `parse(src, { compact: true })` would have produced, for
+  storing it as JSON.
+
+  Engines have to parse *with* locations, because resolvers need them to report
+  problems and link ranges. Once resolution is done those locations and the
+  implied `inline` wrapper Nodes are dead weight in the stored JSON. This is the
+  boundary function: parse fully, resolve, then compact before writing.
+
+  ```js
+  const ast = Markdoc.parse(source);     // locations intact for resolvers
+  // ...resolve, validate...
+  store(JSON.stringify(Markdoc.compact(ast)));
+  ```
+
+  Measured ~48% smaller serialized JSON for a heading-and-list heavy page.
+
+  Accepts a `Node` or a `Node[]`, and returns the same shape. Never mutates its
+  input — callers may still be holding the full AST. New Nodes, attribute
+  objects, child arrays and slot maps are created; attribute *values*, including
+  `Variable` and `Function` instances, are shared as-is.
+
+  Two deliberate differences from a compact parse:
+
+  - The root is always kept. A compact parse unwraps a single-child `document`;
+    documents are stored and rendered as documents.
+  - Errors are preserved wherever they exist, so a stored AST keeps its
+    diagnostics. `errors`, `annotations` and `slots` are present only when
+    non-empty, and slots are compacted recursively.
+
+  `toJSON` is unchanged, so callers that still need to serialize a full AST with
+  locations — a parse cache, for instance — are unaffected.
+
 - **`tokenizer.tokenizeUntil(content, createStopAfter)`** — like
   `tokenize(content, { stopAfter })`, but the work is proportional to the prefix
   up to the match rather than to `content.length`.
