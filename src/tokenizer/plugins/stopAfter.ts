@@ -7,6 +7,14 @@ export type StopAfterEnv = {
   stopAfter?: StopAfterPredicate;
   checked?: number;
   stopped?: boolean;
+  /** Index in `state.tokens` of the first token the predicate matched. */
+  stoppedAtIndex?: number;
+  /**
+   * `state.line` when the stop was first detected — how far into the source the
+   * block tokenizer had got. `tokenizeUntil` uses this to tell whether a match
+   * found in a prefix is far enough from the cut to be trustworthy.
+   */
+  stoppedLine?: number;
 };
 
 /**
@@ -33,11 +41,17 @@ export default function stopAfterRule(
 
   // Scan only the tokens appended since the last check.
   for (let i = env.checked ?? 0; i < state.tokens.length; i++) {
-    if (env.stopAfter(state.tokens[i])) env.stopped = true;
+    if (env.stopAfter(state.tokens[i])) {
+      env.stopped = true;
+      if (env.stoppedAtIndex === undefined) env.stoppedAtIndex = i;
+    }
   }
   env.checked = state.tokens.length;
 
   if (!env.stopped) return false;
+
+  // Recorded once, at the innermost loop that first saw the stop.
+  if (env.stoppedLine === undefined) env.stoppedLine = state.line;
 
   // Jumping to the end terminates this tokenizer loop. Outer loops (blockquote,
   // list item) resume and immediately hit this rule again, so they stop too.

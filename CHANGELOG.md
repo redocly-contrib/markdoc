@@ -6,7 +6,48 @@ fork releases. Upstream's own history is not repeated here.
 
 Current upstream base: **0.5.10**.
 
-## 0.6.2 (unreleased)
+## 0.6.3 (unreleased)
+
+### Added
+
+- **`tokenizer.tokenizeUntil(content, createStopAfter)`** — like
+  `tokenize(content, { stopAfter })`, but the work is proportional to the prefix
+  up to the match rather than to `content.length`.
+
+  `stopAfter` only short-circuits the block loop. `StateBlock` setup (building
+  line-mark tables for every line) and core `normalize` still run over the whole
+  string, so finding a heading on line 1 of a 570 KB document cost ~1.9 ms.
+  `tokenizeUntil` tokenizes growing line-aligned prefixes instead, accepting one
+  only when the match is far enough from the cut to be unaffected by it:
+
+  ```js
+  tokenizer.tokenizeUntil(src, () => (t) => t.type === 'heading_close');
+  ```
+
+  Measured, heading on line 1:
+
+  | document | `stopAfter` | `tokenizeUntil` |
+  |---|---|---|
+  | 609 B | 13 µs | 8 µs |
+  | 5.7 KB | 37 µs | 5 µs |
+  | 57 KB | 185 µs | 5 µs |
+  | 570 KB | 2029 µs | 5 µs |
+
+  Prefix attempts are capped, so a document whose match is deep or absent stays
+  at parity with `stopAfter` rather than paying for retries.
+
+  The parameter is a **factory** rather than a predicate because each attempt
+  re-tokenizes from the first token, so a stateful predicate (one tracking
+  `{% slot %}` depth, say) needs a fresh instance per attempt.
+
+  The matched token and every token before it are identical to what
+  `tokenize(content, { stopAfter })` returns. As with `stopAfter`, enclosing
+  blocks are closed wherever parsing stopped, so their end maps are not
+  meaningful.
+
+  `tokenize` is unchanged.
+
+## 0.6.2
 
 ### Fixed
 
