@@ -405,36 +405,83 @@ describe('transform', function () {
   });
 });
 
-describe('lazy-init arrays', function () {
-  it('leaves errors/annotations/slots undefined when nothing pushed', function () {
+describe('default field values', function () {
+  it('reads errors/annotations/slots as empty on a fresh node', function () {
     const n = new Node('paragraph');
-    expect(n.errors).toBeUndefined();
-    expect(n.annotations).toBeUndefined();
-    expect(n.slots).toBeUndefined();
+    expect(n.errors).toEqual([]);
+    expect(n.annotations).toEqual([]);
+    expect(n.slots).toEqual({});
   });
 
-  it('addSlot lazily creates the slots object', function () {
+  it('omits the empty defaults from JSON', function () {
+    const n = new Node('paragraph');
+    const json = JSON.stringify(n);
+
+    expect(json).not.toContain('"errors"');
+    expect(json).not.toContain('"annotations"');
+    expect(json).not.toContain('"slots"');
+  });
+
+  it('still omits them after they have merely been read', function () {
+    const n = new Node('paragraph');
+    // Upstream-style code touches these without writing.
+    expect(n.errors.length).toBe(0);
+    expect(n.annotations.length).toBe(0);
+    expect(Object.keys(n.slots).length).toBe(0);
+
+    const json = JSON.stringify(n);
+    expect(json).not.toContain('"errors"');
+    expect(json).not.toContain('"annotations"');
+    expect(json).not.toContain('"slots"');
+  });
+
+  it('serializes them once non-empty, whether pushed or assigned', function () {
+    const pushed = new Node('paragraph');
+    pushed.errors.push({ id: 'x', level: 'error', message: 'm' });
+    expect(JSON.stringify(pushed)).toContain('"errors"');
+
+    const assigned = new Node('paragraph');
+    assigned.annotations = [{ type: 'attribute', name: 'a', value: 1 }];
+    expect(JSON.stringify(assigned)).toContain('"annotations"');
+
+    const slotted = new Node('tag', {}, [], 'mytag');
+    slotted.addSlot('footer', new Node('paragraph'));
+    expect(JSON.stringify(slotted)).toContain('"slots"');
+  });
+
+  it('omits inline when false and keeps it when true', function () {
+    const block = new Node('paragraph');
+    expect(JSON.stringify(block)).not.toContain('"inline"');
+
+    const inline = new Node('text');
+    inline.inline = true;
+    expect(JSON.stringify(inline)).toContain('"inline":true');
+  });
+
+  it('omits a location that carries no file or line', function () {
+    const n = new Node('paragraph');
+    n.location = { start: {}, end: {} } as never;
+    expect(JSON.stringify(n)).not.toContain('"location"');
+
+    n.location = { start: { line: 1 }, end: { line: 2 } };
+    expect(JSON.stringify(n)).toContain('"location"');
+  });
+
+  it('addSlot/addError/addAnnotation append', function () {
     const n = new Node('tag', {}, [], 'mytag');
     const slot = new Node('paragraph');
     n.addSlot('footer', slot);
-    expect(n.slots).toEqual({ footer: slot });
-  });
-
-  it('resolve() keeps slots undefined when there are none', function () {
-    const n = new Node('paragraph');
-    expect(n.resolve({}).slots).toBeUndefined();
-  });
-
-  it('addError lazily creates the errors array', function () {
-    const n = new Node('paragraph');
     n.addError({ id: 'x', level: 'error', message: 'm' });
-    expect(n.errors).toEqual([{ id: 'x', level: 'error', message: 'm' }]);
-  });
-
-  it('addAnnotation lazily creates the annotations array', function () {
-    const n = new Node('paragraph');
     n.addAnnotation({ type: 'attribute', name: 'a', value: 1 });
+
+    expect(n.slots).toEqual({ footer: slot });
+    expect(n.errors).toEqual([{ id: 'x', level: 'error', message: 'm' }]);
     expect(n.annotations).toEqual([{ type: 'attribute', name: 'a', value: 1 }]);
   });
 
+  it('resolve() keeps slots readable and still omits them from JSON', function () {
+    const resolved = new Node('paragraph').resolve({});
+    expect(resolved.slots).toEqual({});
+    expect(JSON.stringify(resolved)).not.toContain('"slots"');
+  });
 });

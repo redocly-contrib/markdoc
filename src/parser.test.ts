@@ -845,7 +845,7 @@ describe('Markdown parser', function () {
 
     it('with no error for multiple classes', function () {
       const example = convert(`{% foo .bar .baz .qux /%}`);
-      expect(example.children[0].errors).toBeUndefined();
+      expect(example.children[0].errors).toEqual([]);
     });
   });
 

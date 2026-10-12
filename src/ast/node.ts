@@ -13,16 +13,26 @@ import type {
   ValidationError,
 } from '../types';
 
+/** A `location` built from a token with no `map` carries nothing worth storing. */
+function hasPosition(location?: Location): boolean {
+  if (!location) return false;
+  return (
+    location.file !== undefined ||
+    location.start?.line !== undefined ||
+    location.end?.line !== undefined
+  );
+}
+
 export default class Node implements AstType {
   readonly $$mdtype = 'Node';
 
   attributes: Record<string, any>;
-  slots?: Record<string, Node>;
+  slots: Record<string, Node>;
   children: Node[];
-  errors?: ValidationError[];
+  errors: ValidationError[];
   type: NodeType;
   tag?: string;
-  annotations?: AttributeValue[];
+  annotations: AttributeValue[];
 
   inline = false;
   location?: Location;
@@ -37,24 +47,55 @@ export default class Node implements AstType {
     this.children = children;
     this.type = type;
     this.tag = tag;
+    // Always present, so upstream-style `node.annotations.length` works. The
+    // size saving lives in `toJSON`, which omits them while empty, rather than
+    // in leaving them undefined — reading a field can then never change what
+    // gets serialized.
+    this.errors = [];
+    this.annotations = [];
+    this.slots = {};
   }
 
   addError(error: ValidationError) {
-    if (!this.errors) this.errors = [];
     this.errors.push(error);
   }
 
   addAnnotation(annotation: AttributeValue) {
-    if (!this.annotations) this.annotations = [];
     this.annotations.push(annotation);
   }
 
   addSlot(name: string, node: Node) {
-    if (!this.slots) this.slots = {};
     this.slots[name] = node;
   }
 
+  /**
+   * Serializes only what carries information, so an AST stored as JSON stays
+   * small while every field remains readable in memory.
+   *
+   * Omitted: `errors`, `annotations` and `slots` while empty, `inline` while
+   * false, and a `location` with no file or line. `Ast.fromJSON` restores each
+   * one from the constructor defaults, so a revived tree behaves identically.
+   */
+  toJSON() {
+    // Key order matches the previous own-property order, minus omissions, to
+    // keep stored output stable for consumers diffing it.
+    const output: Record<string, unknown> = { $$mdtype: this.$$mdtype };
+
+    if (this.inline) output.inline = true;
+    output.attributes = this.attributes;
+    output.children = this.children;
+    output.type = this.type;
+    if (this.tag !== undefined) output.tag = this.tag;
+    if (this.errors?.length) output.errors = this.errors;
+    if (this.annotations?.length) output.annotations = this.annotations;
+    if (this.slots && Object.keys(this.slots).length) output.slots = this.slots;
+    if (hasPosition(this.location)) output.location = this.location;
+
+    return output;
+  }
+
   *walk(): Generator<Node, void, unknown> {
+    // Tolerates hand-built plain objects, which some callers cast to Node.
     const slots = this.slots ? Object.values(this.slots) : [];
     for (const child of [...slots, ...this.children]) {
       yield child;
@@ -70,16 +111,12 @@ export default class Node implements AstType {
     return Object.assign(new Node(), this, {
       children: this.children.map((child) => child.resolve(config)),
       attributes: resolve(this.attributes, config),
-      // Preserve `undefined` so a node without slots stays slot-less rather
-      // than gaining an empty object on every resolve.
-      slots: this.slots
-        ? Object.fromEntries(
-            Object.entries(this.slots).map(([name, slot]) => [
-              name,
-              slot.resolve(config),
-            ])
-          )
-        : undefined,
+      slots: Object.fromEntries(
+        Object.entries(this.slots ?? {}).map(([name, slot]) => [
+          name,
+          slot.resolve(config),
+        ])
+      ),
     });
   }
 

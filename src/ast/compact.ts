@@ -39,7 +39,14 @@ function compactNode(node: Node): Node {
 
   if (node.inline) result.inline = true;
   if (node.errors?.length) result.errors = [...node.errors];
-  if (node.annotations?.length) result.annotations = [...node.annotations];
+
+  // A tag's annotations are redundant after parsing: the same values are in
+  // `attributes`, and the formatter prints a tag from `attributes` too, so
+  // dropping them changes neither rendering nor `format()` output. Other node
+  // types keep theirs — a fence's `title` annotation, for one, is read back
+  // from stored trees at render time and is not mirrored in `attributes`.
+  if (node.type !== 'tag' && node.annotations?.length)
+    result.annotations = [...node.annotations];
 
   if (node.slots)
     for (const [name, slot] of Object.entries(node.slots))

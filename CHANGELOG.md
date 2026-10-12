@@ -6,7 +6,49 @@ fork releases. Upstream's own history is not repeated here.
 
 Current upstream base: **0.5.10**.
 
-## 0.6.3 (unreleased)
+## 0.6.4 (unreleased)
+
+### Fixed
+
+- **`errors`, `annotations` and `slots` are readable again on every node**,
+  reverting the breaking change from 0.6.0. They read as `[]`, `[]` and `{}` on
+  a fresh parse, a compact parse, `compact()` output and an `Ast.fromJSON`
+  revival, and their types are non-optional again, so upstream-style code
+  compiles and runs:
+
+  ```js
+  // Worked upstream, threw in 0.6.0-0.6.3, works again
+  if (node.annotations.length > 0) { /* ... */ }
+  node.errors.push(error);
+  ```
+
+  The size saving is kept, but moved: `Node.prototype.toJSON` omits these
+  fields while they are empty rather than leaving them undefined. Because the
+  value exists from construction, merely *reading* a field can no longer change
+  what gets serialized — a hazard the previous lazy approach had. A field that
+  becomes non-empty, by `push` or by assignment, serializes.
+
+### Changed
+
+- **Smaller serialized nodes.** `toJSON` now also omits:
+  - `inline` when it is `false`, which was written on every block node;
+  - `location` when it carries no file and no line, which nodes built from
+    tokens without a `map` were emitting as `{"start":{},"end":{}}`.
+
+  Applies to any `JSON.stringify` of a Node, not just `compact()` output.
+  `Ast.fromJSON` restores every omitted field from the constructor defaults, so
+  a revived tree behaves identically to the original.
+
+- **`compact()` drops `annotations` on `tag` nodes.** After parsing, a tag's
+  annotation values are also in `attributes`, and the formatter prints a tag
+  from `attributes`, so `format()` output is byte-identical without them.
+  Annotations on other node types are kept — a fence's `title`, for one, is not
+  mirrored in `attributes` and is read back from stored trees at render time.
+
+  Measured on a tag-heavy synthetic page: ~11% smaller than 0.6.3 (~8% from
+  `inline`, ~5% from tag annotations), and ~52% smaller than a full parse.
+
+## 0.6.3
 
 ### Added
 

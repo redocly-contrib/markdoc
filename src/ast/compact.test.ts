@@ -28,10 +28,23 @@ const SOURCES: [string, string][] = [
 
 describe('Ast.compact', function () {
   describe('matches a compact parse', function () {
+    /**
+     * `compact` diverges from a compact parse in one more way than the root:
+     * it drops a tag's annotations, which a parse keeps. Strip them from the
+     * reference so the rest of the shape is still compared exactly.
+     */
+    function dropTagAnnotations(node: Node) {
+      for (const n of [node, ...node.walk()])
+        if (n.type === 'tag') n.annotations = [];
+      return node;
+    }
+
     for (const [label, src] of SOURCES) {
       it(label, function () {
         const compacted = Markdoc.compact(Markdoc.parse(src));
-        const reference = Markdoc.parse(src, { compact: true });
+        const reference = dropTagAnnotations(
+          Markdoc.parse(src, { compact: true })
+        );
 
         if (reference.type === 'document') {
           // Same shape all the way down, including JSON key order.
@@ -90,14 +103,20 @@ describe('Ast.compact', function () {
     expect(errors.map((e) => e.id)).toContain('missing-closing');
   });
 
-  it('omits errors, annotations and slots when they are empty', function () {
+  it('keeps the empty defaults readable but out of the JSON', function () {
     const compacted = Markdoc.compact(Markdoc.parse('para\n'));
 
     for (const node of [compacted, ...compacted.walk()]) {
-      expect(node.errors).toBeUndefined();
-      expect(node.annotations).toBeUndefined();
-      expect(node.slots).toBeUndefined();
+      expect(node.errors).toEqual([]);
+      expect(node.annotations).toEqual([]);
+      expect(node.slots).toEqual({});
     }
+
+    const json = JSON.stringify(compacted);
+    expect(json).not.toContain('"errors"');
+    expect(json).not.toContain('"annotations"');
+    expect(json).not.toContain('"slots"');
+    expect(json).not.toContain('"inline":false');
   });
 
   it('keeps annotations when present', function () {
@@ -169,5 +188,105 @@ describe('Ast.compact', function () {
   it('is reachable as both Markdoc.compact and Ast.compact', function () {
     expect(typeof Markdoc.compact).toEqual('function');
     expect(typeof Markdoc.Ast.compact).toEqual('function');
+  });
+
+  describe('annotations', function () {
+    const src =
+      '{% callout type="warning" #my-id .cls %}\nbody\n{% /callout %}\n\n' +
+      '```js {% title="example" %}\ncode\n```\n';
+
+    function nodeOfType(root: Node, type: string) {
+      return [root, ...root.walk()].find((n) => n.type === type) as Node;
+    }
+
+    it('drops them on tag nodes, whose values live in attributes', function () {
+      const compacted = Markdoc.compact(Markdoc.parse(src));
+      const tag = nodeOfType(compacted, 'tag');
+
+      expect(tag.annotations).toEqual([]);
+      // The information is still there, in attributes.
+      expect(tag.attributes.type).toEqual('warning');
+      expect(tag.attributes.id).toEqual('my-id');
+    });
+
+    it('keeps them on fence nodes, which are not mirrored in attributes', function () {
+      const compacted = Markdoc.compact(Markdoc.parse(src));
+      const fence = nodeOfType(compacted, 'fence');
+
+      expect(fence.annotations.map((a) => a.name)).toEqual(['title']);
+    });
+
+    it('still formats a compacted tag from its attributes', function () {
+      // The reason dropping them is safe: the formatter prints a tag from
+      // `attributes`, so output is unchanged.
+      const full = Markdoc.parse(src);
+      const compacted = Markdoc.compact(full);
+
+      expect(Markdoc.format(compacted)).toEqual(Markdoc.format(full));
+      expect(Markdoc.format(compacted)).toContain(
+        '{% callout type="warning" #my-id .cls %}'
+      );
+    });
+  });
+
+  describe('revival through Ast.fromJSON', function () {
+    const stored = () =>
+      JSON.stringify(
+        Markdoc.compact(
+          Markdoc.parse('# H\n\n```js {% title="t" %}\ncode\n```\n')
+        )
+      );
+
+    it('restores the omitted fields to their defaults', function () {
+      const revived = Markdoc.Ast.fromJSON(stored()) as Node;
+
+      for (const node of [revived, ...revived.walk()]) {
+        expect(node.errors).toEqual(jasmine.any(Array));
+        expect(node.annotations).toEqual(jasmine.any(Array));
+        expect(node.slots).toEqual(jasmine.any(Object));
+        expect(typeof node.inline).toEqual('boolean');
+      }
+    });
+
+    it('re-serializes without reintroducing the empty fields', function () {
+      const json = stored();
+      const revived = Markdoc.Ast.fromJSON(json) as Node;
+
+      expect(JSON.stringify(revived)).toEqual(json);
+    });
+
+    it('keeps a fence title annotation readable after revival', function () {
+      const revived = Markdoc.Ast.fromJSON(stored()) as Node;
+      const fence = [revived, ...revived.walk()].find(
+        (n) => n.type === 'fence'
+      ) as Node;
+
+      expect(fence.annotations.find((a) => a.name === 'title')?.value).toEqual(
+        't'
+      );
+    });
+
+    it('supports an upstream-style custom tag transform', function () {
+      // The pattern that broke on the lazy fields: reading `.length` on a node
+      // that has no annotations, then pushing an error.
+      const revived = Markdoc.Ast.fromJSON(stored()) as Node;
+      const heading = [revived, ...revived.walk()].find(
+        (n) => n.type === 'heading'
+      ) as Node;
+
+      expect(() => {
+        const annotations = heading.annotations;
+        if (annotations.length > 0) throw new Error('unreachable');
+        heading.errors.push({
+          id: 'custom',
+          level: 'warning',
+          message: 'from a custom tag',
+        });
+      }).not.toThrow();
+
+      expect(heading.errors.map((e) => e.id)).toEqual(['custom']);
+      // And the pushed error does serialize.
+      expect(JSON.stringify(revived)).toContain('"id":"custom"');
+    });
   });
 });
