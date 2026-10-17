@@ -1,0 +1,313 @@
+<title>Markdoc Speed Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~72ch) with full-width data blocks; bar charts are CSS, scaled per group. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --fg: #16202c;
+  --muted: #5a6676;
+  --line: #dde2e9;
+  --base: #a9b3c1;      /* 0.6.4 bars */
+  --dropin: #5b7fb0;    /* drop-in bars */
+  --fast: #d9822b;      /* opt-in fast path bars */
+  --good: #2f7d4f;
+  --code-bg: #eef1f5;
+  --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161d; --surface: #182029; --fg: #e4e9ef; --muted: #98a4b3; --line: #2a3542;
+    --base: #4d5967; --dropin: #7f9fd0; --fast: #eb9a47; --good: #6cc391; --code-bg: #1d2731;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161d; --surface: #182029; --fg: #e4e9ef; --muted: #98a4b3; --line: #2a3542;
+  --base: #4d5967; --dropin: #7f9fd0; --fast: #eb9a47; --good: #6cc391; --code-bg: #1d2731;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 16px/1.6 var(--body);
+  padding-inline: 20px; padding-block: 40px 72px;
+}
+main { max-width: 860px; margin: 0 auto; display: grid; gap: 56px; }
+section { display: grid; gap: 16px; min-width: 0; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.15rem; font-weight: 500; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font: 500 0.75rem/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 1.12rem; color: var(--fg); }
+.muted { color: var(--muted); }
+code, .num { font-family: var(--mono); font-size: 0.88em; }
+code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 14px 16px; border-radius: 6px; overflow-x: auto; margin: 0; font: 0.85rem/1.55 var(--mono); }
+ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 70ch; }
+a { color: var(--dropin); }
+a:focus-visible { outline: 2px solid var(--fast); outline-offset: 2px; }
+
+header { display: grid; gap: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; font: 0.82rem var(--mono); color: var(--muted); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 0.86rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+.sw.b { background: var(--base); } .sw.d { background: var(--dropin); } .sw.f { background: var(--fast); }
+
+/* Grouped bar charts */
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px 32px; }
+.chart { display: grid; gap: 8px; min-width: 0; }
+.chart h3 { font-size: 0.98rem; }
+.row { display: grid; grid-template-columns: 62px 1fr 92px; align-items: center; gap: 10px; font-size: 0.82rem; }
+.row .lab { color: var(--muted); }
+.track { height: 14px; position: relative; }
+.bar { height: 100%; border-radius: 2px; min-width: 2px; }
+.bar.b { background: var(--base); } .bar.d { background: var(--dropin); } .bar.f { background: var(--fast); }
+.row .val { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.x { color: var(--good); font-weight: 500; }
+
+/* Tables */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font: 500 0.72rem var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+tbody tr:last-child td { border-bottom: 0; }
+td.n { font-family: var(--mono); }
+tr.total td { font-weight: 600; background: var(--bg); }
+td.wrap { white-space: normal; min-width: 220px; }
+.inline-bar { display: grid; grid-template-columns: 1fr; gap: 3px; min-width: 120px; }
+.inline-bar .bar { height: 7px; }
+
+.callouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.callout { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; display: grid; gap: 6px; align-content: start; }
+.callout .big { font: 700 1.9rem/1 var(--display); color: var(--fast); }
+.callout p { font-size: 0.92rem; }
+
+.api { display: grid; gap: 12px; }
+.api-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.api-item:first-child { border-top: 0; padding-top: 0; }
+.sig { font: 500 0.92rem var(--mono); overflow-wrap: anywhere; }
+
+footer { color: var(--muted); font-size: 0.86rem; display: grid; gap: 10px; }
+@media (max-width: 480px) {
+  body { padding-inline: 16px; }
+  .row { grid-template-columns: 54px 1fr 82px; }
+}
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">@redocly/markdoc · branch perf/explore · vs 0.6.4</div>
+    <h1>Same Markdoc, 3.5–5.7× faster at runtime</h1>
+    <p class="lede">I measured the full pipeline on real Redocly content and changed only JavaScript. Output stays byte-identical. The runtime gets 1.3–1.6× faster with no API change, and 3.5–5.7× faster with three new opt-in calls. Stored ASTs shrink about 3×. Neither Rust nor a different engine is needed.</p>
+    <div class="meta">
+      <span>1,129 pages · 6.66 MB</span>
+      <span>7,811 API descriptions · 0.49 MB</span>
+      <span>CPU time · Node 24.21 · darwin, 11 cores</span>
+      <span>501 specs passing</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-tldr">
+    <h2 id="h-tldr">The headline numbers</h2>
+    <div class="legend">
+      <span><i class="sw b"></i>0.6.4</span>
+      <span><i class="sw d"></i>Drop-in (same API, identical output)</span>
+      <span><i class="sw f"></i>Fast path (opt-in APIs, identical output)</span>
+    </div>
+    <div class="charts">
+      <div class="chart">
+        <h3>Pages runtime: deserialize → transform → React</h3>
+        <div class="row"><span class="lab">0.6.4</span><div class="track"><div class="bar b" style="width:100%"></div></div><span class="val">665 ms</span></div>
+        <div class="row"><span class="lab">drop-in</span><div class="track"><div class="bar d" style="width:71.4%"></div></div><span class="val">475 <span class="x">1.4×</span></span></div>
+        <div class="row"><span class="lab">fast</span><div class="track"><div class="bar f" style="width:28.9%"></div></div><span class="val">192 <span class="x">3.5×</span></span></div>
+      </div>
+      <div class="chart">
+        <h3>API descriptions embedded in an API definition → React</h3>
+        <div class="row"><span class="lab">0.6.4</span><div class="track"><div class="bar b" style="width:100%"></div></div><span class="val">125 ms</span></div>
+        <div class="row"><span class="lab">drop-in</span><div class="track"><div class="bar d" style="width:71.6%"></div></div><span class="val">89.5 <span class="x">1.4×</span></span></div>
+        <div class="row"><span class="lab">fast</span><div class="track"><div class="bar f" style="width:17.5%"></div></div><span class="val">21.9 <span class="x">5.7×</span></span></div>
+      </div>
+      <div class="chart">
+        <h3>Pages build: parse → validate → serialize</h3>
+        <div class="row"><span class="lab">0.6.4</span><div class="track"><div class="bar b" style="width:100%"></div></div><span class="val">794 ms</span></div>
+        <div class="row"><span class="lab">drop-in</span><div class="track"><div class="bar d" style="width:87.3%"></div></div><span class="val">693 <span class="x">1.15×</span></span></div>
+        <div class="row"><span class="lab">fast</span><div class="track"><div class="bar f" style="width:79.6%"></div></div><span class="val">632 <span class="x">1.26×</span></span></div>
+      </div>
+      <div class="chart">
+        <h3>Stored AST size, pages (6.66 MB of markdown)</h3>
+        <div class="row"><span class="lab">0.6.4</span><div class="track"><div class="bar b" style="width:100%"></div></div><span class="val">29.2 MB</span></div>
+        <div class="row"><span class="lab">drop-in</span><div class="track"><div class="bar d" style="width:100%"></div></div><span class="val">29.2 MB</span></div>
+        <div class="row"><span class="lab">packed</span><div class="track"><div class="bar f" style="width:34.7%"></div></div><span class="val">10.1 <span class="x">2.9×</span></span></div>
+      </div>
+    </div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Path</th><th>0.6.4</th><th>Drop-in</th><th>Fast path</th></tr></thead>
+        <tbody>
+          <tr><td>Pages: build</td><td class="n">794 ms</td><td class="n">693 ms · 1.15×</td><td class="n">632 ms · 1.26×</td></tr>
+          <tr><td>Pages: runtime → HTML</td><td class="n">661 ms</td><td class="n">424 ms · 1.56×</td><td class="n">187 ms · 3.53×</td></tr>
+          <tr><td>Pages: runtime → React</td><td class="n">665 ms</td><td class="n">475 ms · 1.40×</td><td class="n">192 ms · 3.46×</td></tr>
+          <tr><td>Pages: embedded → React</td><td class="n">739 ms</td><td class="n">487 ms · 1.52×</td><td class="n">161 ms · 4.59×</td></tr>
+          <tr><td>Descriptions: build</td><td class="n">181 ms</td><td class="n">167 ms · 1.08×</td><td class="n">121 ms · 1.49×</td></tr>
+          <tr><td>Descriptions: runtime → HTML</td><td class="n">116 ms</td><td class="n">91.6 ms · 1.27×</td><td class="n">32.4 ms · 3.60×</td></tr>
+          <tr><td>Descriptions: runtime → React</td><td class="n">131 ms</td><td class="n">85.2 ms · 1.53×</td><td class="n">31.9 ms · 4.10×</td></tr>
+          <tr><td>Descriptions: embedded → React</td><td class="n">125 ms</td><td class="n">89.5 ms · 1.40×</td><td class="n">21.9 ms · 5.72×</td></tr>
+          <tr><td>Stored AST: pages / descriptions</td><td class="n">29.2 / 2.47 MB</td><td class="n">same</td><td class="n">10.1 / 0.70 MB</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">"Embedded" is the API-docs case: the stored AST arrives as an already-parsed object inside the API definition. Today the renderer calls <code>fromJSON(JSON.stringify(source))</code>; the fast path calls <code>unpack(source)</code>. Build is the noisiest number: 0.6.4's page build measured 794 ms in this run and 965 ms in an earlier one.</p>
+  </section>
+
+  <section aria-labelledby="h-where">
+    <h2 id="h-where">Where 0.6.4 spent its time</h2>
+    <p>I profiled every stage first. The biggest costs were not in markdown parsing.</p>
+    <div class="callouts">
+      <div class="callout"><span class="big">28%</span><p><strong>Reviving stored JSON</strong> was the largest stage on pages, costing more than tokenizing the markdown. <code>JSON.parse(text, reviver)</code> calls back into JS for every string and number, and V8 skips its JSON fast path.</p></div>
+      <div class="callout"><span class="big">86%</span><p><strong>of <code>transform</code> on API descriptions</strong> went to <code>mergeConfig</code>. Every call spreads about 90 tag, node and function schemas into fresh objects, even for a 34-character string.</p></div>
+      <div class="callout"><span class="big">77%</span><p><strong>of stored AST bytes are structure.</strong> Every node repeats <code>"$$mdtype":"Node"</code>, <code>"attributes":{}</code>, <code>"children":[]</code> and <code>"type"</code>. Text nodes are 44% of all nodes and carry the full envelope.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-stages">
+    <h2 id="h-stages">Drop-in changes, stage by stage</h2>
+    <p>Same API calls, byte-identical output. Before any timing, the harness checks tokens, AST, stored JSON, validation errors, renderable tree, HTML and React output on all 8,940 documents.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Stage (pages)</th><th>0.6.4</th><th>Branch</th><th>Speedup</th><th></th><th>Descriptions</th><th>Speedup</th></tr></thead>
+        <tbody>
+          <tr><td>tokenize</td><td class="n">359 ms</td><td class="n">357 ms</td><td class="n">1.01×</td><td><div class="inline-bar"><div class="bar b" style="width:70%"></div><div class="bar d" style="width:69.6%"></div></div></td><td class="n">51.4 → 51.2</td><td class="n">1.00×</td></tr>
+          <tr><td>parse</td><td class="n">156 ms</td><td class="n">118 ms</td><td class="n x">1.32×</td><td><div class="inline-bar"><div class="bar b" style="width:30.4%"></div><div class="bar d" style="width:23%"></div></div></td><td class="n">13.9 → 11.7</td><td class="n">1.20×</td></tr>
+          <tr><td>validate</td><td class="n">287 ms</td><td class="n">226 ms</td><td class="n x">1.27×</td><td><div class="inline-bar"><div class="bar b" style="width:55.9%"></div><div class="bar d" style="width:44.1%"></div></div></td><td class="n">74.4 → 72.7</td><td class="n">1.02×</td></tr>
+          <tr><td>compact + stringify</td><td class="n">158 ms</td><td class="n">157 ms</td><td class="n">1.01×</td><td><div class="inline-bar"><div class="bar b" style="width:30.8%"></div><div class="bar d" style="width:30.6%"></div></div></td><td class="n">15.8 → 15.3</td><td class="n">1.03×</td></tr>
+          <tr><td>revive (<code>fromJSON</code>)</td><td class="n">513 ms</td><td class="n">270 ms</td><td class="n x">1.90×</td><td><div class="inline-bar"><div class="bar b" style="width:100%"></div><div class="bar d" style="width:52.6%"></div></div></td><td class="n">45.6 → 17.0</td><td class="n x">2.69×</td></tr>
+          <tr><td>transform</td><td class="n">190 ms</td><td class="n">160 ms</td><td class="n">1.18×</td><td><div class="inline-bar"><div class="bar b" style="width:37%"></div><div class="bar d" style="width:31.2%"></div></div></td><td class="n">66.9 → 59.1</td><td class="n">1.13×</td></tr>
+          <tr><td>render html</td><td class="n">86.1 ms</td><td class="n">74.4 ms</td><td class="n">1.16×</td><td><div class="inline-bar"><div class="bar b" style="width:16.8%"></div><div class="bar d" style="width:14.5%"></div></div></td><td class="n">6.09 → 1.11</td><td class="n x">5.50×</td></tr>
+          <tr><td>render react</td><td class="n">83.5 ms</td><td class="n">82.9 ms</td><td class="n">1.01×</td><td><div class="inline-bar"><div class="bar b" style="width:16.3%"></div><div class="bar d" style="width:16.2%"></div></div></td><td class="n">7.06 → 7.17</td><td class="n">0.99×</td></tr>
+          <tr class="total"><td>Sum of stages</td><td class="n">1833 ms</td><td class="n">1445 ms</td><td class="n">1.27×</td><td></td><td class="n">281 → 235</td><td class="n">1.20×</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li><strong><code>fromJSON</code>:</strong> plain <code>JSON.parse</code>, then one bottom-up walk that turns <code>$$mdtype</code> objects into class instances. Same result as the reviver.</li>
+      <li><strong><code>Node.walk()</code>:</strong> iterative instead of one nested generator per ancestor. The table transform walks every parsed document, whether or not a page has tables.</li>
+      <li><strong><code>validate</code>:</strong> no generator, and one parents array and config per parent instead of per node. No merged attribute schema object is built per node.</li>
+      <li><strong><code>transform</code>:</strong> attributes are visited in merged order without building the merged object, and the stateless built-in attribute types are instantiated once.</li>
+      <li><strong>Parser and HTML renderer:</strong> no regex per token; HTML is appended into one string instead of <code>map().join('')</code> at every level.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="h-api">
+    <h2 id="h-api">Opt-in APIs</h2>
+    <p>All three are backwards compatible and produce identical output. Each is opt-in because it gives up a guarantee that some caller could depend on.</p>
+    <div class="api">
+      <div class="api-item">
+        <div class="sig">Markdoc.prepareConfig(config)</div>
+        <p>Merges the built-in tags, nodes and functions once. A symbol brand survives the portal's <code>{ ...markdocOptions, ...config, variables }</code> spread. The prepared config is reused only while <code>tags</code>, <code>nodes</code> and <code>functions</code> are still the same objects. <span class="muted">Trade-off: it is a snapshot, so tags added in place afterwards are not seen.</span></p>
+        <p class="num">validate: pages 1.29×, descriptions 2.41× · transform: pages 1.21×, descriptions 3.00×</p>
+      </div>
+      <div class="api-item">
+        <div class="sig">prepareConfig(config, { cloneAst: false })</div>
+        <p>Transform copies only the nodes on the way to a variable or function, not the whole tree. <span class="muted">Trade-off: a schema transform that mutates its input node would now mutate the input AST. No built-in or Redocly runtime schema does this; the portal's only node mutation is a build-time resolver that runs before storage.</span></p>
+        <p class="num">pages transform with a prepared config: 155 → 121 ms (1.28× more)</p>
+      </div>
+      <div class="api-item">
+        <div class="sig">Ast.pack(ast, { compact: true }) · Ast.unpack(value)</div>
+        <p>A lossless, JSON-compatible storage format. <code>unpack(pack(ast))</code> serializes exactly like <code>fromJSON(JSON.stringify(ast))</code>, checked on every corpus document. <code>unpack</code> takes the parsed value and never mutates it. <code>pack</code> with <code>compact: true</code> applies <code>compact()</code> in the same pass: serializing a page AST drops from 158 to 99 ms.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-format">
+    <h2 id="h-format">The AST representation</h2>
+    <p>Nodes become arrays recognized by position: <code>[head, attributes?, ...children]</code>. The head is the type, or <code>%name</code> for a tag, with <code>~</code> marking inline nodes. Plain inline text is just its string. Rare fields (errors, annotations, slots, location) ride under <code>$</code>-keys, which can't clash because attribute names are identifiers.</p>
+<pre>// "Hello *world*"
+today:  {"$$mdtype":"Node","attributes":{},"children":[{"$$mdtype":"Node","inline":true,
+         "attributes":{"content":"Hello "},"children":[],"type":"text"},{"$$mdtype":"Node",
+         "inline":true,"attributes":{"marker":"*"},"children":[ … ],"type":"em"}],"type":"paragraph"}
+packed: ["paragraph","Hello ",["~em",{"marker":"*"},"world"]]</pre>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Format</th><th>Pages raw</th><th>gzip</th><th>brotli</th><th>Decode</th><th>Descr. raw</th><th>Decode</th></tr></thead>
+        <tbody>
+          <tr><td>Compact JSON (today)</td><td class="n">29.18 MB</td><td class="n">3.10 MB</td><td class="n">2.80 MB</td><td class="n">270 ms</td><td class="n">2.47 MB</td><td class="n">32.8 ms</td></tr>
+          <tr><td>Lean JSON (defaults omitted)</td><td class="n">16.03 MB</td><td class="n">2.86 MB</td><td class="n">2.65 MB</td><td class="n">142 ms</td><td class="n">1.25 MB</td><td class="n">12.6 ms</td></tr>
+          <tr><td><strong>Packed</strong></td><td class="n"><strong>10.14 MB</strong></td><td class="n">2.70 MB</td><td class="n">2.51 MB</td><td class="n x">131 ms</td><td class="n"><strong>701 KB</strong></td><td class="n x">8.9 ms</td></tr>
+          <tr><td>Packed + 1-letter type codes</td><td class="n">9.51 MB</td><td class="n">2.66 MB</td><td class="n">2.47 MB</td><td class="n">131 ms</td><td class="n">610 KB</td><td class="n">8.9 ms</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">Decode means <code>JSON.parse</code> plus reviving to <code>Node</code>s. The baseline here is the branch's already 1.9× faster <code>fromJSON</code>; against 0.6.4 (513 / 45.6 ms), packed decodes 3.9× / 5.1× faster. Compressed sizes are per document. Raw size, which is what memory, caches and <code>JSON.parse</code> see, shrinks about 3×. Compressed size shrinks only 10–45%, so this is mainly a CPU and memory win, not a network one. One-letter codes save under 2% compressed and cost readability, so I left them out.</p>
+  </section>
+
+  <section aria-labelledby="h-engines">
+    <h2 id="h-engines">Other engines, and Rust</h2>
+    <p>Each engine ran in its own process on the same 1,129 pages. None of them understands <code>{% tag %}</code>, so these numbers are upper bounds for the CommonMark core only.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Engine</th><th>Output</th><th>Pages</th><th>vs 0.6.4</th><th>Descriptions</th></tr></thead>
+        <tbody>
+          <tr><td>markdoc 0.6.4: tokenize + parse</td><td>JS tree</td><td class="n">452 ms</td><td class="n">1.00×</td><td class="n">78.3 ms</td></tr>
+          <tr><td>markdoc branch: tokenize + parse</td><td>JS tree</td><td class="n">392 ms</td><td class="n">1.15×</td><td class="n">69.8 ms</td></tr>
+          <tr><td>markdown-it 12.3, no Markdoc plugins</td><td>tokens</td><td class="n">250 ms</td><td class="n">1.81×</td><td class="n">25.3 ms</td></tr>
+          <tr><td>markdown-it 15.0, no plugins</td><td>tokens</td><td class="n">377 ms</td><td class="n">1.20×</td><td class="n">54.5 ms</td></tr>
+          <tr><td>marked 18 lexer</td><td>tokens</td><td class="n">326 ms</td><td class="n">1.39×</td><td class="n">20.8 ms</td></tr>
+          <tr><td>mdastic 0.1 (GFM)</td><td>JS tree</td><td class="n x">168–201 ms</td><td class="n x">2.3–2.7×</td><td class="n">24 ms</td></tr>
+          <tr><td>commonmark.js 0.31 (no tables)</td><td>JS tree</td><td class="n x">144 ms</td><td class="n x">3.1×</td><td class="n">38.2 ms</td></tr>
+          <tr><td>remark (mdast-util-from-markdown 2)</td><td>JS tree</td><td class="n">2304 ms</td><td class="n">0.20×</td><td class="n">287 ms</td></tr>
+          <tr><td><strong>comrak 0.48, Rust → WASM, parse to JS tree</strong></td><td>JS tree</td><td class="n"><strong>450 ms</strong></td><td class="n">1.00×</td><td class="n">87.0 ms</td></tr>
+          <tr><td>comrak 0.48, Rust → WASM, straight to HTML</td><td>HTML</td><td class="n">117 ms</td><td class="n">3.9×</td><td class="n">55.2 ms</td></tr>
+          <tr><td>pulldown-cmark, Rust → WASM, to HTML</td><td>HTML</td><td class="n">98 ms</td><td class="n">4.6×</td><td class="n">30.8 ms</td></tr>
+          <tr><td>md4c, C → WASM (markdown-wasm), to HTML</td><td>HTML</td><td class="n">48 ms</td><td class="n">9.3×</td><td class="n">24.0 ms</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li><strong>The WASM boundary costs more than Rust saves.</strong> comrak turns pages into HTML in 117 ms, but handing JS a tree it can work with takes 450 ms, the same as Markdoc's whole tokenize + parse. Validation, schema transforms and renderers are user-extensible JS, so Markdoc needs a JS tree.</li>
+      <li><strong>The best Rust design</strong> would emit the packed format as a string, then JS does <code>JSON.parse</code> + <code>unpack</code>. I estimate about 230–250 ms against 392 ms today: roughly 1.6× on parsing, which is about a quarter of build time. That would mean reimplementing the tag grammar, annotations, the indentation patch, admonitions, comments, frontmatter and <code>stopAfter</code> with exact markdown-it compatibility. It's not worth it for that payoff.</li>
+      <li><strong>Rebuilding on mdastic</strong> is the same compatibility project, for at most about 2× on the same quarter of build time. Markdoc's own plugins add about 18% on top of markdown-it core.</li>
+      <li><strong>Don't upgrade markdown-it for speed:</strong> 15.0 is 1.5× slower than 12.3 on pages and 2.2× slower on descriptions.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="h-dropped">
+    <h2 id="h-dropped">Tried and dropped</h2>
+    <ul>
+      <li>A hand-written loop instead of <code>flatMap</code> in <code>transformer.children</code> was 9% slower. Reverted.</li>
+      <li>Rewriting the <code>Node.resolve</code> and <code>base.resolve</code> clones made no measurable difference. Reverted.</li>
+      <li>One-pass props in the React renderer were 0–15% slower. React rendering is bound by <code>React.createElement</code> itself.</li>
+      <li>An automatic <code>mergeConfig</code> cache with an exact staleness check reached only 1.4×, because checking about 90 keys costs nearly as much as copying them. The opt-in <code>prepareConfig</code> gets 3.0×.</li>
+      <li>The first A/B harness loaded both builds into one process. Whichever was required first ran about 35% faster, even when the files were byte-identical. Every build now runs in its own process, and an A/A run agrees within about 3%.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="h-next">
+    <h2 id="h-next">Next steps</h2>
+    <ul>
+      <li><strong>Adopt the opt-in APIs in Redocly.</strong> Three changes bring most of the gain:
+        <ul>
+          <li><code>markdocRenderer.tsx</code>: <code>unpack(source)</code> instead of <code>fromJSON(JSON.stringify(source))</code>.</li>
+          <li><code>runtime-transform.ts</code>: <code>prepareConfig(markdocOptions, { cloneAst: false })</code> once per process.</li>
+          <li>Storage: <code>pack(ast, { compact: true })</code> behind a cache-version bump. Old JSON stays readable through <code>fromJSON</code>.</li>
+        </ul>
+      </li>
+      <li><strong>Transform straight from the packed form</strong>, skipping <code>Node</code>s for subtrees without a custom transform. The measured upper bound is 108 vs 121 ms, a small gain for a lot of complexity.</li>
+      <li><strong>Parallel builds with <code>worker_threads</code>.</strong> Pages are independent. I didn't measure this because the shared machine was too loaded for wall-clock numbers.</li>
+      <li><strong>The tokenizer</strong> is now the largest build-time stage (357 ms on pages). Larger gains there need a parser rewrite.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>Measured on a shared, heavily loaded machine (load average 12–57) using process CPU time and medians of interleaved rounds. Stages under 10 ms wobble by up to 8%. Raw outputs and scripts are in <code>bench/</code> on the <code>perf/explore</code> branch; <code>bench/REPORT.md</code> has the long version.</p>
+  </footer>
+</main>

@@ -1,0 +1,42 @@
+
+PAGES — 1129 docs, source 6.66 MB
+  format                 raw  x src      gzip    brotli
+  json              29.18 MB   4.4x   3.10 MB   2.80 MB
+  lean              16.03 MB   2.4x   2.86 MB   2.65 MB
+  packed            10.14 MB   1.5x   2.70 MB   2.51 MB
+  packed+codes       9.51 MB   1.4x   2.66 MB   2.47 MB
+
+PAGES — decode (JSON.parse + revive to Nodes)
+  variant                           cpu median   IQR                vs json
+  json                                  270 ms   269 ms–308 ms      —
+  lean                                  142 ms   140 ms–162 ms      1.90x faster
+  packed                                131 ms   129 ms–136 ms      2.06x faster
+  packed+codes                          131 ms   130 ms–137 ms      2.07x faster
+
+PAGES — encode (Nodes to stored string)
+  variant                           cpu median   IQR                vs json
+  json                                  136 ms   131 ms–153 ms      —
+  lean                                  115 ms   115 ms–128 ms      1.18x faster
+  packed                               99.6 ms   98.2 ms–110 ms     1.37x faster
+  packed+codes                         87.9 ms   87.0 ms–102 ms     1.55x faster
+
+DESCRIPTIONS — 7811 docs, source 487.3 KB
+  format                 raw  x src      gzip    brotli
+  json               2.47 MB   5.1x   1.26 MB   1.01 MB
+  lean               1.25 MB   2.6x  962.6 KB  788.8 KB
+  packed            700.6 KB   1.4x  692.5 KB  533.1 KB
+  packed+codes      610.1 KB   1.3x  631.1 KB  472.8 KB
+
+DESCRIPTIONS — decode (JSON.parse + revive to Nodes)
+  variant                           cpu median   IQR                vs json
+  json                                 32.8 ms   29.7 ms–34.3 ms    —
+  lean                                 12.6 ms   12.1 ms–17.3 ms    2.60x faster
+  packed                               8.89 ms   8.73 ms–10.1 ms    3.69x faster
+  packed+codes                         8.86 ms   7.87 ms–10.1 ms    3.70x faster
+
+DESCRIPTIONS — encode (Nodes to stored string)
+  variant                           cpu median   IQR                vs json
+  json                                 17.9 ms   17.0 ms–20.1 ms    —
+  lean                                 12.0 ms   11.5 ms–14.1 ms    1.49x faster
+  packed                               5.52 ms   3.66 ms–11.2 ms    3.25x faster
+  packed+codes                         5.32 ms   4.01 ms–7.65 ms    3.37x faster

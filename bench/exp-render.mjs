@@ -81,6 +81,33 @@ function reactFast(node, React, { components = {}, resolveTagName = tagName } = 
   return render(node);
 }
 
+// One-pass props, but keep the spread call (apply was the slow part).
+function reactSpread(node, React, { components = {}, resolveTagName = tagName } = {}) {
+  function deepRender(value) {
+    if (value == null || typeof value !== 'object') return value;
+    if (Array.isArray(value)) return value.map((item) => deepRender(item));
+    if (value.$$mdtype === 'Tag') return render(value);
+    const output = {};
+    for (const k of Object.keys(value)) output[k] = deepRender(value[k]);
+    return output;
+  }
+  function render(node) {
+    if (Array.isArray(node)) return React.createElement(React.Fragment, null, ...node.map(render));
+    if (node === null || typeof node !== 'object' || !isTag(node)) return node;
+    const attributes = node.attributes === undefined ? {} : node.attributes;
+    const children = node.children === undefined ? [] : node.children;
+    let props = null;
+    let className;
+    for (const k of Object.keys(attributes)) {
+      if (k === 'class') { className = attributes[k]; continue; }
+      (props ??= {})[k] = deepRender(attributes[k]);
+    }
+    if (className) (props ??= {}).className = deepRender(className);
+    return React.createElement(resolveTagName(node.name, components), props, ...children.map(render));
+  }
+  return render(node);
+}
+
 const shape = (el) => JSON.stringify(el, (k, v) => (typeof v === 'function' ? v.name || 'fn' : v));
 
 for (const corpusName of ['pages', 'descriptions']) {
@@ -90,6 +117,9 @@ for (const corpusName of ['pages', 'descriptions']) {
     if (shape(reactFast(t, React, { components: s.components })) !==
         shape(M.renderers.react(t, React, { components: s.components })))
       throw new Error('react mismatch');
+    if (shape(reactSpread(t, React, { components: s.components })) !==
+        shape(M.renderers.react(t, React, { components: s.components })))
+      throw new Error('react spread mismatch');
   }
   report(
     `${corpusName.toUpperCase()} — render`,
@@ -99,6 +129,7 @@ for (const corpusName of ['pages', 'descriptions']) {
         "html'": () => { for (const t of s.trees) htmlFast(t); },
         react: () => { for (const t of s.trees) M.renderers.react(t, React, { components: s.components }); },
         "react'": () => { for (const t of s.trees) reactFast(t, React, { components: s.components }); },
+        "react'' (spread)": () => { for (const t of s.trees) reactSpread(t, React, { components: s.components }); },
       },
       { rounds: 11, warmup: 3 }
     )
