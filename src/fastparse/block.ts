@@ -1324,7 +1324,7 @@ function reference(
     if (ch === 0x0a) {
       lines++;
     } else if (isSpace(ch)) {
-      /*eslint no-empty:0*/
+      // spaces between parts are skipped
     } else {
       break;
     }
@@ -1353,7 +1353,7 @@ function reference(
     if (ch === 0x0a) {
       lines++;
     } else if (isSpace(ch)) {
-      /*eslint no-empty:0*/
+      // spaces between parts are skipped
     } else {
       break;
     }

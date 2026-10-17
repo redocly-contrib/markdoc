@@ -1106,9 +1106,9 @@ function image(state: InlineState, silent: boolean): boolean {
 
 // ---------------------------------------------------------------- autolink
 
-/*eslint max-len:0*/
 const EMAIL_RE =
   /^([a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*)$/;
+// eslint-disable-next-line no-control-regex
 const AUTOLINK_RE = /^([a-zA-Z][a-zA-Z0-9+.-]{1,31}):([^<>\x00-\x20]*)$/;
 
 function autolink(state: InlineState, silent: boolean): boolean {
@@ -1181,7 +1181,6 @@ function autolink(state: InlineState, silent: boolean): boolean {
 const HTML_TAG_STICKY = new RegExp(HTML_TAG_RE.source.replace(/^\^/, ''), 'y');
 
 function isLetter(ch: number) {
-  /*eslint no-bitwise:0*/
   const lc = ch | 0x20; // to lower case
   return lc >= 0x61 /* a */ && lc <= 0x7a /* z */;
 }
