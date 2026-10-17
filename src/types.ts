@@ -214,10 +214,12 @@ export type ParserArgs = {
   // `kind` attribute. Pass `false` to leave them as plain blockquotes.
   // @default true
   githubAdmonitions?: boolean;
-  // Recognize raw HTML: HTML blocks and inline HTML become `html_block` and
-  // `html_inline` nodes instead of text.
+  // Recognize raw HTML. With `true`, HTML blocks and inline HTML become
+  // `html_block` and `html_inline` nodes. With a handler — such as
+  // `htmlTags()` from `@redocly/markdoc/dist/html` — the handler turns the
+  // HTML into nodes instead.
   // @default false
-  html?: boolean;
+  html?: boolean | HtmlHandler;
   // Allow indenting Markdoc content — tags, fences, lists, blockquotes and the
   // rest — by any amount. Indentation never makes a code block either way:
   // Markdoc has no indented code blocks.
@@ -239,3 +241,27 @@ export type ParserArgs = {
   // @default { validatedProtocols: ['http', 'https'] }
   linkValidationOptions?: { validatedProtocols: string[] };
 };
+
+/** A token-shaped object an `HtmlHandler` emits in place of raw HTML. */
+export type HtmlToken =
+  | { type: 'text'; content: string }
+  | {
+      type: 'tag_open';
+      nesting: 1;
+      meta: { tag: string; attributes?: AttributeValue[] };
+    }
+  | { type: 'tag_close'; nesting: -1; meta: { tag: string } };
+
+/**
+ * One run of HTML: all of a document's HTML blocks, in order, or the inline
+ * HTML of one paragraph (heading, table cell, ...). The parser writes each
+ * piece of raw HTML to the run and puts the tokens it returns where the HTML
+ * was; at the end of the run it puts the tokens `end()` returns.
+ */
+export type HtmlRun = {
+  write(html: string): HtmlToken[];
+  end(): HtmlToken[];
+};
+
+/** Turns raw HTML into Markdoc tokens (see `ParserArgs.html`). */
+export type HtmlHandler = { start(): HtmlRun };

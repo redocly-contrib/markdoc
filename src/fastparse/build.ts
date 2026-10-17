@@ -21,12 +21,21 @@ import * as T from './tokens';
 import { NESTING, NODE_TYPE, BlockToken, InlineToken } from './tokens';
 import type { BlockState } from './block';
 import type { InlineState } from './inline';
-import type { AttributeValue, Location, ParserArgs } from '../types';
+import type {
+  AttributeValue,
+  HtmlHandler,
+  HtmlRun,
+  HtmlToken,
+  Location,
+  ParserArgs,
+} from '../types';
 
 export type BuildOptions = {
   allowLinkValidation: boolean;
   validatedProtocols: string[];
   githubAdmonitions: boolean;
+  /** Turns raw HTML into tokens; without one, HTML becomes `html_*` nodes. */
+  html?: HtmlHandler;
 };
 
 const ADMONITION_KIND_SET: Set<string> = new Set(ADMONITION_KINDS);
@@ -175,6 +184,37 @@ export function build(
   const pool = block.pool;
   const length = block.length;
 
+  // With an HTML handler, the document's HTML blocks form one run and each
+  // inline content its own; the handler's tokens take the HTML's place.
+  const html = options.html;
+  const blockRun = html?.start();
+
+  function handleHtml(tokens: HtmlToken[], inlineParent: Node | undefined) {
+    for (const token of tokens)
+      handleObjectToken(
+        token,
+        nodes,
+        file,
+        handleSlots,
+        addLocation,
+        compact,
+        inlineParent
+      );
+  }
+
+  function handleInlineTokens(start: number, inlineParent: Node) {
+    const tokens = inline.pool;
+    const length = inline.length;
+    let run: HtmlRun | undefined;
+    for (let i = start; i < length; i++) {
+      const token = tokens[i];
+      if (html && token.type === T.HTML_INLINE)
+        handleHtml((run ??= html.start()).write(token.content), inlineParent);
+      else handleInline(token, inlineParent);
+    }
+    if (run) handleHtml(run.end(), inlineParent);
+  }
+
   // Admonition rewrites, found when their blockquote is reached.
   let skipUntil = -1;
   let sliceInline: BlockToken | undefined;
@@ -296,6 +336,11 @@ export function build(
 
     if (token.hidden) return;
 
+    if (blockRun && type === T.HTML_BLOCK) {
+      handleHtml(blockRun.write(token.content), undefined);
+      return;
+    }
+
     const parent = nodes[nodes.length - 1];
 
     let fenceChildren: any[] | undefined;
@@ -360,10 +405,7 @@ export function build(
     // Compact mode: don't materialize the inline wrapper Node — recurse
     // children straight into the surrounding parent (paragraph/heading/etc.).
     if (compact && type === T.INLINE) {
-      const start = parseInline(token);
-      const tokens = inline.pool;
-      for (let i = start; i < inline.length; i++)
-        handleInline(tokens[i], parent);
+      handleInlineTokens(parseInline(token), parent);
       return;
     }
 
@@ -388,10 +430,7 @@ export function build(
 
     if (type === T.INLINE) {
       nodes.push(node);
-      const start = parseInline(token);
-      const tokens = inline.pool;
-      for (let i = start; i < inline.length; i++)
-        handleInline(tokens[i], parent);
+      handleInlineTokens(parseInline(token), parent);
       nodes.pop();
     } else if (fenceChildren) {
       nodes.push(node);
@@ -440,6 +479,8 @@ export function build(
 
     handleBlock(token);
   }
+
+  if (blockRun) handleHtml(blockRun.end(), undefined);
 
   if (nodes.length > 1)
     for (const node of nodes.slice(1))

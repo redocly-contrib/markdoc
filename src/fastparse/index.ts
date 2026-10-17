@@ -83,6 +83,7 @@ export function parseDocument(
           'https',
         ],
         githubAdmonitions: args.githubAdmonitions !== false,
+        html: typeof args.html === 'object' ? args.html : undefined,
       },
       args
     );
