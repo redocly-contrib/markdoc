@@ -1,0 +1,68 @@
+{
+  "pages": {
+    "docs": 1129,
+    "bytes": {
+      "json": 29175801,
+      "packed": 10135895
+    },
+    "rows": [
+      {
+        "stage": "build",
+        "baseline": 965.398000000001,
+        "dropIn": 695.7749999999978,
+        "fast": 760.3330000000005
+      },
+      {
+        "stage": "runtime html",
+        "baseline": 662.3070000000007,
+        "dropIn": 427.1939999999995,
+        "fast": 184.05799999999726
+      },
+      {
+        "stage": "runtime react",
+        "baseline": 668.5119999999988,
+        "dropIn": 425.6409999999996,
+        "fast": 190.31700000000092
+      },
+      {
+        "stage": "embedded react",
+        "baseline": 741.3559999999998,
+        "dropIn": 489.34100000000035,
+        "fast": 159.72799999999916
+      }
+    ]
+  },
+  "descriptions": {
+    "docs": 7811,
+    "bytes": {
+      "json": 2473262,
+      "packed": 700625
+    },
+    "rows": [
+      {
+        "stage": "build",
+        "baseline": 176.96500000000015,
+        "dropIn": 167.3420000000001,
+        "fast": 127.49499999999989
+      },
+      {
+        "stage": "runtime html",
+        "baseline": 116.1309999999994,
+        "dropIn": 90.82400000000007,
+        "fast": 32.154999999999745
+      },
+      {
+        "stage": "runtime react",
+        "baseline": 118.14300000000003,
+        "dropIn": 90.04699999999957,
+        "fast": 29.11999999999989
+      },
+      {
+        "stage": "embedded react",
+        "baseline": 123.45399999999972,
+        "dropIn": 90.79399999999987,
+        "fast": 26.865999999999985
+      }
+    ]
+  }
+}

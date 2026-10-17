@@ -1,4 +1,4 @@
-import { resolve } from './base';
+import { resolve, resolveShared } from './base';
 import transformer from '../transformer';
 import type {
   AstType,
@@ -14,13 +14,46 @@ import type {
 } from '../types';
 
 /** A `location` built from a token with no `map` carries nothing worth storing. */
-function hasPosition(location?: Location): boolean {
+export function hasPosition(location?: Location): boolean {
   if (!location) return false;
   return (
     location.file !== undefined ||
     location.start?.line !== undefined ||
     location.end?.line !== undefined
   );
+}
+
+/**
+ * `node.resolve(config)` without copying what does not change: returns the
+ * node itself when nothing in it or below it holds a variable or function,
+ * and otherwise copies only the nodes on the way to one. Resolution happens
+ * in the same order as `resolve` (children, then attributes, then slots).
+ */
+export function resolveNodeShared(node: Node, config: Config): Node {
+  const children = resolveShared(node.children, config, resolveNodeShared);
+  const attributes = resolveShared(node.attributes, config, resolveNodeShared);
+  let slots = node.slots;
+  if (slots)
+    for (const name of Object.keys(slots)) {
+      const slot = resolveNodeShared(node.slots[name], config);
+      if (slot !== node.slots[name]) {
+        if (slots === node.slots) slots = { ...slots };
+        slots[name] = slot;
+      }
+    }
+
+  if (
+    children === node.children &&
+    attributes === node.attributes &&
+    slots === node.slots
+  )
+    return node;
+
+  return Object.assign(new Node(), node, {
+    children,
+    attributes,
+    slots: slots ?? {},
+  });
 }
 
 /** What `walk()` visits below a node: its slots, then its children. */

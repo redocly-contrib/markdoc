@@ -1,0 +1,87 @@
+[
+  {
+    "name": "markdoc 0.6.4: tokenize+parse",
+    "kind": "tree",
+    "ms": 452.3200000000006
+  },
+  {
+    "name": "markdoc candidate: tokenize+parse",
+    "kind": "tree",
+    "ms": 392.3900000000003
+  },
+  {
+    "name": "markdoc candidate: tokenize only",
+    "kind": "tokens",
+    "ms": 295.98
+  },
+  {
+    "name": "markdown-it 12.3 (no markdoc plugins)",
+    "kind": "tokens",
+    "ms": 249.62700000000018
+  },
+  {
+    "name": "markdown-it 15.0 (no markdoc plugins)",
+    "kind": "tokens",
+    "ms": 376.8990000000001
+  },
+  {
+    "name": "marked 18: lexer",
+    "kind": "tokens",
+    "ms": 326.2099999999998
+  },
+  {
+    "name": "mdastic 0.1 (gfm, no positions)",
+    "kind": "tree",
+    "ms": 200.69499999999994
+  },
+  {
+    "name": "mdastic 0.1 (gfm, positions)",
+    "kind": "tree",
+    "ms": 167.558
+  },
+  {
+    "name": "mdast-util-from-markdown 2 (remark)",
+    "kind": "tree",
+    "ms": 2303.9140000000007
+  },
+  {
+    "name": "commonmark.js 0.31",
+    "kind": "tree",
+    "ms": 144.14
+  },
+  {
+    "name": "comrak 0.48 wasm: parseMarkdown (Rust)",
+    "kind": "tree",
+    "ms": 450.24699999999984
+  },
+  {
+    "name": "comrak 0.48 wasm: to HTML (Rust)",
+    "kind": "html",
+    "ms": 116.55000000000018
+  },
+  {
+    "name": "pulldown-cmark wasm: to HTML (Rust)",
+    "kind": "html",
+    "ms": 97.97899999999993
+  },
+  {
+    "name": "markdown-wasm (md4c, C): to HTML",
+    "kind": "html",
+    "ms": 48.42900000000003
+  },
+  {
+    "name": "markdown-it 15.0: to HTML",
+    "kind": "html",
+    "ms": 399.6089999999999
+  },
+  {
+    "name": "marked 18: to HTML",
+    "kind": "html",
+    "ms": 394.976
+  },
+  {
+    "name": "micromark 4: to HTML",
+    "kind": "html",
+    "ms": 2402.054
+  }
+]

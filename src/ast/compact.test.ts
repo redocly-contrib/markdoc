@@ -12,7 +12,10 @@ const SOURCES: [string, string][] = [
   ['fence with annotations', '```js {% .cls %}\ncode()\n```\n'],
   ['gfm table', '| a | b |\n| - | - |\n| 1 | 2 |\n'],
   ['markdoc table', '{% table %}\n- H1\n- H2\n---\n- a\n- b\n{% /table %}\n'],
-  ['tag with attributes', '{% callout type="warning" #id .cls %}\nbody **b**\n{% /callout %}\n'],
+  [
+    'tag with attributes',
+    '{% callout type="warning" #id .cls %}\nbody **b**\n{% /callout %}\n',
+  ],
   ['self-closing tag', '{% mytag a=1 b=[1,2] c={"k":"v"} /%}\n'],
   ['variable attribute', '{% callout x=$foo.bar %}\nb\n{% /callout %}\n'],
   ['function attribute', '{% callout x=equals(1,2) %}\nb\n{% /callout %}\n'],
@@ -147,7 +150,9 @@ describe('Ast.compact', function () {
   });
 
   it('keeps Variable and Function attribute values as instances', function () {
-    const withVariable = Markdoc.compact(Markdoc.parse('{% c x=$foo.bar /%}\n'));
+    const withVariable = Markdoc.compact(
+      Markdoc.parse('{% c x=$foo.bar /%}\n')
+    );
     const variable = [...withVariable.walk()].find((n) => n.tag === 'c')
       ?.attributes.x;
     expect(variable instanceof Markdoc.Ast.Variable).toBe(true);
@@ -156,7 +161,8 @@ describe('Ast.compact', function () {
     const withFunction = Markdoc.compact(
       Markdoc.parse('{% c x=equals(1,2) /%}\n')
     );
-    const fn = [...withFunction.walk()].find((n) => n.tag === 'c')?.attributes.x;
+    const fn = [...withFunction.walk()].find((n) => n.tag === 'c')?.attributes
+      .x;
     expect(fn instanceof Markdoc.Ast.Function).toBe(true);
     expect(fn.name).toEqual('equals');
   });

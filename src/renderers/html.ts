@@ -26,7 +26,12 @@ export default function render(node: RenderableTreeNodes): string {
   if (typeof node === 'string' || typeof node === 'number')
     return escapeHtml(String(node));
 
-  if (Array.isArray(node)) return node.map(render).join('');
+  // Appending into one string is cheaper than `map(render).join('')`.
+  if (Array.isArray(node)) {
+    let output = '';
+    for (let i = 0; i < node.length; i++) output += render(node[i]);
+    return output;
+  }
 
   if (node === null || typeof node !== 'object' || !Tag.isTag(node)) return '';
 
@@ -34,15 +39,17 @@ export default function render(node: RenderableTreeNodes): string {
 
   if (!name) return render(children);
 
-  let output = `<${name}`;
-  for (const [k, v] of Object.entries(attributes ?? {}))
-    output += ` ${k.toLowerCase()}="${escapeHtml(String(v))}"`;
+  let output = '<' + name;
+  if (attributes != null)
+    for (const k of Object.keys(attributes))
+      output +=
+        ' ' + k.toLowerCase() + '="' + escapeHtml(String(attributes[k])) + '"';
   output += '>';
 
   if (voidElements.has(name)) return output;
 
   if (children.length) output += render(children);
-  output += `</${name}>`;
+  output += '</' + name + '>';
 
   return output;
 }

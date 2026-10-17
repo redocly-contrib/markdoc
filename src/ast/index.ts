@@ -3,6 +3,7 @@ import Function from './function';
 import Variable from './variable';
 import * as base from './base';
 import compact from './compact';
+import { pack, unpack } from './pack';
 
 const AstTypes = {
   Function,
@@ -61,4 +62,6 @@ export default {
   ...base,
   fromJSON,
   compact,
+  pack,
+  unpack,
 };

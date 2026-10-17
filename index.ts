@@ -1,5 +1,5 @@
 import Ast from './src/ast';
-import Node from './src/ast/node';
+import Node, { resolveNodeShared } from './src/ast/node';
 import compact from './src/ast/compact';
 import format from './src/formatter';
 import functions from './src/functions';
@@ -17,9 +17,15 @@ import validator, { validateTree } from './src/validator';
 
 import type { ParserArgs } from './src/types';
 import type Token from 'markdown-it/lib/token';
-import type { Config, RenderableTreeNode, RenderableTreeNodes, ValidateError } from './src/types';
+import type {
+  Config,
+  RenderableTreeNode,
+  RenderableTreeNodes,
+  ValidateError,
+} from './src/types';
 
 export * from './src/types';
+export type { Packed, PackedNode } from './src/ast/pack';
 
 const tokenizer = new Tokenizer();
 // Alternate tokenizer for callers that pass `githubAdmonitions: false` to
@@ -31,7 +37,23 @@ let plainTokenizer: Tokenizer | undefined;
 // `{ ...prepared, variables }` spread callers use to add per-call values.
 const PREPARED = Symbol('markdoc.prepared');
 
-type Prepared = Pick<Config, 'tags' | 'nodes' | 'functions'>;
+type Prepared = Pick<Config, 'tags' | 'nodes' | 'functions'> & {
+  cloneAst: boolean;
+};
+
+export type PrepareConfigOptions = {
+  /**
+   * `transform` normally copies the whole AST before transforming it, so
+   * schema transforms work on a private copy with variables and functions
+   * resolved. With `cloneAst: false`, only nodes holding (or containing) a
+   * variable or function are copied; every other node is handed to schema
+   * transforms as-is. Output is identical; the difference is only visible to
+   * schema transforms that mutate the nodes they are given, whose changes
+   * then land in the input AST. Use it when the AST is not reused, or when
+   * no schema mutates nodes.
+   */
+  cloneAst?: boolean;
+};
 
 function mergeConfig(config: Config = {}): Config {
   // A prepared config already holds the merged schemas. It is reused only
@@ -72,12 +94,16 @@ function mergeConfig(config: Config = {}): Config {
  * config (or to Markdoc's built-ins) afterwards are not seen. Spreading it to
  * add per-call values (`{ ...prepared, variables }`) keeps it prepared.
  */
-export function prepareConfig<C extends Config = Config>(config?: C): C {
+export function prepareConfig<C extends Config = Config>(
+  config?: C,
+  { cloneAst = true }: PrepareConfigOptions = {}
+): C {
   const merged = mergeConfig(config) as C & { [PREPARED]?: Prepared };
   merged[PREPARED] = {
     tags: merged.tags,
     nodes: merged.nodes,
     functions: merged.functions,
+    cloneAst,
   };
   return merged;
 }
@@ -144,7 +170,15 @@ export function transform<C extends Config = Config>(
   options?: C
 ): any {
   const config = mergeConfig(options);
-  const content = resolve(nodes, config);
+  const prepared = (options as { [PREPARED]?: Prepared } | undefined)?.[
+    PREPARED
+  ];
+  const content: any =
+    prepared && !prepared.cloneAst
+      ? Array.isArray(nodes)
+        ? nodes.flatMap((child) => resolveNodeShared(child, config))
+        : resolveNodeShared(nodes, config)
+      : resolve(nodes, config);
 
   if (Array.isArray(content))
     return content.flatMap((child) => child.transform(config));
