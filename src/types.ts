@@ -223,6 +223,11 @@ export type ParserArgs = {
   // Markdoc has no indented code blocks.
   // @default false
   allowIndentation?: boolean;
+  // Turn bare URLs and email addresses into links, the way GitHub does:
+  // `www.example.com`, `https://example.com/path` and `ftp://` URLs, and
+  // `someone@example.com`. Text inside links and code is left alone.
+  // @default false
+  linkify?: boolean;
   // Recognize HTML comments, `<!-- like this -->`, as `comment` nodes.
   // @default false
   allowComments?: boolean;

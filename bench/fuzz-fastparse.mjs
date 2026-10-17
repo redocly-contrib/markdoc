@@ -354,8 +354,11 @@ const viaReference = (src, k) =>
   outcome(() => B.parse(tokenizers[k].tokenize(src), CONFIGS[k][1]));
 const viaParser = (src, k) =>
   outcome(() => M.parse(src, { ...CONFIGS[k][1], ...CONFIGS[k][0] }));
+// Where 0.6.4 itself throws (an unclosed inline tag in link text), the parser
+// returns an AST instead, so those inputs have nothing to compare.
 function mismatch(src, k) {
-  return viaReference(src, k) !== viaParser(src, k);
+  const expected = viaReference(src, k);
+  return !expected.startsWith('THREW') && expected !== viaParser(src, k);
 }
 
 function minimize(src, k) {

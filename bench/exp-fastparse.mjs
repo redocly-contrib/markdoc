@@ -64,7 +64,8 @@ for (const [label, sources, cfg, args] of SETUPS) {
   for (let i = 0; i < sources.length; i++) {
     const a = outcome(() => B.parse(tk.tokenize(sources[i]), args));
     const b = outcome(() => M.parse(sources[i], { ...args, ...cfg }));
-    if (a !== b) {
+    // Where 0.6.4 itself throws, the parser returns an AST instead.
+    if (a !== b && !a.startsWith('THREW')) {
       if (bad < 3) console.log(`  ✗ ${label} doc #${i} ${firstDiff(a, b)}`);
       bad++;
     }

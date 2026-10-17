@@ -43,7 +43,8 @@ describe('parser, against the markdown-it reference', function () {
         const actual = outcome(() =>
           Markdoc.parse(source, { ...parseArgs, ...options })
         );
-        if (actual !== expected)
+        // Where 0.6.4 itself throws, the parser returns an AST instead.
+        if (actual !== expected && !expected.startsWith('threw'))
           fail(`differs for ${JSON.stringify({ source, options, parseArgs })}`);
         compared++;
       }
@@ -67,6 +68,17 @@ describe('parser, against the markdown-it reference', function () {
           expect(outcome(() => Markdoc.parse(source, { ...args, ...options })))
             .withContext(JSON.stringify({ source, options, args }))
             .toEqual(outcome(() => viaReference(source, options, args)));
+  });
+
+  it('parses an unclosed inline tag in link text, where 0.6.4 throws', function () {
+    const source = 'See [a {% t %}](/u) here.';
+    expect(() => viaReference(source, {})).toThrowError(TypeError);
+    const link = Markdoc.parse(source).children[0].children[0].children.find(
+      (n: any) => n.type === 'link'
+    );
+    expect(link).toBeDefined();
+    const errors = Markdoc.validate(Markdoc.parse(source), {});
+    expect(errors.map((e) => e.error.id)).toContain('missing-opening');
   });
 });
 

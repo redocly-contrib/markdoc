@@ -113,11 +113,11 @@ function inlineAttributes(token: InlineToken): Record<string, any> {
         ? { href: token.href, title: token.title }
         : { href: token.href };
     case T.LINK_CLOSE:
-      // Markdoc reads `Object.fromEntries(token.attrs)`, and a closing link
-      // token has no attrs, so an unmatched one throws there too.
-      throw new TypeError(
-        'object null is not iterable (cannot read property Symbol(Symbol.iterator))'
-      );
+      // Only reached for a closing link without its opening — an unclosed
+      // inline tag in link text, `[a {% t %}](/u)`, leaves one. It becomes a
+      // stray `link` node with a `missing-opening` error, like any other
+      // unmatched close. (Markdoc 0.6.4 threw a TypeError here.)
+      return {};
     case T.IMAGE:
       return token.title
         ? { alt: token.content, src: token.href, title: token.title }

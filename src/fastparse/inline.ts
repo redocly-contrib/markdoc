@@ -13,6 +13,7 @@
  */
 import { findTagEnd, OPEN, CLOSE } from '../utils';
 import { pushTag } from './block';
+import * as linkify from './linkify';
 import {
   HTML_TAG_RE,
   entities,
@@ -41,6 +42,10 @@ function isSpace(code: number) {
 const TERMINATOR = new Uint8Array(128);
 for (const ch of '\n!#$%&*+-:<=>@[\\]^_`{}~') TERMINATOR[ch.charCodeAt(0)] = 1;
 
+// With linkify, `w` also stops it, so a `www.` link can start there.
+const TERMINATOR_LINKIFY = TERMINATOR.slice();
+TERMINATOR_LINKIFY[0x77 /* w */] = 1;
+
 const ESCAPED = new Uint8Array(256);
 for (const ch of '\\!"#$%&\'()*+,./:;<=>?@[]^_`{|}~-')
   ESCAPED[ch.charCodeAt(0)] = 1;
@@ -48,6 +53,7 @@ for (const ch of '\\!"#$%&\'()*+,./:;<=>?@[]^_`{|}~-')
 export type InlineOptions = {
   html: boolean;
   allowComments: boolean;
+  linkify: boolean;
 };
 
 export class InlineState {
@@ -71,10 +77,16 @@ export class InlineState {
   references: Record<string, { title: string; href: string }> | undefined;
   html: boolean;
   allowComments: boolean;
+  linkify: boolean;
+  terminator: Uint8Array;
+  /** How many link labels are being tokenized; autolinks stay out of them. */
+  linkLevel = 0;
 
   constructor(options: InlineOptions) {
     this.html = options.html;
     this.allowComments = options.allowComments;
+    this.linkify = options.linkify;
+    this.terminator = options.linkify ? TERMINATOR_LINKIFY : TERMINATOR;
   }
 
   private alloc(type: number): InlineToken {
@@ -252,6 +264,7 @@ export class InlineState {
     this.backticksScanned = false;
     this.length = 0;
     this.references = references;
+    this.linkLevel = 0;
 
     this.tokenize();
 
@@ -259,6 +272,7 @@ export class InlineState {
     strikethroughPostProcess(this);
     emphasisPostProcess(this);
     textCollapse(this);
+    if (this.linkify) linkify.emails(this);
   }
 }
 
@@ -272,7 +286,7 @@ function isPunctuation(code: number) {
 /** The inline rules in markdown-it's order, dispatched on the character. */
 function rule(state: InlineState, silent: boolean): boolean {
   const ch = state.src.charCodeAt(state.pos);
-  if (ch >= 0x80 || !TERMINATOR[ch]) return text(state, silent);
+  if (ch >= 0x80 || !state.terminator[ch]) return text(state, silent);
   switch (ch) {
     case 0x0a /* \n */:
       return newline(state, silent);
@@ -299,6 +313,10 @@ function rule(state: InlineState, silent: boolean): boolean {
       return entity(state, silent);
     case 0x7b /* { */:
       return tag(state, silent);
+    case 0x77 /* w */:
+      return linkify.www(state, silent);
+    case 0x3a /* : */:
+      return state.linkify && linkify.url(state, silent);
     default:
       return false;
   }
@@ -311,9 +329,10 @@ function text(state: InlineState, silent: boolean): boolean {
   const max = state.posMax;
   let pos = state.pos;
 
+  const terminator = state.terminator;
   while (pos < max) {
     const ch = src.charCodeAt(pos);
-    if (ch < 0x80 && TERMINATOR[ch]) break;
+    if (ch < 0x80 && terminator[ch]) break;
     pos++;
   }
 
@@ -978,7 +997,9 @@ function link(state: InlineState, silent: boolean): boolean {
     token.href = href;
     token.title = title;
 
+    state.linkLevel++;
     state.tokenize();
+    state.linkLevel--;
 
     state.push(T.LINK_CLOSE);
   }

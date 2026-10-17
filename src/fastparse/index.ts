@@ -26,7 +26,8 @@ function parserFor(options: ParserArgs): Parser {
   const key =
     (options.html ? 1 : 0) |
     (options.allowIndentation ? 2 : 0) |
-    (options.allowComments ? 4 : 0);
+    (options.allowComments ? 4 : 0) |
+    (options.linkify ? 8 : 0);
   let parser = parsers.get(key);
   if (!parser || parser.busy) {
     const created = {
@@ -38,6 +39,7 @@ function parserFor(options: ParserArgs): Parser {
       inline: new InlineState({
         html: !!options.html,
         allowComments: !!options.allowComments,
+        linkify: !!options.linkify,
       }),
       busy: false,
     };
