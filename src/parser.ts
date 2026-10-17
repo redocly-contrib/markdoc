@@ -2,7 +2,7 @@ import Node from './ast/node';
 import transforms from './transforms/index';
 import { OPEN } from './utils';
 
-import type { AttributeValue, ParserArgs } from './types';
+import type { AttributeValue, NodeType, ParserArgs } from './types';
 
 import type Token from 'markdown-it/lib/token';
 
@@ -13,6 +13,13 @@ const mappings: Record<string, string> = {
   list_item: 'item',
   variable: 'text',
 };
+
+/** `type.replace(/_(open|close)$/, '')`, without a regex per token. */
+function baseTypeName(type: string): string {
+  if (type.endsWith('_open')) return type.slice(0, -5);
+  if (type.endsWith('_close')) return type.slice(0, -6);
+  return type;
+}
 
 function annotate(node: Node, attributes: AttributeValue[]) {
   for (const attribute of attributes) {
@@ -133,7 +140,7 @@ function handleToken(
     });
   }
 
-  let typeName = token.type.replace(/_(open|close)$/, '');
+  let typeName = baseTypeName(token.type);
   if (mappings[typeName]) typeName = mappings[typeName];
 
   if (typeName === 'error') {
@@ -167,13 +174,26 @@ function handleToken(
     if (Array.isArray(token.children)) {
       const newInlineParent = parent;
       for (const child of token.children)
-        handleToken(child, nodes, file, handleSlots, addLocation, compact, newInlineParent);
+        handleToken(
+          child,
+          nodes,
+          file,
+          handleSlots,
+          addLocation,
+          compact,
+          newInlineParent
+        );
     }
     return;
   }
 
   const attrs = handleAttrs(token, typeName);
-  const node = new Node(typeName, attrs, undefined, tag || undefined);
+  const node = new Node(
+    typeName as NodeType,
+    attrs,
+    undefined,
+    tag || undefined
+  );
   const { position = {} } = token;
 
   if (errors.length) for (const e of errors) node.addError(e);
@@ -201,7 +221,10 @@ function handleToken(
 
   if (inlineParent) node.inline = true;
 
-  if (attributes && ['tag', 'fence', 'image'].includes(typeName))
+  if (
+    attributes &&
+    (typeName === 'tag' || typeName === 'fence' || typeName === 'image')
+  )
     annotate(node, attributes);
 
   if (
@@ -223,7 +246,15 @@ function handleToken(
   const isLeafNode = typeName === 'image';
   if (!isLeafNode) {
     for (const child of token.children)
-      handleToken(child, nodes, file, handleSlots, addLocation, compact, inlineParent);
+      handleToken(
+        child,
+        nodes,
+        file,
+        handleSlots,
+        addLocation,
+        compact,
+        inlineParent
+      );
   }
 
   nodes.pop();
@@ -236,7 +267,14 @@ export default function parser(tokens: Token[], args?: string | ParserArgs) {
   if (typeof args === 'string') args = { file: args };
 
   for (const token of tokens)
-    handleToken(token, nodes, args?.file, args?.slots, args?.location, args?.compact);
+    handleToken(
+      token,
+      nodes,
+      args?.file,
+      args?.slots,
+      args?.location,
+      args?.compact
+    );
 
   if (nodes.length > 1)
     for (const node of nodes.slice(1))

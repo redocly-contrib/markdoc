@@ -26,7 +26,26 @@ const tokenizer = new Tokenizer();
 // `parse()`. Lazily constructed because most callers want the default behavior.
 let plainTokenizer: Tokenizer | undefined;
 
+// Brands a config returned by `prepareConfig`. A symbol key so it never shows
+// up in `Object.keys` or JSON, and enumerable so it survives the
+// `{ ...prepared, variables }` spread callers use to add per-call values.
+const PREPARED = Symbol('markdoc.prepared');
+
+type Prepared = Pick<Config, 'tags' | 'nodes' | 'functions'>;
+
 function mergeConfig(config: Config = {}): Config {
+  // A prepared config already holds the merged schemas. It is reused only
+  // while `tags`, `nodes` and `functions` are still the very objects that were
+  // merged, so overriding one of them after preparing still merges as usual.
+  const prepared = (config as { [PREPARED]?: Prepared })[PREPARED];
+  if (
+    prepared &&
+    prepared.tags === config.tags &&
+    prepared.nodes === config.nodes &&
+    prepared.functions === config.functions
+  )
+    return { ...config };
+
   return {
     ...config,
     tags: {
@@ -42,6 +61,25 @@ function mergeConfig(config: Config = {}): Config {
       ...config.functions,
     },
   };
+}
+
+/**
+ * Merges the built-in tags, nodes and functions into `config` once, so that
+ * `transform` and `validate` can skip doing it on every call — which, with a
+ * few dozen custom tags, is most of the cost of transforming a short document.
+ *
+ * The result is a snapshot: tags, nodes or functions added to the original
+ * config (or to Markdoc's built-ins) afterwards are not seen. Spreading it to
+ * add per-call values (`{ ...prepared, variables }`) keeps it prepared.
+ */
+export function prepareConfig<C extends Config = Config>(config?: C): C {
+  const merged = mergeConfig(config) as C & { [PREPARED]?: Prepared };
+  merged[PREPARED] = {
+    tags: merged.tags,
+    nodes: merged.nodes,
+    functions: merged.functions,
+  };
+  return merged;
 }
 
 export function parse(
@@ -166,6 +204,7 @@ export default class Markdoc {
   static transformer = transformer;
   static validator = validator;
   static parse = parse;
+  static prepareConfig = prepareConfig;
   static transform = transform;
   static validate = validate;
   static createElement = createElement;

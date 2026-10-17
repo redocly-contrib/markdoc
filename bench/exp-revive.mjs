@@ -10,9 +10,9 @@
 //   construct   JSON.parse + walk + new Node(type, attrs, children, tag) + assign rest
 //   proto       JSON.parse + walk + Object.setPrototypeOf(v, Node.prototype) + defaults
 import { createRequire } from 'node:module';
-import { loadCorpus } from './corpus.mjs';
-import { buildConfig } from './config.mjs';
-import { compare, report } from './harness.mjs';
+import { loadCorpus } from './lib/corpus.mjs';
+import { buildConfig } from './lib/config.mjs';
+import { compare, report } from './lib/harness.mjs';
 
 const require = createRequire(import.meta.url);
 const mod = require('markdoc-baseline');

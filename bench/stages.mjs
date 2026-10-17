@@ -6,9 +6,9 @@
 // Build time:  tokenize -> parse -> validate -> compact+serialize
 // Runtime:     revive (fromJSON) -> transform -> render (html, react)
 import { createRequire } from 'node:module';
-import { loadCorpus } from './corpus.mjs';
-import { buildConfig, buildComponents } from './config.mjs';
-import { compare, fmtMs, fmtBytes } from './harness.mjs';
+import { loadCorpus } from './lib/corpus.mjs';
+import { buildConfig, buildComponents } from './lib/config.mjs';
+import { compare, fmtMs, fmtBytes } from './lib/harness.mjs';
 
 const require = createRequire(import.meta.url);
 const which = process.argv[2] || 'baseline';

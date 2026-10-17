@@ -9,6 +9,7 @@ import type {
   NodeType,
   RenderableTreeNodes,
   Schema,
+  SchemaAttribute,
   Transformer,
 } from './types';
 
@@ -18,6 +19,74 @@ export const globalAttributes: AttributesSchema = {
   class: { type: Class, render: true },
   id: { type: Id, render: true },
 };
+
+// Attribute types are instantiated only to look up `transform`/`validate` on
+// the instance. The built-in ones keep no state, so one instance of each
+// serves every node; custom types are still constructed per use, as before.
+const builtInTypeInstances = new Map<unknown, unknown>([
+  [Class, new Class()],
+  [Id, new Id()],
+  [String, new String()],
+  [Number, new Number()],
+  [Boolean, new Boolean()],
+  [Array, []],
+  [Object, new Object()],
+]);
+
+/** `new type()`, reusing a shared instance for the stateless built-in types. */
+export function typeInstance(type: new () => unknown): any {
+  return builtInTypeInstances.get(type) ?? new type();
+}
+
+function hasOwn(object: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(object, key);
+}
+
+function transformAttribute(
+  output: Record<string, any>,
+  key: string,
+  attr: SchemaAttribute,
+  node: Node,
+  config: Config
+) {
+  if (attr.render == false) return;
+
+  const name = typeof attr.render === 'string' ? attr.render : key;
+
+  let value = node.attributes[key];
+  if (typeof attr.type === 'function') {
+    const instance = typeInstance(attr.type);
+    if (instance.transform) {
+      value = instance.transform(value, config);
+    }
+  }
+  value = value === undefined ? attr.default : value;
+
+  if (value === undefined) return;
+  output[name] = value;
+}
+
+/**
+ * The entries of `{ ...globalAttributes, ...attributes }`, in the same order,
+ * without building the merged object for every node.
+ */
+export function mergedAttributes(
+  attributes: AttributesSchema
+): [string, NonNullable<AttributesSchema>[string]][] {
+  if (!attributes) return Object.entries(globalAttributes!);
+  const entries: [string, NonNullable<AttributesSchema>[string]][] = [];
+  for (const key of Object.keys(globalAttributes!))
+    entries.push([
+      key,
+      Object.prototype.hasOwnProperty.call(attributes, key)
+        ? attributes[key]
+        : globalAttributes![key],
+    ]);
+  for (const key of Object.keys(attributes))
+    if (!Object.prototype.hasOwnProperty.call(globalAttributes, key))
+      entries.push([key, attributes[key]]);
+  return entries;
+}
 
 /**
  * In compact mode, a wrapper that carries no information of its own is dropped
@@ -58,24 +127,23 @@ export default {
     const schema = this.findSchema(node, config) ?? {};
     const output: Record<string, any> = {};
 
-    const attrs = { ...globalAttributes, ...schema.attributes };
-    for (const [key, attr] of Object.entries(attrs)) {
-      if (attr.render == false) continue;
-
-      const name = typeof attr.render === 'string' ? attr.render : key;
-
-      let value = node.attributes[key];
-      if (typeof attr.type === 'function') {
-        const instance: any = new attr.type();
-        if (instance.transform) {
-          value = instance.transform(value, config);
-        }
-      }
-      value = value === undefined ? attr.default : value;
-
-      if (value === undefined) continue;
-      output[name] = value;
-    }
+    // Visits `{ ...globalAttributes, ...schema.attributes }` in that object's
+    // key order without building it for every node.
+    const schemaAttributes = schema.attributes;
+    for (const key of Object.keys(globalAttributes!))
+      transformAttribute(
+        output,
+        key,
+        schemaAttributes && hasOwn(schemaAttributes, key)
+          ? schemaAttributes[key]
+          : globalAttributes![key],
+        node,
+        config
+      );
+    if (schemaAttributes)
+      for (const key of Object.keys(schemaAttributes))
+        if (!hasOwn(globalAttributes!, key))
+          transformAttribute(output, key, schemaAttributes[key], node, config);
 
     if (schema.slots) {
       for (const [key, slot] of Object.entries(schema.slots)) {

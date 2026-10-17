@@ -5,8 +5,8 @@
 // Uses the inspector protocol directly, so no profile files are left behind.
 import { createRequire } from 'node:module';
 import { Session } from 'node:inspector';
-import { loadCorpus } from './corpus.mjs';
-import { buildConfig, buildComponents } from './config.mjs';
+import { loadCorpus } from './lib/corpus.mjs';
+import { buildConfig, buildComponents } from './lib/config.mjs';
 
 const require = createRequire(import.meta.url);
 const [stage, corpusName = 'pages', which = 'baseline'] = process.argv.slice(2);

@@ -1,4 +1,8 @@
-import { globalAttributes } from './transformer';
+import {
+  globalAttributes,
+  mergedAttributes,
+  typeInstance,
+} from './transformer';
 import Ast from './ast/index';
 import { isPromise } from './utils';
 
@@ -48,7 +52,7 @@ export function validateType(
   if (typeof type === 'string') type = TypeMappings[type];
 
   if (typeof type === 'function') {
-    const instance: any = new type();
+    const instance = typeInstance(type);
     if (instance.validate) {
       return instance.validate(value, config, key);
     }
@@ -162,10 +166,9 @@ export default function validator(node: Node, config: Config) {
       message: `'${node.tag}' tag should be self-closing`,
     });
 
-  const attributes = {
-    ...globalAttributes,
-    ...schema.attributes,
-  };
+  // Looked up as `{ ...globalAttributes, ...schema.attributes }[key]` would
+  // answer, without building that merged object for every node.
+  const schemaAttributes = schema.attributes;
 
   for (const key of Object.keys(node.slots ?? {})) {
     const slot = schema.slots?.[key];
@@ -178,7 +181,11 @@ export default function validator(node: Node, config: Config) {
   }
 
   for (let [key, value] of Object.entries(node.attributes)) {
-    const attrib = attributes[key];
+    const attrib =
+      schemaAttributes &&
+      Object.prototype.hasOwnProperty.call(schemaAttributes, key)
+        ? schemaAttributes[key]
+        : (globalAttributes as Record<string, any>)[key];
 
     if (!attrib) {
       errors.push({
@@ -258,7 +265,7 @@ export default function validator(node: Node, config: Config) {
     }
   }
 
-  for (const [key, { required }] of Object.entries(attributes))
+  for (const [key, { required }] of mergedAttributes(schemaAttributes))
     if (required && node.attributes[key] === undefined)
       errors.push({
         id: 'attribute-missing-required',
@@ -300,9 +307,26 @@ export function* walkWithParents(
   node: Node,
   parents: Node[] = []
 ): Generator<[Node, Node[]]> {
-  yield [node, parents];
-  for (const child of [...Object.values(node.slots ?? {}), ...node.children])
-    yield* walkWithParents(child, [...parents, node]);
+  yield* collectWithParents(node, parents, []);
+}
+
+/**
+ * Every node with its ancestors, in `walkWithParents` order, collected
+ * without a generator per node. Siblings share one `parents` array.
+ */
+function collectWithParents(
+  node: Node,
+  parents: Node[],
+  out: [Node, Node[]][]
+): [Node, Node[]][] {
+  out.push([node, parents]);
+  const slots = Object.values(node.slots ?? {});
+  if (slots.length === 0 && node.children.length === 0) return out;
+  const childParents = [...parents, node];
+  for (const child of slots) collectWithParents(child, childParents, out);
+  for (const child of node.children)
+    collectWithParents(child, childParents, out);
+  return out;
 }
 
 function hasValidLocation(
@@ -340,12 +364,40 @@ function toValidateError(
   };
 }
 
+/**
+ * Each node paired with the config its validator sees, in `walkWithParents`
+ * order. The config (with `validation.parents`) is built once per parent and
+ * shared by all of its children, instead of once per node.
+ */
+function collectForValidation(
+  node: Node,
+  parents: Node[],
+  nodeConfig: Config,
+  config: Config,
+  out: [Node, Config][]
+): [Node, Config][] {
+  out.push([node, nodeConfig]);
+  const slots = Object.values(node.slots ?? {});
+  if (slots.length === 0 && node.children.length === 0) return out;
+  const childParents = [...parents, node];
+  const childConfig = {
+    ...config,
+    validation: { ...config.validation, parents: childParents },
+  };
+  for (const child of slots)
+    collectForValidation(child, childParents, childConfig, config, out);
+  for (const child of node.children)
+    collectForValidation(child, childParents, childConfig, config, out);
+  return out;
+}
+
 export function validateTree(content: Node, config: Config) {
-  const output = [...walkWithParents(content)].map(([node, parents]) => {
-    const updatedConfig = {
-      ...config,
-      validation: { ...config.validation, parents },
-    };
+  const rootConfig = {
+    ...config,
+    validation: { ...config.validation, parents: [] },
+  };
+  const nodes = collectForValidation(content, [], rootConfig, config, []);
+  const output = nodes.map(([node, updatedConfig]) => {
     const errors = validator(node, updatedConfig);
 
     if (isPromise(errors)) {

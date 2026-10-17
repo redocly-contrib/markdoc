@@ -16,7 +16,7 @@ import YAML from 'yaml';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REPO = process.env.REDOCLY_REPO || '/Users/romanhotsiy/Projects/redocly';
-const CACHE = path.join(here, '.cache', 'corpus.json');
+const CACHE = path.join(here, '..', '.cache', 'corpus.json');
 
 const PAGE_DIRS = ['docs/realm', 'docs/intranet', 'packages/portal/playground'];
 const SPEC = 'packages/portal/playground/api-docs/big-openapi/rebilly.yaml';

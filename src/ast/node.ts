@@ -23,6 +23,13 @@ function hasPosition(location?: Location): boolean {
   );
 }
 
+/** What `walk()` visits below a node: its slots, then its children. */
+function walkTargets(node: Node): Node[] {
+  // Tolerates hand-built plain objects, which some callers cast to Node.
+  const slots = node.slots ? Object.values(node.slots) : [];
+  return slots.length ? [...slots, ...node.children] : node.children.slice();
+}
+
 export default class Node implements AstType {
   readonly $$mdtype = 'Node';
 
@@ -95,11 +102,25 @@ export default class Node implements AstType {
   }
 
   *walk(): Generator<Node, void, unknown> {
-    // Tolerates hand-built plain objects, which some callers cast to Node.
-    const slots = this.slots ? Object.values(this.slots) : [];
-    for (const child of [...slots, ...this.children]) {
+    // Iterative rather than one nested generator per ancestor, so yielding a
+    // node costs O(1) instead of O(depth). Each node's children are still
+    // snapshotted only when the walk descends into it — after the consumer has
+    // seen that node — so replacing `node.children` mid-walk (as the table
+    // transform does) is followed exactly as before.
+    const lists: Node[][] = [walkTargets(this)];
+    const positions: number[] = [0];
+    while (lists.length) {
+      const top = lists.length - 1;
+      const list = lists[top];
+      if (positions[top] >= list.length) {
+        lists.pop();
+        positions.pop();
+        continue;
+      }
+      const child = list[positions[top]++];
       yield child;
-      yield* child.walk();
+      lists.push(walkTargets(child));
+      positions.push(0);
     }
   }
 
