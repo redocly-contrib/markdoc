@@ -2,48 +2,40 @@
   "pages": {
     "stages": {
       "source → AST": {
-        "baseline": 463.40300000000025,
-        "candidate": 216.3819999999978
-      },
-      "tokenize": {
-        "baseline": 363.97599999999875,
-        "candidate": 394.6219999999994
-      },
-      "parse": {
-        "baseline": 152.86199999999917,
-        "candidate": 120.37249999999767
+        "baseline": 471.15250000000015,
+        "candidate": 216.98449999999866
       },
       "validate": {
-        "baseline": 283.91649999999936,
-        "candidate": 196.4185000000016
+        "baseline": 287.34799999999996,
+        "candidate": 189.066499999999
       },
       "compact+stringify": {
-        "baseline": 157.91650000000118,
-        "candidate": 154.0555000000004
+        "baseline": 158.57749999999942,
+        "candidate": 144.6845000000003
       },
       "revive": {
-        "baseline": 510.4270000000015,
-        "candidate": 267.52400000000125
+        "baseline": 525.9380000000019,
+        "candidate": 260.21450000000004
       },
       "transform": {
-        "baseline": 191.9240000000009,
-        "candidate": 159.2484999999997
+        "baseline": 192.48500000000058,
+        "candidate": 148.02299999999923
       },
       "render html": {
-        "baseline": 85.58249999999862,
-        "candidate": 75.14099999999962
+        "baseline": 84.15700000000106,
+        "candidate": 63.025000000000546
       },
       "render react": {
-        "baseline": 82.98399999999856,
-        "candidate": 84.15099999999984
+        "baseline": 83.32300000000032,
+        "candidate": 70.90649999999914
       },
       "validate (prepared)": {
-        "baseline": 283.91649999999936,
-        "candidate": 195.59100000000217
+        "baseline": 287.34799999999996,
+        "candidate": 181.95050000000083
       },
       "transform (prepared)": {
-        "baseline": 191.9240000000009,
-        "candidate": 152.81099999999788
+        "baseline": 192.48500000000058,
+        "candidate": 143.60449999999946
       }
     },
     "storedBytes": {
@@ -54,48 +46,40 @@
   "descriptions": {
     "stages": {
       "source → AST": {
-        "baseline": 60.8280000000002,
-        "candidate": 22.564000000000306
-      },
-      "tokenize": {
-        "baseline": 48.43199999999979,
-        "candidate": 56.24099999999976
-      },
-      "parse": {
-        "baseline": 12.571500000000242,
-        "candidate": 9.548999999999978
+        "baseline": 65.46199999999953,
+        "candidate": 19.856999999999744
       },
       "validate": {
-        "baseline": 72.68500000000017,
-        "candidate": 65.12900000000013
+        "baseline": 73.92850000000044,
+        "candidate": 71.84850000000006
       },
       "compact+stringify": {
-        "baseline": 14.906500000000051,
-        "candidate": 15.268500000000131
+        "baseline": 17.021500000000287,
+        "candidate": 14.485000000000127
       },
       "revive": {
-        "baseline": 44.09199999999987,
-        "candidate": 16.429999999999836
+        "baseline": 45.222999999999956,
+        "candidate": 15.702000000000112
       },
       "transform": {
-        "baseline": 65.40599999999972,
-        "candidate": 56.86899999999946
+        "baseline": 66.48399999999992,
+        "candidate": 55.91199999999981
       },
       "render html": {
-        "baseline": 6.026499999999942,
-        "candidate": 1.0589999999997417
+        "baseline": 6.026999999999589,
+        "candidate": 4.9715000000001055
       },
       "render react": {
-        "baseline": 6.789499999999862,
-        "candidate": 7.086500000000115
+        "baseline": 6.806999999999789,
+        "candidate": 6.514999999999986
       },
       "validate (prepared)": {
-        "baseline": 72.68500000000017,
-        "candidate": 24.2795000000001
+        "baseline": 73.92850000000044,
+        "candidate": 23.40850000000023
       },
       "transform (prepared)": {
-        "baseline": 65.40599999999972,
-        "candidate": 23.612499999999955
+        "baseline": 66.48399999999992,
+        "candidate": 24.89150000000018
       }
     },
     "storedBytes": {

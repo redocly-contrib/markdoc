@@ -2,91 +2,81 @@
   {
     "name": "markdoc 0.6.4: tokenize+parse",
     "kind": "tree",
-    "ms": 77.85300000000001
-  },
-  {
-    "name": "markdoc branch: markdown-it tokens + parse",
-    "kind": "tree",
-    "ms": 67.86000000000001
+    "ms": 76.065
   },
   {
     "name": "markdoc branch: new parser (source → AST)",
     "kind": "tree",
-    "ms": 18.658999999999992
-  },
-  {
-    "name": "markdoc branch: markdown-it tokens only",
-    "kind": "tokens",
-    "ms": 30.511000000000024
+    "ms": 21.988
   },
   {
     "name": "markdown-it 12.3 (no markdoc plugins)",
     "kind": "tokens",
-    "ms": 30.918999999999983
+    "ms": 24.762
   },
   {
     "name": "markdown-it 15.0 (no markdoc plugins)",
     "kind": "tokens",
-    "ms": 51.37899999999999
+    "ms": 52.00799999999998
   },
   {
     "name": "marked 18: lexer",
     "kind": "tokens",
-    "ms": 20.88900000000001
+    "ms": 20.151999999999987
   },
   {
     "name": "mdastic 0.1 (gfm, no positions)",
     "kind": "tree",
-    "ms": 14.605000000000018
+    "ms": 14.06899999999996
   },
   {
     "name": "mdastic 0.1 (gfm, positions)",
     "kind": "tree",
-    "ms": 14.226999999999975
+    "ms": 17.81099999999998
   },
   {
     "name": "mdast-util-from-markdown 2 (remark)",
     "kind": "tree",
-    "ms": 258.78999999999996
+    "ms": 257.3620000000001
   },
   {
     "name": "commonmark.js 0.31",
     "kind": "tree",
-    "ms": 30.831000000000017
+    "ms": 17.467000000000013
   },
   {
     "name": "comrak 0.48 wasm: parseMarkdown (Rust)",
     "kind": "tree",
-    "ms": 84
+    "ms": 85.81299999999999
   },
   {
     "name": "comrak 0.48 wasm: to HTML (Rust)",
     "kind": "html",
-    "ms": 55.11699999999996
+    "ms": 54.733999999999924
   },
   {
     "name": "pulldown-cmark wasm: to HTML (Rust)",
     "kind": "html",
-    "ms": 23.457000000000022
+    "ms": 20.448000000000008
   },
   {
     "name": "markdown-wasm (md4c, C): to HTML",
     "kind": "html",
-    "ms": 26.966999999999985
+    "ms": 26.38499999999999
   },
   {
     "name": "markdown-it 15.0: to HTML",
     "kind": "html",
-    "ms": 66.91999999999996
+    "ms": 107.05799999999999
   },
   {
     "name": "marked 18: to HTML",
     "kind": "html",
-    "ms": 43.93000000000001
+    "ms": 53.886999999999944
   },
   {
     "name": "micromark 4: to HTML",
     "kind": "html",
-    "ms": 276.78499999999985
+    "ms": 307.9689999999998
   }
 ]

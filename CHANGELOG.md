@@ -6,7 +6,78 @@ fork releases. Upstream's own history is not repeated here.
 
 Current upstream base: **0.5.10**.
 
-## 0.6.4 (unreleased)
+## 0.7.0 (unreleased)
+
+Markdoc now has its own parser, and markdown-it is gone. The AST is unchanged:
+on the 8,940 documents of the Redocly corpus, under six settings, it is
+byte-identical to 0.6.4's.
+
+### Breaking
+
+- **`Markdoc.Tokenizer` is removed, and `parse()` takes only a string.** The
+  tokenizer settings are now `parse()` options:
+
+  ```js
+  // 0.6.x
+  const tokenizer = new Markdoc.Tokenizer({ html: true, allowIndentation: true, allowComments: true });
+  const ast = Markdoc.parse(tokenizer.tokenize(source), { slots: true });
+
+  // 0.7
+  const ast = Markdoc.parse(source, { html: true, allowIndentation: true, allowComments: true, slots: true });
+  ```
+
+  The options are `html`, `allowIndentation`, `allowComments`,
+  `allowLinkValidation`, `linkValidationOptions` and `githubAdmonitions`,
+  plus the new `linkify`.
+- **`tokenize(source, { stopAfter })` and `tokenizeUntil` are removed**, with
+  the token API.
+- **markdown-it options are not accepted:** `linkify` is now GitHub-style (see
+  below); `typographer` and `maxNesting` are gone.
+- **Patching markdown-it's rules no longer works.** The portal, API docs and
+  editor emptied the `reference` rule's terminators to work around
+  markdown-it#996. The parser fixes the underlying problem instead (see
+  below), and keeps CommonMark's reference definition rules.
+
+### Added
+
+- **`linkify: true`** turns bare `www.`, `http(s)://` and `ftp://` URLs and
+  email addresses into links, following GitHub's rules (cmark-gfm's autolink
+  extension): the same boundaries, domain checks and trimming of trailing
+  punctuation, unbalanced parentheses and entities. Text inside links and
+  code is left alone.
+- **`htmlTags()` from `@redocly/markdoc/dist/html`**, ported from Redocly
+  Realm. `parse(source, { html: htmlTags() })` turns raw HTML into `html`
+  tags with React-converted attributes, the markdown between an element's
+  opening and closing tags as their children. Unclosed elements are closed
+  after a `markdoc-error` tag. The entry bundles htmlparser2, so the main
+  bundle does not grow. `html` also accepts any `HtmlHandler`.
+- **`parseAndValidate(source, config, args)`** returns `{ ast, errors }`.
+- **`prepareConfig(config, { cloneAst })`**: merges the built-in schemas once,
+  for repeated `transform` and `validate` calls. With `cloneAst: false`,
+  `transform` copies only the nodes that hold variables or functions.
+- **`Ast.pack(ast, { compact: true })` / `Ast.unpack(value)`**: a lossless,
+  JSON-compatible storage format, about 3× smaller than compact JSON and
+  faster to load. `unpack` takes the already-parsed value.
+
+### Fixed
+
+- **A run of link reference definitions took quadratic time**
+  (markdown-it#996): 8,000 definitions took 2.1 s, and now take 20 ms.
+- **An unclosed inline tag in link text (`[a {% t %}](/u)`) threw a
+  `TypeError`.** The stray link close now becomes a node with a
+  `missing-opening` error, like other unmatched closes.
+
+### Performance
+
+Measured on the Redocly corpus against 0.6.4 (see `bench/REPORT.md`):
+
+- builds are 1.7–1.8× faster with the same steps, and 2.2–3.4× faster with
+  `prepareConfig` and `Ast.pack`; source → AST alone is 2.2–3.5× faster;
+- loading and rendering at runtime is 1.3–1.6× faster with the same steps,
+  and 3–5.6× faster with `prepareConfig` and `Ast.unpack`;
+- the bundle is 59 KB gzipped, down from 67.5 KB.
+
+## 0.6.4
 
 ### Fixed
 

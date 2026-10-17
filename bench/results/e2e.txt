@@ -1,14 +1,14 @@
 
 PAGES (1129 docs; stored 29.18 MB JSON, 10.14 MB packed)
-  path                   0.6.4         drop-in            fast
-  build                 793 ms    648 ms 1.22x    355 ms 2.23x
-  runtime html          653 ms    419 ms 1.56x    183 ms 3.57x
-  runtime react         667 ms    419 ms 1.59x    186 ms 3.59x
-  embedded react        704 ms    477 ms 1.48x    157 ms 4.47x
+  path                   0.6.4      same steps            fast
+  build                 789 ms    430 ms 1.84x    363 ms 2.17x
+  runtime html          679 ms    431 ms 1.57x    184 ms 3.68x
+  runtime react         684 ms    432 ms 1.58x    198 ms 3.46x
+  embedded react        724 ms    487 ms 1.49x    158 ms 4.59x
 
 DESCRIPTIONS (7811 docs; stored 2.47 MB JSON, 700.6 KB packed)
-  path                   0.6.4         drop-in            fast
-  build                 174 ms    158 ms 1.10x   49.9 ms 3.48x
-  runtime html          116 ms   90.0 ms 1.29x   38.9 ms 2.98x
-  runtime react         117 ms   88.0 ms 1.33x   30.8 ms 3.80x
-  embedded react        122 ms   93.0 ms 1.31x   22.1 ms 5.53x
+  path                   0.6.4      same steps            fast
+  build                 177 ms    102 ms 1.73x   52.7 ms 3.35x
+  runtime html          115 ms   89.4 ms 1.29x   39.0 ms 2.96x
+  runtime react         118 ms   88.8 ms 1.33x   31.2 ms 3.80x
+  embedded react        124 ms   92.8 ms 1.33x   22.0 ms 5.62x
