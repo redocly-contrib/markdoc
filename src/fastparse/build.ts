@@ -17,6 +17,7 @@ import { parse as parseTag, SyntaxError } from '../grammar/tag';
 import Variable from '../ast/variable';
 import Function from '../ast/function';
 import { ADMONITION_KINDS } from '../admonitions';
+import { annotate } from './annotate';
 import * as T from './tokens';
 import { NESTING, NODE_TYPE, BlockToken, InlineToken } from './tokens';
 import type { BlockState } from './block';
@@ -40,25 +41,6 @@ export type BuildOptions = {
 
 const ADMONITION_KIND_SET: Set<string> = new Set(ADMONITION_KINDS);
 const ADMONITION_RE = /^\[!([A-Za-z]+)]\s*(?:\n|$)/;
-
-function annotate(node: Node, attributes: AttributeValue[]) {
-  for (const attribute of attributes) {
-    node.addAnnotation(attribute);
-
-    const { name, value, type } = attribute;
-    if (type === 'attribute') {
-      if (node.attributes[name] !== undefined)
-        node.addError({
-          id: 'duplicate-attribute',
-          level: 'warning',
-          message: `Attribute '${name}' already set`,
-        });
-      node.attributes[name] = value;
-    } else if (type === 'class')
-      if (node.attributes.class) node.attributes.class[name] = value;
-      else node.attributes.class = { [name]: value };
-  }
-}
 
 function fenceAttributes(token: BlockToken) {
   const info = token.info;
@@ -171,7 +153,9 @@ export function build(
   block: BlockState,
   inline: InlineState,
   options: BuildOptions,
-  args?: ParserArgs
+  args?: ParserArgs,
+  from = 0,
+  to = block.length
 ): Node {
   const doc = new Node('document');
   const nodes: Node[] = [doc];
@@ -182,7 +166,7 @@ export function build(
   const locate = !compact && addLocation !== false;
 
   const pool = block.pool;
-  const length = block.length;
+  const length = to;
 
   // With an HTML handler, the document's HTML blocks form one run and each
   // inline content its own; the handler's tokens take the HTML's place.
@@ -450,7 +434,7 @@ export function build(
     }
   }
 
-  for (let i = 0; i < length; i++) {
+  for (let i = from; i < length; i++) {
     if (i <= skipUntil) continue;
     const token = pool[i];
 

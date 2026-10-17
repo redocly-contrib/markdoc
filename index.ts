@@ -3,7 +3,12 @@ import Node, { resolveNodeShared } from './src/ast/node';
 import compact from './src/ast/compact';
 import format from './src/formatter';
 import functions from './src/functions';
-import { parse as parseSource } from './src/fastparse';
+import {
+  parse as parseSource,
+  parseFirstHeading,
+  findFirstHeading,
+} from './src/fastparse';
+export type { FirstHeadingOptions } from './src/fastparse';
 import * as nodes from './src/schema';
 import renderers from './src/renderers';
 import Tag from './src/tag';
@@ -202,6 +207,8 @@ export {
   truthy,
   format,
   compact,
+  parseFirstHeading,
+  findFirstHeading,
 };
 
 export default class Markdoc {
@@ -221,6 +228,8 @@ export default class Markdoc {
   static transform = transform;
   static validate = validate;
   static parseAndValidate = parseAndValidate;
+  static parseFirstHeading = parseFirstHeading;
+  static findFirstHeading = findFirstHeading;
   static createElement = createElement;
   static truthy = truthy;
   static format = format;

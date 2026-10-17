@@ -230,6 +230,10 @@ export type ParserArgs = {
   // `someone@example.com`. Text inside links and code is left alone.
   // @default false
   linkify?: boolean;
+  // Read a `---` fenced block at the very start of the document as
+  // frontmatter, into the document's `frontmatter` attribute.
+  // @default true
+  frontmatter?: boolean;
   // Recognize HTML comments, `<!-- like this -->`, as `comment` nodes.
   // @default false
   allowComments?: boolean;

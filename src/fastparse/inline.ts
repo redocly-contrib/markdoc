@@ -81,6 +81,11 @@ export class InlineState {
   terminator: Uint8Array;
   /** How many link labels are being tokenized; autolinks stay out of them. */
   linkLevel = 0;
+  /**
+   * A link or image looked up a reference definition that was not there. A
+   * parse that stopped early may not have seen that definition yet.
+   */
+  missedReference = false;
 
   constructor(options: InlineOptions) {
     this.html = options.html;
@@ -265,6 +270,7 @@ export class InlineState {
     this.length = 0;
     this.references = references;
     this.linkLevel = 0;
+    this.missedReference = false;
 
     this.tokenize();
 
@@ -958,7 +964,10 @@ function link(state: InlineState, silent: boolean): boolean {
     //
     // Link reference
     //
-    if (state.references === undefined) return false;
+    if (state.references === undefined) {
+      state.missedReference = true;
+      return false;
+    }
 
     if (pos < max && state.src.charCodeAt(pos) === 0x5b /* [ */) {
       start = pos + 1;
@@ -978,6 +987,7 @@ function link(state: InlineState, silent: boolean): boolean {
 
     const ref = state.references[normalizeReference(label)];
     if (!ref) {
+      state.missedReference = true;
       state.pos = oldPos;
       return false;
     }
@@ -1088,7 +1098,10 @@ function image(state: InlineState, silent: boolean): boolean {
     //
     // Link reference
     //
-    if (state.references === undefined) return false;
+    if (state.references === undefined) {
+      state.missedReference = true;
+      return false;
+    }
 
     if (pos < max && state.src.charCodeAt(pos) === 0x5b /* [ */) {
       start = pos + 1;
@@ -1108,6 +1121,7 @@ function image(state: InlineState, silent: boolean): boolean {
 
     const ref = state.references[normalizeReference(label)];
     if (!ref) {
+      state.missedReference = true;
       state.pos = oldPos;
       return false;
     }

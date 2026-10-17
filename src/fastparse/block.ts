@@ -25,6 +25,8 @@ import { findTagEnd, OPEN, CLOSE } from '../utils';
 import { parse as parseTag, SyntaxError } from '../grammar/tag';
 import Variable from '../ast/variable';
 import Function from '../ast/function';
+import Node from '../ast/node';
+import { annotate } from './annotate';
 import * as T from './tokens';
 import { BlockToken, NESTING, grammarKind } from './tokens';
 
@@ -32,6 +34,23 @@ export type BlockOptions = {
   html: boolean;
   allowIndentation: boolean;
   allowComments: boolean;
+  frontmatter: boolean;
+};
+
+/**
+ * Stops the block parse at the first heading outside a skipped tag, for
+ * `parseFirstHeading`. It mirrors the Node stack `build` keeps for block
+ * containers and tags — a close only ends the innermost open node, so a tag
+ * closed inside a list item it was not opened in stays open, exactly as in a
+ * full build — and counts the skipped tags on it (with `slots`, slots too).
+ */
+export type HeadingStop = {
+  skip: ((tag: Node) => boolean) | undefined;
+  slots: boolean;
+  open: { type: string; tag: string | undefined; skipped: boolean }[];
+  skipped: number;
+  /** Pool index of the heading's `heading_close` token, or -1. */
+  found: number;
 };
 
 type Rule = (
@@ -90,6 +109,13 @@ export class BlockState {
   /** Index of the document's first non-whitespace character (see `tag`). */
   firstNonSpace = 0;
 
+  /** Set while `parseFirstHeading` runs. */
+  stop: HeadingStop | null = null;
+  /** `src` is only the start of the document. */
+  windowed = false;
+  /** A construct ran past the indexed lines, so the parse is not final. */
+  overflow = false;
+
   rules: Rule[];
   paragraphTerminators: Rule[];
   referenceTerminators: Rule[];
@@ -108,7 +134,7 @@ export class BlockState {
       table,
       fence,
       blockquote,
-      frontmatter,
+      ...(options.frontmatter ? [frontmatter] : []),
       hr,
       list,
       reference,
@@ -150,8 +176,15 @@ export class BlockState {
   }
 
   /** Resets the state for `src` and indexes its lines. */
-  reset(src: string) {
+  /**
+   * Resets the state for `src` and indexes its lines. With `windowed`, `src`
+   * is only the start of the document, and a construct that might reach past
+   * its end sets `overflow` instead (see `parseFirstHeading`).
+   */
+  reset(src: string, windowed = false) {
     this.src = src;
+    this.windowed = windowed;
+    this.overflow = false;
     this.blkIndent = 0;
     this.line = 0;
     this.tight = false;
@@ -244,6 +277,7 @@ export class BlockState {
     token.level = this.level;
     if (nesting > 0) this.level++;
     this.length++;
+    if (this.stop !== null && nesting !== 0) trackContainer(this.stop, type);
     return token;
   }
 
@@ -372,6 +406,13 @@ export class BlockState {
         if (rules[i](this, line, endLine, false)) break;
       }
 
+      // Stopping at a heading: end this loop and, as each one returns, every
+      // enclosing one (blockquote, list item) too.
+      if (this.stop !== null && this.stop.found >= 0) {
+        this.line = endLine;
+        break;
+      }
+
       this.tight = !hasEmptyLines;
 
       if (this.isEmpty(this.line - 1)) hasEmptyLines = true;
@@ -498,6 +539,10 @@ function heading(
   token = state.push(T.HEADING_CLOSE);
   token.num = level;
   token.markup = HEADING_MARKUP.slice(0, level);
+
+  const stop = state.stop;
+  if (stop !== null && stop.found < 0 && stop.skipped === 0)
+    stop.found = state.length - 1;
 
   return true;
 }
@@ -1866,6 +1911,11 @@ function tag(
     return false;
 
   const tagEnd = findTagEnd(src, start);
+  if (!tagEnd && state.windowed) {
+    // Its end may lie past the window.
+    state.overflow = true;
+    return false;
+  }
 
   // Markdoc computes `src.slice(0, finish).trim().length`; this is the same
   // number without copying the document prefix on every call. (`trim` also
@@ -1894,7 +1944,61 @@ function tag(
   (token as BlockToken).map0 = startLine;
   (token as BlockToken).map1 = startLine + lines;
   state.line += lines;
+  if (state.stop !== null) trackTag(state.stop, token as BlockToken);
   return true;
+}
+
+/**
+ * Follows block containers opening and closing, for a `HeadingStop`.
+ * Paragraphs and headings hold no blocks, and tags are handled by
+ * `trackTag` once their name is known.
+ */
+function trackContainer(stop: HeadingStop, type: number) {
+  switch (type) {
+    case T.PARAGRAPH_OPEN:
+    case T.PARAGRAPH_CLOSE:
+    case T.HEADING_OPEN:
+    case T.HEADING_CLOSE:
+    case T.TAG_OPEN:
+    case T.TAG_CLOSE:
+      return;
+  }
+  const open = stop.open;
+  const name = T.NODE_TYPE[type];
+  if (T.NESTING[type] > 0) {
+    open.push({ type: name, tag: undefined, skipped: false });
+  } else {
+    const top = open[open.length - 1];
+    if (top && top.type === name && top.tag === undefined) open.pop();
+  }
+}
+
+/** Follows block tags opening and closing, for a `HeadingStop`. */
+function trackTag(stop: HeadingStop, token: BlockToken) {
+  if (token.type === T.TAG_OPEN) {
+    const { tag, attributes } = token.meta;
+    let skipped = false;
+    if (stop.slots && tag === 'slot') {
+      // A slot's content goes to `slots`, not the document's children.
+      const node = new Node('tag', {}, undefined, tag);
+      if (attributes) annotate(node, attributes);
+      skipped = typeof node.attributes.primary === 'string';
+    }
+    if (!skipped && stop.skip) {
+      const node = new Node('tag', {}, undefined, tag);
+      if (attributes) annotate(node, attributes);
+      skipped = !!stop.skip(node);
+    }
+    stop.open.push({ type: 'tag', tag, skipped });
+    if (skipped) stop.skipped++;
+  } else if (token.type === T.TAG_CLOSE) {
+    const open = stop.open;
+    const top = open[open.length - 1];
+    if (top && top.type === 'tag' && top.tag === token.meta.tag) {
+      open.pop();
+      if (top.skipped) stop.skipped--;
+    }
+  }
 }
 
 // ---------------------------------------------------------------- comments
@@ -1913,7 +2017,11 @@ function comment(
 
   const close = state.src.indexOf(COMMENT_CLOSE, start);
 
-  if (close === -1) return false;
+  if (close === -1) {
+    // Its end may lie past the window.
+    if (state.windowed) state.overflow = true;
+    return false;
+  }
   if (silent) return true;
 
   const content = state.src.slice(start + COMMENT_OPEN.length, close);
@@ -1953,7 +2061,11 @@ function frontmatter(
       break;
     }
 
-  if (!close) return false;
+  if (!close) {
+    // Its closing fence may lie past the indexed lines.
+    if (state.windowed) state.overflow = true;
+    return false;
+  }
   if (silent) return true;
 
   const token = state.push(T.FRONTMATTER);

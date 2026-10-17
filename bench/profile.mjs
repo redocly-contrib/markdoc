@@ -44,6 +44,9 @@ const work = {
   tokenize: () => {
     for (const s of sources) tokenizer.tokenize(s);
   },
+  firstheading: () => {
+    for (const s of sources) Markdoc.parseFirstHeading(s, { ...parseArgs, ...options, slots: true });
+  },
   source: () => {
     for (const s of sources) {
       if (tokenizer) Markdoc.parse(tokenizer.tokenize(s), parseArgs);
