@@ -8,41 +8,25 @@
  *    are found with `indexOf('\n')` instead of a loop over every character;
  *  - tokens come from a pool of reused objects instead of `new Token()`;
  *  - rules are plain functions in fixed arrays instead of a `Ruler`.
+ *
+ * Rules and their comments are ported from markdown-it (MIT, Copyright (c)
+ * 2014 Vitaly Puzrin, Alex Kocharin).
  */
-import MarkdownIt from 'markdown-it/lib';
-import htmlBlockNames from 'markdown-it/lib/common/html_blocks';
-import { HTML_OPEN_CLOSE_TAG_RE } from 'markdown-it/lib/common/html_re';
+import {
+  HTML_BLOCK_NAMES,
+  HTML_OPEN_CLOSE_TAG_RE,
+  normalizeLink,
+  normalizeReference,
+  parseLinkDestination,
+  parseLinkTitle,
+  validateLink,
+} from './common';
 import { findTagEnd, OPEN, CLOSE } from '../utils';
 import { parse as parseTag, SyntaxError } from '../grammar/tag';
 import Variable from '../ast/variable';
 import Function from '../ast/function';
 import * as T from './tokens';
 import { BlockToken, NESTING, grammarKind } from './tokens';
-
-/** Only for its link helpers; never used to parse. */
-export const md = new MarkdownIt();
-const { normalizeReference } = md.utils;
-
-/**
- * markdown-it's link helpers are pure functions of the URL, and the same
- * URLs recur across a site's pages, so their results are memoized.
- */
-function memoize<T>(fn: (url: string) => T): (url: string) => T {
-  const cache = new Map<string, T>();
-  return (url) => {
-    let result = cache.get(url);
-    if (result === undefined) {
-      if (cache.size >= 4096) cache.clear();
-      result = fn(url);
-      cache.set(url, result);
-    }
-    return result;
-  };
-}
-
-export const normalizeLink = memoize((url) => md.normalizeLink(url));
-export const validateLink = memoize((url) => md.validateLink(url));
-export const normalizeLinkText = memoize((url) => md.normalizeLinkText(url));
 
 export type BlockOptions = {
   html: boolean;
@@ -1353,7 +1337,7 @@ function reference(
 
   // [label]:   destination   'title'
   //            ^^^^^^^^^^^ parse this
-  let res = md.helpers.parseLinkDestination(str, pos, max);
+  let res = parseLinkDestination(str, pos, max);
   if (!res.ok) return false;
 
   const href = normalizeLink(res.str);
@@ -1382,7 +1366,7 @@ function reference(
 
   // [label]:   destination   'title'
   //                          ^^^^^^^ parse this
-  res = md.helpers.parseLinkTitle(str, pos, max);
+  res = parseLinkTitle(str, pos, max);
   let title: string;
   if (pos < max && start !== pos && res.ok) {
     title = res.str;
@@ -1458,7 +1442,7 @@ const HTML_SEQUENCES: [RegExp, RegExp, boolean][] = [
   [/^<![A-Z]/, />/, true],
   [/^<!\[CDATA\[/, /\]\]>/, true],
   [
-    new RegExp('^</?(' + htmlBlockNames.join('|') + ')(?=(\\s|/?>|$))', 'i'),
+    new RegExp('^</?(' + HTML_BLOCK_NAMES.join('|') + ')(?=(\\s|/?>|$))', 'i'),
     /^$/,
     true,
   ],

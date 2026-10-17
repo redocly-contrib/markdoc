@@ -7,28 +7,29 @@
  * pooled, rules are dispatched on the first character instead of being tried
  * in turn, and anchored regexes run sticky against the source instead of
  * against a fresh `src.slice(pos)` copy.
+ *
+ * Rules and their comments are ported from markdown-it (MIT, Copyright (c)
+ * 2014 Vitaly Puzrin, Alex Kocharin).
  */
-import { HTML_TAG_RE } from 'markdown-it/lib/common/html_re';
-import entities from 'markdown-it/lib/common/entities';
 import { findTagEnd, OPEN, CLOSE } from '../utils';
+import { pushTag } from './block';
 import {
-  md,
-  pushTag,
+  HTML_TAG_RE,
+  entities,
+  fromCodePoint,
+  isMdAsciiPunct,
+  isPunctChar,
+  isValidEntityCode,
+  isWhiteSpace,
   normalizeLink,
-  validateLink,
   normalizeLinkText,
-} from './block';
+  normalizeReference,
+  parseLinkDestination,
+  parseLinkTitle,
+  validateLink,
+} from './common';
 import * as T from './tokens';
 import { InlineToken, Delimiter, NESTING } from './tokens';
-
-const {
-  normalizeReference,
-  isWhiteSpace,
-  isPunctChar,
-  isMdAsciiPunct,
-  isValidEntityCode,
-  fromCodePoint,
-} = md.utils;
 
 const MAX_NESTING = 100;
 
@@ -894,7 +895,7 @@ function link(state: InlineState, silent: boolean): boolean {
     // [link](  <href>  "title"  )
     //          ^^^^^^ parsing link destination
     start = pos;
-    let res = md.helpers.parseLinkDestination(state.src, pos, state.posMax);
+    let res = parseLinkDestination(state.src, pos, state.posMax);
     if (res.ok) {
       href = normalizeLink(res.str);
       if (validateLink(href)) {
@@ -913,7 +914,7 @@ function link(state: InlineState, silent: boolean): boolean {
 
       // [link](  <href>  "title"  )
       //                  ^^^^^^^ parsing link title
-      res = md.helpers.parseLinkTitle(state.src, pos, state.posMax);
+      res = parseLinkTitle(state.src, pos, state.posMax);
       if (pos < max && start !== pos && res.ok) {
         title = res.str;
         pos = res.pos;
@@ -1022,7 +1023,7 @@ function image(state: InlineState, silent: boolean): boolean {
     // [link](  <href>  "title"  )
     //          ^^^^^^ parsing link destination
     start = pos;
-    let res = md.helpers.parseLinkDestination(state.src, pos, state.posMax);
+    let res = parseLinkDestination(state.src, pos, state.posMax);
     if (res.ok) {
       href = normalizeLink(res.str);
       if (validateLink(href)) {
@@ -1042,7 +1043,7 @@ function image(state: InlineState, silent: boolean): boolean {
 
     // [link](  <href>  "title"  )
     //                  ^^^^^^^ parsing link title
-    res = md.helpers.parseLinkTitle(state.src, pos, state.posMax);
+    res = parseLinkTitle(state.src, pos, state.posMax);
     if (pos < max && start !== pos && res.ok) {
       title = res.str;
       pos = res.pos;
