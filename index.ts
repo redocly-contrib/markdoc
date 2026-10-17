@@ -4,13 +4,14 @@ import compact from './src/ast/compact';
 import format from './src/formatter';
 import functions from './src/functions';
 import parser from './src/parser';
-import { fastParse } from './src/fastparse';
+import { fastParse, parseDocument } from './src/fastparse';
 import * as nodes from './src/schema';
 import renderers from './src/renderers';
 import Tag from './src/tag';
 import tags from './src/tags';
 import { truthy } from './src/tags/conditional';
 import Tokenizer from './src/tokenizer';
+import type { TokenizerConfig } from './src/tokenizer';
 import transformer, { globalAttributes } from './src/transformer';
 import transforms from './src/transforms';
 import { parseTags } from './src/utils';
@@ -28,10 +29,18 @@ import type {
 export * from './src/types';
 export type { Packed, PackedNode } from './src/ast/pack';
 
-const tokenizer = new Tokenizer();
-// Alternate tokenizer for callers that pass `githubAdmonitions: false` to
-// `parse()`. Lazily constructed because most callers want the default behavior.
-let plainTokenizer: Tokenizer | undefined;
+/**
+ * The fast parser implements markdown-it's grammar with its default rule set.
+ * Options that add markdown-it rules or change its limits take the token path.
+ */
+function supportsFastParse(config: TokenizerConfig): boolean {
+  const { maxNesting } = config as { maxNesting?: number };
+  return (
+    !config.linkify &&
+    !config.typographer &&
+    (maxNesting === undefined || maxNesting === 100)
+  );
+}
 
 // Brands a config returned by `prepareConfig`. A symbol key so it never shows
 // up in `Object.keys` or JSON, and enumerable so it survives the
@@ -113,18 +122,25 @@ export function parse(
   content: string | Token[],
   args?: string | ParserArgs
 ): Node {
-  if (typeof content === 'string') {
-    const opts = typeof args === 'object' ? args : undefined;
-    if (opts?.githubAdmonitions === false) {
-      plainTokenizer ??= new Tokenizer({ githubAdmonitions: false });
-      content = plainTokenizer.tokenize(content);
-    } else {
-      content = tokenizer.tokenize(content);
-    }
-  }
-  const doc = parser(content, args);
-
   const opts = typeof args === 'object' ? args : undefined;
+  let doc: Node;
+
+  if (typeof content === 'string') {
+    const config = opts?.tokenizer ?? {};
+    const githubAdmonitions =
+      opts?.githubAdmonitions === false ? false : config.githubAdmonitions;
+
+    if (supportsFastParse(config)) {
+      // Same AST as tokenizing with markdown-it and parsing the tokens.
+      doc = parseDocument(content, { ...config, githubAdmonitions }, args);
+    } else {
+      const custom = new Tokenizer({ ...config, githubAdmonitions });
+      doc = parser(custom.tokenize(content), args);
+    }
+  } else {
+    doc = parser(content, args);
+  }
+
   if (
     opts?.compact &&
     doc.type === 'document' &&

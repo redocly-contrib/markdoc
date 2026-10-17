@@ -30,6 +30,7 @@ export const CORPORA = {
   pages: {
     label: 'PAGES',
     // The portal's tokenizer settings for pages.
+    config: { html: true, allowIndentation: true, allowComments: true },
     tokenizer: (M) =>
       new M.Tokenizer({ html: true, allowIndentation: true, allowComments: true }),
     parseArgs: undefined,
@@ -38,6 +39,7 @@ export const CORPORA = {
   descriptions: {
     label: 'DESCRIPTIONS',
     // API descriptions use the default tokenizer and compact mode.
+    config: {},
     tokenizer: (M) => new M.Tokenizer(),
     parseArgs: { compact: true },
     sources: (c) => c.descriptions,
@@ -45,6 +47,7 @@ export const CORPORA = {
 };
 
 export const STAGES = [
+  'source → AST',
   'tokenize',
   'parse',
   'validate',
@@ -62,25 +65,35 @@ export const PREPARED_STAGES = ['validate (prepared)', 'transform (prepared)'];
 export function prepare(M, corpusName) {
   const corpus = loadCorpus();
   const spec = CORPORA[corpusName];
-  const config = buildConfig(M, corpus.pages);
-  const components = buildComponents(config);
+  const markdocConfig = buildConfig(M, corpus.pages);
+  const components = buildComponents(markdocConfig);
   const tk = spec.tokenizer(M);
   const sources = spec.sources(corpus);
   const parseArgs = spec.parseArgs;
+  const config = spec.config;
+  // Builds with the fast parser take the tokenizer settings in parse().
+  const direct = M.fastParse
+    ? (x) => M.parse(x, { ...parseArgs, tokenizer: config })
+    : (x) => M.parse(tk.tokenize(x), parseArgs);
   const tokens = sources.map((s) => tk.tokenize(s));
   const asts = tokens.map((t) => M.parse(t, parseArgs));
   const json = asts.map((a) => JSON.stringify(M.compact(a)));
   const revived = json.map((j) => M.Ast.fromJSON(j));
-  const trees = revived.map((a) => M.transform(a, config));
+  const trees = revived.map((a) => M.transform(a, markdocConfig));
   // Prepared once, then spread per call the way the portal adds variables.
-  const prepared = M.prepareConfig ? M.prepareConfig(config) : undefined;
-  return { M, config, prepared, components, tk, sources, parseArgs, tokens, asts, json, revived, trees };
+  const prepared = M.prepareConfig ? M.prepareConfig(markdocConfig) : undefined;
+  return {
+    M, config: markdocConfig, prepared, components, tk, direct, sources, parseArgs,
+    tokens, asts, json, revived, trees,
+  };
 }
 
 /** One full pass of a stage over the corpus. */
 export function stageFn(name, s) {
   const { M } = s;
   switch (name) {
+    case 'source → AST':
+      return () => { for (const x of s.sources) s.direct(x); };
     case 'tokenize':
       return () => { for (const x of s.sources) s.tk.tokenize(x); };
     case 'parse':

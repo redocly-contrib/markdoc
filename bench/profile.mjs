@@ -33,6 +33,12 @@ const trees = revived.map((a) => Markdoc.transform(a, config));
 
 const work = {
   tokenize: () => { for (const s of sources) tokenizer.tokenize(s); },
+  fastparse: () => {
+    const cfg = corpusName === 'pages'
+      ? { html: true, allowIndentation: true, allowComments: true }
+      : {};
+    for (const s of sources) Markdoc.fastParse(s, cfg, parseArgs);
+  },
   parse: () => { for (const t of tokens) Markdoc.parse(t, parseArgs); },
   validate: () => { for (const a of asts) Markdoc.validate(a, config); },
   stringify: () => { for (const a of asts) JSON.stringify(Markdoc.compact(a)); },

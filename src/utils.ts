@@ -24,17 +24,19 @@ export function isPromise(a: any): a is Promise<any> {
 }
 
 export function findTagEnd(content: string, start = 0) {
+  // Compares character codes rather than one-character strings, and checks
+  // for `%}` only at a `%`.
   let state = STATES.normal;
   for (let pos = start; pos < content.length; pos++) {
-    const char = content[pos];
+    const char = content.charCodeAt(pos);
 
     switch (state) {
       case STATES.string:
         switch (char) {
-          case '"':
+          case 0x22 /* " */:
             state = STATES.normal;
             break;
-          case '\\':
+          case 0x5c /* \ */:
             state = STATES.escape;
             break;
         }
@@ -43,8 +45,9 @@ export function findTagEnd(content: string, start = 0) {
         state = STATES.string;
         break;
       case STATES.normal:
-        if (char === '"') state = STATES.string;
-        else if (content.startsWith(CLOSE, pos)) return pos;
+        if (char === 0x22 /* " */) state = STATES.string;
+        else if (char === 0x25 /* % */ && content.charCodeAt(pos + 1) === 0x7d)
+          return pos;
     }
   }
 
@@ -100,6 +103,12 @@ function parseTag(content: string, line: number, contentStart: number) {
 }
 
 export function parseTags(content: string, firstLine = 0): Token[] {
+  // No tag anywhere: the loop below would produce exactly this one token.
+  if (content.indexOf(OPEN) === -1)
+    return [
+      { type: 'text', start: 0, end: content.length - 1, content } as any,
+    ];
+
   let line = firstLine + 1;
   const output = [];
   let start = 0;

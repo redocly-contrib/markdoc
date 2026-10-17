@@ -10,6 +10,7 @@
  */
 import Node from '../ast/node';
 import transforms from '../transforms/index';
+import tableTransform from '../transforms/table';
 import { handleToken as handleObjectToken } from '../parser';
 import { containsMarkdocTagInUrl, findTagEnd, parseTags, OPEN } from '../utils';
 import { parse as parseTag, SyntaxError } from '../grammar/tag';
@@ -197,7 +198,12 @@ export function build(
     };
   }
 
+  // The table transform only acts on `table` tags; when none were created it
+  // has nothing to do but walk the whole tree.
+  let sawTable = false;
+
   function place(node: Node, parent: Node, tag: string | undefined) {
+    if (tag === 'table') sawTable = true;
     if (
       handleSlots &&
       tag === 'slot' &&
@@ -389,7 +395,8 @@ export function build(
       nodes.pop();
     } else if (fenceChildren) {
       nodes.push(node);
-      for (const child of fenceChildren)
+      for (const child of fenceChildren) {
+        if (child.meta?.tag === 'table') sawTable = true;
         handleObjectToken(
           child,
           nodes,
@@ -399,6 +406,7 @@ export function build(
           compact,
           undefined
         );
+      }
       nodes.pop();
     }
   }
@@ -441,7 +449,8 @@ export function build(
         message: `Node '${node.tag || node.type}' is missing closing`,
       });
 
-  for (const transform of transforms) transform(doc, args);
+  for (const transform of transforms)
+    if (transform !== tableTransform || sawTable) transform(doc, args);
 
   return doc;
 }

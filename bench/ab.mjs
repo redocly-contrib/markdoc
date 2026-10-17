@@ -36,6 +36,8 @@ function checkIdentical(corpusName) {
   for (let i = 0; i < a.sources.length; i++) {
     if (JSON.stringify(a.tokens[i]) !== JSON.stringify(b.tokens[i])) fail('tokens', i);
     if (JSON.stringify(a.asts[i]) !== JSON.stringify(b.asts[i])) fail('parsed AST', i);
+    if (JSON.stringify(a.asts[i]) !== JSON.stringify(b.direct(b.sources[i])))
+      fail('parsed AST (source → AST path)', i);
     if (a.json[i] !== b.json[i]) fail('stored JSON', i);
     if (JSON.stringify(a.M.validate(a.asts[i], a.config)) !==
         JSON.stringify(b.M.validate(b.asts[i], b.config))) fail('validate', i);

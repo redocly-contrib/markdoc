@@ -57,18 +57,19 @@ export type TokenizeOptions = {
   stopAfter?: StopAfterPredicate;
 };
 
+/** Options for `new Tokenizer(...)`, and for `parse(source, { tokenizer })`. */
+export type TokenizerConfig = MarkdownIt.Options & {
+  allowIndentation?: boolean;
+  allowComments?: boolean;
+  allowLinkValidation?: boolean;
+  linkValidationOptions?: LinkPluginOptions;
+  githubAdmonitions?: boolean;
+};
+
 export default class Tokenizer {
   private parser: MarkdownIt;
 
-  constructor(
-    config: MarkdownIt.Options & {
-      allowIndentation?: boolean;
-      allowComments?: boolean;
-      allowLinkValidation?: boolean;
-      linkValidationOptions?: LinkPluginOptions;
-      githubAdmonitions?: boolean;
-    } = {}
-  ) {
+  constructor(config: TokenizerConfig = {}) {
     this.parser = new MarkdownIt(config);
 
     // Registered before any plugin so it sits first in the block ruler. Every

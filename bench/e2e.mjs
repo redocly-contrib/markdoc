@@ -70,7 +70,7 @@ function scenarios(M, corpusName) {
     Object.assign(out, {
       'build (fast)': () => {
         for (const s of sources) {
-          const ast = parse(s);
+          const ast = M.parse(s, { ...parseArgs, tokenizer: spec.config });
           M.validate(ast, { ...prepared, variables: {} });
           JSON.stringify(M.Ast.pack(ast, { compact: true }));
         }

@@ -1,3 +1,4 @@
+import type { TokenizerConfig } from './tokenizer';
 import type Func from './ast/function';
 import type Node from './ast/node';
 import type Var from './ast/variable';
@@ -217,4 +218,10 @@ export type ParserArgs = {
   // already a Token[] (you control the tokenizer in that case).
   // @default true
   githubAdmonitions?: boolean;
+  // Tokenizer settings for `parse(string)`, the same options `new
+  // Tokenizer(...)` takes. `parse(source, { tokenizer: config })` gives the
+  // same AST as `parse(new Tokenizer(config).tokenize(source))`, without
+  // creating markdown-it tokens. Ignored when `content` is a Token[].
+  // @default {}
+  tokenizer?: TokenizerConfig;
 };
