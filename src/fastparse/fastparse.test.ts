@@ -97,3 +97,25 @@ describe('link reference definitions', function () {
     expect(JSON.stringify(ast)).toContain('"href":"https://x.y/1"');
   });
 });
+
+describe('parseAndValidate', function () {
+  it('returns the parse and the validation of it', function () {
+    const source =
+      '# Hi\n\n{% missing %}\nx\n{% /missing %}\n\n{% callout bad=1 /%}';
+    const config = { tags: { callout: { attributes: {} } } };
+    const { ast, errors } = Markdoc.parseAndValidate(source, config, {
+      file: 'a.md',
+    });
+    expect(JSON.stringify(ast)).toEqual(
+      JSON.stringify(Markdoc.parse(source, { file: 'a.md' }))
+    );
+    expect(errors).toEqual(
+      Markdoc.validate(Markdoc.parse(source, { file: 'a.md' }), config)
+    );
+    expect(errors.map((e) => e.error.id).sort()).toEqual([
+      'attribute-undefined',
+      'tag-undefined',
+    ]);
+    expect(errors[0].location?.file).toEqual('a.md');
+  });
+});

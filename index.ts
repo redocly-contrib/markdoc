@@ -163,6 +163,21 @@ export function validate<C extends Config = Config>(
   return validateTree(content, config);
 }
 
+/**
+ * Parses `source` and validates the result: the same AST as `parse(source,
+ * args)` and the same errors as `validate(ast, config)`, from one call.
+ * Parse with locations (the default) when the errors should point at lines;
+ * `Ast.pack(ast, { compact: true })` drops them when storing the AST.
+ */
+export function parseAndValidate<C extends Config = Config>(
+  source: string,
+  config?: C,
+  args?: string | ParserArgs
+): { ast: Node; errors: ValidateError[] } {
+  const ast = parse(source, args);
+  return { ast, errors: validate(ast, config) };
+}
+
 export function createElement(
   name: string | { key?: string | number },
   attributes = {},
@@ -205,6 +220,7 @@ export default class Markdoc {
   static prepareConfig = prepareConfig;
   static transform = transform;
   static validate = validate;
+  static parseAndValidate = parseAndValidate;
   static createElement = createElement;
   static truthy = truthy;
   static format = format;
