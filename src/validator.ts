@@ -1,8 +1,4 @@
-import {
-  globalAttributes,
-  mergedAttributes,
-  typeInstance,
-} from './transformer';
+import { globalAttributes, typeInstance } from './transformer';
 import Ast from './ast/index';
 import { isPromise } from './utils';
 
@@ -180,7 +176,8 @@ export default function validator(node: Node, config: Config) {
       });
   }
 
-  for (let [key, value] of Object.entries(node.attributes)) {
+  for (const key of Object.keys(node.attributes)) {
+    let value = node.attributes[key];
     const attrib =
       schemaAttributes &&
       Object.prototype.hasOwnProperty.call(schemaAttributes, key)
@@ -265,13 +262,21 @@ export default function validator(node: Node, config: Config) {
     }
   }
 
-  for (const [key, { required }] of mergedAttributes(schemaAttributes))
-    if (required && node.attributes[key] === undefined)
-      errors.push({
-        id: 'attribute-missing-required',
-        level: 'error',
-        message: `Missing required attribute: '${key}'`,
-      });
+  // `{ ...globalAttributes, ...schema.attributes }` in that object's order.
+  for (const key of Object.keys(globalAttributes!))
+    checkRequired(
+      errors,
+      node,
+      key,
+      schemaAttributes &&
+        Object.prototype.hasOwnProperty.call(schemaAttributes, key)
+        ? schemaAttributes[key]
+        : (globalAttributes as Record<string, any>)[key]
+    );
+  if (schemaAttributes)
+    for (const key of Object.keys(schemaAttributes))
+      if (!Object.prototype.hasOwnProperty.call(globalAttributes, key))
+        checkRequired(errors, node, key, schemaAttributes[key]);
 
   if (schema.slots)
     for (const [key, { required }] of Object.entries(schema.slots))
@@ -364,31 +369,70 @@ function toValidateError(
   };
 }
 
+function hasOwnKeys(object: object): boolean {
+  for (const key in object)
+    if (Object.prototype.hasOwnProperty.call(object, key)) return true;
+  return false;
+}
+
+function checkRequired(
+  errors: ValidationError[],
+  node: Node,
+  key: string,
+  attribute: SchemaAttribute
+) {
+  if (attribute.required && node.attributes[key] === undefined)
+    errors.push({
+      id: 'attribute-missing-required',
+      level: 'error',
+      message: `Missing required attribute: '${key}'`,
+    });
+}
+
 /**
- * Each node paired with the config its validator sees, in `walkWithParents`
- * order. The config (with `validation.parents`) is built once per parent and
- * shared by all of its children, instead of once per node.
+ * Every node, and the config its validator sees, in `walkWithParents` order,
+ * as two parallel arrays. The config (with `validation.parents`) is built once
+ * per parent and shared by all of its children, instead of once per node.
  */
 function collectForValidation(
   node: Node,
   parents: Node[],
   nodeConfig: Config,
   config: Config,
-  out: [Node, Config][]
-): [Node, Config][] {
-  out.push([node, nodeConfig]);
-  const slots = Object.values(node.slots ?? {});
-  if (slots.length === 0 && node.children.length === 0) return out;
+  nodes: Node[],
+  configs: Config[]
+) {
+  nodes.push(node);
+  configs.push(nodeConfig);
+
+  const slots = node.slots;
+  const hasSlots = !!slots && hasOwnKeys(slots);
+  if (!hasSlots && node.children.length === 0) return;
+
   const childParents = [...parents, node];
   const childConfig = {
     ...config,
     validation: { ...config.validation, parents: childParents },
   };
-  for (const child of slots)
-    collectForValidation(child, childParents, childConfig, config, out);
+  if (hasSlots)
+    for (const child of Object.values(slots))
+      collectForValidation(
+        child,
+        childParents,
+        childConfig,
+        config,
+        nodes,
+        configs
+      );
   for (const child of node.children)
-    collectForValidation(child, childParents, childConfig, config, out);
-  return out;
+    collectForValidation(
+      child,
+      childParents,
+      childConfig,
+      config,
+      nodes,
+      configs
+    );
 }
 
 export function validateTree(content: Node, config: Config) {
@@ -396,20 +440,39 @@ export function validateTree(content: Node, config: Config) {
     ...config,
     validation: { ...config.validation, parents: [] },
   };
-  const nodes = collectForValidation(content, [], rootConfig, config, []);
-  const output = nodes.map(([node, updatedConfig]) => {
-    const errors = validator(node, updatedConfig);
+  const nodes: Node[] = [];
+  const configs: Config[] = [];
+  collectForValidation(content, [], rootConfig, config, nodes, configs);
 
-    if (isPromise(errors)) {
-      return errors.then((e) => e.map((error) => toValidateError(node, error)));
-    }
-
-    return errors.map((error) => toValidateError(node, error));
-  });
-
-  if (output.some(isPromise)) {
-    return Promise.all(output).then((o) => o.flat());
+  // Every validator runs first, in order, as before; the results are then
+  // flattened into one list (or one promise, if any validator is async).
+  const results: (ValidationError[] | Promise<ValidationError[]>)[] = new Array(
+    nodes.length
+  );
+  let async = false;
+  for (let i = 0; i < nodes.length; i++) {
+    const errors = validator(nodes[i], configs[i]);
+    if (isPromise(errors)) async = true;
+    results[i] = errors;
   }
 
-  return output.flat();
+  if (async) {
+    return Promise.all(
+      results.map((errors, i) =>
+        isPromise(errors)
+          ? errors.then((e) =>
+              e.map((error) => toValidateError(nodes[i], error))
+            )
+          : errors.map((error) => toValidateError(nodes[i], error))
+      )
+    ).then((o) => o.flat());
+  }
+
+  const output: ValidateError[] = [];
+  for (let i = 0; i < nodes.length; i++) {
+    const errors = results[i] as ValidationError[];
+    for (let j = 0; j < errors.length; j++)
+      output.push(toValidateError(nodes[i], errors[j]));
+  }
+  return output;
 }
