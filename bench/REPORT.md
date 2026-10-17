@@ -241,6 +241,44 @@ validation still walks the tree once at the end.
   change highlighting).
 - **Storage:** `Ast.pack(ast, { compact: true })` drops them.
 
+### `parseFirstHeading(source, { ...options, skip })` — replaces `tokenizeUntil`
+
+```js
+const heading = Markdoc.parseFirstHeading(source, {
+  ...OPTIONS,
+  slots: true,
+  skip: (tag) => tag.tag === 'prompt' || isForAgentsOnly(tag),
+});
+```
+
+It returns the first heading Node, as `findFirstHeading(parse(source, options), skip)`
+would, without parsing the rest of the document:
+- **Early stop:** the block parser stops at the heading, and only the heading
+  becomes Nodes.
+- **Windowed:** it reads a window at the start of the source that grows 8×
+  until the heading is settled inside it. Half the corpus pages start with
+  their heading, and 99% have it within 287 characters.
+- **Skipped tags:** it mirrors the Node stack the full build keeps for
+  containers and tags, so it skips the same tags. Realm's
+  `tokenizeUntil` predicate only knew about slots: a page whose first
+  heading sat in a prompt got `null` instead of the next heading.
+- **Full-parse fallback:** it parses the whole document when the heading
+  uses a link reference defined later, or when a fence or paragraph before it
+  holds Markdoc tags that could stay open around it. That's rare.
+
+| first heading of all 1,129 pages | CPU |
+|---|---|
+| 0.6.4 `tokenizeUntil` + parse, as Realm does | 41.1 ms |
+| full parse + `findFirstHeading` | 195 ms |
+| **`parseFirstHeading`** | **9.1 ms (4.5× faster than 0.6.4)** |
+
+Checked identical on every corpus document under seven settings, and in
+60,000 fuzzed comparisons built to put window edges inside tags, comments,
+fences and frontmatter.
+
+`frontmatter: false` turns off frontmatter parsing, for callers that read it
+themselves. It defaults to on, as in the original library.
+
 ## 3. Stage by stage
 
 Each build runs in its own worker processes, which run every stage over the

@@ -113,12 +113,12 @@ footer { color: var(--muted); font-size: 0.86rem; display: grid; gap: 10px; }
   <header>
     <div class="eyebrow">@redocly/markdoc · branch perf/fast-parser · vs 0.6.4</div>
     <h1>Markdoc without markdown-it: 2.2–3.4× faster builds, 3.5–5.6× faster runtime</h1>
-    <p class="lede">Markdoc now has its own parser, written in TypeScript the way mdastic is. Its AST is byte-identical to 0.6.4's on all of Redocly's content. The branch also adds GitHub-style linkify, your Realm HTML handler built in, linear-time link references and a parse-and-validate call, and the bundle is smaller than before.</p>
+    <p class="lede">Markdoc now has its own parser, written in TypeScript the way mdastic is. Its AST is byte-identical to 0.6.4's on all of Redocly's content. The branch also adds GitHub-style linkify, your Realm HTML handler built in, linear-time link references, a 4.5× faster first-heading parse and a parse-and-validate call, and the bundle is smaller than before.</p>
     <div class="meta">
       <span>1,129 pages · 6.66 MB</span>
       <span>7,811 API descriptions · 0.49 MB</span>
       <span>CPU time · Node 24.21 · darwin, 11 cores</span>
-      <span>470 specs passing</span>
+      <span>483 specs passing</span>
     </div>
   </header>
 
@@ -229,6 +229,12 @@ footer { color: var(--muted); font-size: 0.86rem; display: grid; gap: 10px; }
             </tbody>
           </table>
         </div>
+      </div>
+      <div class="api-item">
+        <div class="sig">parseFirstHeading(source, { ...options, skip }) — replaces tokenizeUntil</div>
+        <p>Returns the first heading Node, skipping slots and any tags <code>skip(tag)</code> rejects, such as prompts and agents-only content. It never parses the rest of the document: it reads a growing window at the start of the source, stops at the heading, and builds only the heading. The result is always the node a full parse would give. It mirrors the builder's handling of unclosed tags, and when the heading uses a later link reference it falls back to a full parse.</p>
+        <p class="num">First heading of all 1,129 pages: 9.1 ms, against 41.1 ms for 0.6.4's tokenizeUntil (4.5×) and 195 ms for a full parse. Identical on the corpus under 7 settings and in 60,000 fuzzed comparisons.</p>
+        <p class="muted"><code>frontmatter: false</code> turns off frontmatter parsing for callers that read it themselves. It's on by default, as in the original library.</p>
       </div>
       <div class="api-item">
         <div class="sig">parseAndValidate(source, config, args) → { ast, errors }</div>

@@ -30,7 +30,7 @@ byte-identical to 0.6.4's.
   `allowLinkValidation`, `linkValidationOptions` and `githubAdmonitions`,
   plus the new `linkify`.
 - **`tokenize(source, { stopAfter })` and `tokenizeUntil` are removed**, with
-  the token API.
+  the token API. For a page's title, use `parseFirstHeading` (below).
 - **markdown-it options are not accepted:** `linkify` is now GitHub-style (see
   below); `typographer` and `maxNesting` are gone.
 - **Patching markdown-it's rules no longer works.** The portal, API docs and
@@ -52,6 +52,17 @@ byte-identical to 0.6.4's.
   after a `markdoc-error` tag. The entry bundles htmlparser2, so the main
   bundle does not grow. `html` also accepts any `HtmlHandler`.
 - **`parseAndValidate(source, config, args)`** returns `{ ast, errors }`.
+- **`parseFirstHeading(source, { ...options, skip })`** returns a document's
+  first heading Node without parsing the rest of it.
+  - It skips headings in slots and in tags `skip(tagNode)` rejects.
+  - It always returns the node `findFirstHeading(parse(source, options), skip)`
+    would. When the heading uses a link reference defined later, or content
+    before it could leave a tag open around it, it parses the whole document
+    to be sure.
+  - The first heading of all 1,129 corpus pages takes 9 ms, against 41 ms for
+    0.6.4's `tokenizeUntil` and 195 ms for a full parse.
+- **`frontmatter: false`** turns off frontmatter parsing. It is on by default,
+  as before.
 - **`prepareConfig(config, { cloneAst })`**: merges the built-in schemas once,
   for repeated `transform` and `validate` calls. With `cloneAst: false`,
   `transform` copies only the nodes that hold variables or functions.
