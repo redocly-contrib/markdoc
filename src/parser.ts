@@ -110,7 +110,7 @@ function handleAttrs(token: Token, type: string) {
   }
 }
 
-function handleToken(
+export function handleToken(
   token: Token,
   nodes: Node[],
   file?: string,

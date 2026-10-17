@@ -4,6 +4,7 @@ import compact from './src/ast/compact';
 import format from './src/formatter';
 import functions from './src/functions';
 import parser from './src/parser';
+import { fastParse } from './src/fastparse';
 import * as nodes from './src/schema';
 import renderers from './src/renderers';
 import Tag from './src/tag';
@@ -222,6 +223,7 @@ export {
   truthy,
   format,
   compact,
+  fastParse,
 };
 
 export default class Markdoc {
@@ -245,6 +247,7 @@ export default class Markdoc {
   static truthy = truthy;
   static format = format;
   static compact = compact;
+  static fastParse = fastParse;
 
   config;
   constructor(config: Config) {
