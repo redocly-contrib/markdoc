@@ -11,7 +11,13 @@
 import { HTML_TAG_RE } from 'markdown-it/lib/common/html_re';
 import entities from 'markdown-it/lib/common/entities';
 import { findTagEnd, OPEN, CLOSE } from '../utils';
-import { md, pushTag } from './block';
+import {
+  md,
+  pushTag,
+  normalizeLink,
+  validateLink,
+  normalizeLinkText,
+} from './block';
 import * as T from './tokens';
 import { InlineToken, Delimiter, NESTING } from './tokens';
 
@@ -890,8 +896,8 @@ function link(state: InlineState, silent: boolean): boolean {
     start = pos;
     let res = md.helpers.parseLinkDestination(state.src, pos, state.posMax);
     if (res.ok) {
-      href = md.normalizeLink(res.str);
-      if (md.validateLink(href)) {
+      href = normalizeLink(res.str);
+      if (validateLink(href)) {
         pos = res.pos;
       } else {
         href = '';
@@ -1018,8 +1024,8 @@ function image(state: InlineState, silent: boolean): boolean {
     start = pos;
     let res = md.helpers.parseLinkDestination(state.src, pos, state.posMax);
     if (res.ok) {
-      href = md.normalizeLink(res.str);
-      if (md.validateLink(href)) {
+      href = normalizeLink(res.str);
+      if (validateLink(href)) {
         pos = res.pos;
       } else {
         href = '';
@@ -1128,8 +1134,8 @@ function autolink(state: InlineState, silent: boolean): boolean {
   const url = state.src.slice(start + 1, pos);
 
   if (AUTOLINK_RE.test(url)) {
-    const fullUrl = md.normalizeLink(url);
-    if (!md.validateLink(fullUrl)) return false;
+    const fullUrl = normalizeLink(url);
+    if (!validateLink(fullUrl)) return false;
 
     if (!silent) {
       let token = state.push(T.LINK_OPEN);
@@ -1138,7 +1144,7 @@ function autolink(state: InlineState, silent: boolean): boolean {
       token.info = 'auto';
 
       token = state.push(T.TEXT);
-      token.content = md.normalizeLinkText(url);
+      token.content = normalizeLinkText(url);
 
       token = state.push(T.LINK_CLOSE);
       token.markup = 'autolink';
@@ -1150,8 +1156,8 @@ function autolink(state: InlineState, silent: boolean): boolean {
   }
 
   if (EMAIL_RE.test(url)) {
-    const fullUrl = md.normalizeLink('mailto:' + url);
-    if (!md.validateLink(fullUrl)) return false;
+    const fullUrl = normalizeLink('mailto:' + url);
+    if (!validateLink(fullUrl)) return false;
 
     if (!silent) {
       let token = state.push(T.LINK_OPEN);
@@ -1160,7 +1166,7 @@ function autolink(state: InlineState, silent: boolean): boolean {
       token.info = 'auto';
 
       token = state.push(T.TEXT);
-      token.content = md.normalizeLinkText(url);
+      token.content = normalizeLinkText(url);
 
       token = state.push(T.LINK_CLOSE);
       token.markup = 'autolink';

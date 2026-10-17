@@ -1,15 +1,24 @@
 // Differential fuzzing: fastParse against Tokenizer + parse on random
 // documents built from markdown edge cases.
 //
-//   node bench/fuzz-fastparse.mjs [iterations] [seed]
+//   node bench/fuzz-fastparse.mjs [iterations] [seed] [random|mutate]
+//
+// random: documents assembled from markdown edge-case fragments
+// mutate: real corpus documents with lines dropped, duplicated, re-indented
+//         or split, and edge-case characters spliced in
 //
 // Every mismatch is printed with its seed and source, minimized by dropping
 // lines while the mismatch persists.
 import { loadMarkdoc } from './lib/pipeline.mjs';
+import { loadCorpus } from './lib/corpus.mjs';
 
 const M = loadMarkdoc('candidate');
 const iterations = Number(process.argv[2] || 20000);
 let seed = Number(process.argv[3] || 1);
+const strategy = process.argv[4] || 'random';
+const corpusDocs = strategy === 'mutate'
+  ? (() => { const c = loadCorpus(); return [...c.pages.map((p) => p.source), ...c.descriptions]; })()
+  : [];
 
 function rng() {
   // mulberry32
@@ -69,6 +78,34 @@ function doc() {
   return s;
 }
 
+const SPLICE = ['*', '_', '`', '[', ']', '(', ')', '<', '>', '{%', '%}', '"', '|', '\\', '\t', '    ',
+  '\n', '\n\n', '- ', '> ', '1. ', '#', '!', '&', '~~', '{% /', '<!--', '-->', '---', '```'];
+
+function mutate() {
+  const lines = pick(corpusDocs).split('\n');
+  // Work on a window so documents stay small enough to minimize quickly.
+  const start = Math.floor(rng() * Math.max(1, lines.length - 40));
+  const window = lines.slice(start, start + 1 + Math.floor(rng() * 40));
+  const edits = 1 + Math.floor(rng() * 6);
+  for (let e = 0; e < edits; e++) {
+    const i = Math.floor(rng() * window.length);
+    switch (Math.floor(rng() * 6)) {
+      case 0: window.splice(i, 1); break;
+      case 1: window.splice(i, 0, window[i] ?? ''); break;
+      case 2: window[i] = pick(['', ' ', '  ', '   ', '    ', '\t', '> ', '- ']) + (window[i] ?? ''); break;
+      case 3: window[i] = (window[i] ?? '').replace(/^\s+/, ''); break;
+      case 4: {
+        const line = window[i] ?? '';
+        const at = Math.floor(rng() * (line.length + 1));
+        window[i] = line.slice(0, at) + pick(SPLICE) + line.slice(at);
+        break;
+      }
+      case 5: window.splice(i, 0, ''); break;
+    }
+  }
+  return window.join('\n');
+}
+
 const CONFIGS = [
   [{}, undefined],
   [{}, { compact: true }],
@@ -111,7 +148,7 @@ function minimize(src, k) {
 let failures = 0;
 const startSeed = seed;
 for (let it = 0; it < iterations; it++) {
-  const src = doc();
+  const src = strategy === 'mutate' ? mutate() : doc();
   for (let k = 0; k < CONFIGS.length; k++) {
     if (!mismatch(src, k)) continue;
     failures++;
@@ -124,5 +161,5 @@ for (let it = 0; it < iterations; it++) {
     break;
   }
 }
-console.log(`\n${iterations} random documents x ${CONFIGS.length} settings (seed ${startSeed}): ${failures} mismatches`);
+console.log(`\n${iterations} ${strategy} documents x ${CONFIGS.length} settings (seed ${startSeed}): ${failures} mismatches`);
 if (failures) process.exitCode = 1;

@@ -23,6 +23,27 @@ import { BlockToken, NESTING, grammarKind } from './tokens';
 export const md = new MarkdownIt();
 const { normalizeReference } = md.utils;
 
+/**
+ * markdown-it's link helpers are pure functions of the URL, and the same
+ * URLs recur across a site's pages, so their results are memoized.
+ */
+function memoize<T>(fn: (url: string) => T): (url: string) => T {
+  const cache = new Map<string, T>();
+  return (url) => {
+    let result = cache.get(url);
+    if (result === undefined) {
+      if (cache.size >= 4096) cache.clear();
+      result = fn(url);
+      cache.set(url, result);
+    }
+    return result;
+  };
+}
+
+export const normalizeLink = memoize((url) => md.normalizeLink(url));
+export const validateLink = memoize((url) => md.validateLink(url));
+export const normalizeLinkText = memoize((url) => md.normalizeLinkText(url));
+
 export type BlockOptions = {
   html: boolean;
   allowIndentation: boolean;
@@ -1335,8 +1356,8 @@ function reference(
   let res = md.helpers.parseLinkDestination(str, pos, max);
   if (!res.ok) return false;
 
-  const href = md.normalizeLink(res.str);
-  if (!md.validateLink(href)) return false;
+  const href = normalizeLink(res.str);
+  if (!validateLink(href)) return false;
 
   pos = res.pos;
   lines += res.lines;
