@@ -1,31 +1,38 @@
 # Markdoc performance & AST size — experiment report
 
-Branch `perf/explore`, against the published `@redocly/markdoc@0.6.4`.
-Every number below was measured on the real Redocly content; raw outputs are
-in `bench/results/`.
+Branch `perf/fast-parser` (built on `perf/explore`), against the published
+`@redocly/markdoc@0.6.4`. Every number below was measured on the real Redocly
+content; raw outputs are in `bench/results/`.
 
 ## TL;DR
 
 | | 0.6.4 | this branch, drop-in | this branch, opt-in fast path |
 |---|---|---|---|
-| **Runtime**, pages (deserialize → transform → React) | 665 ms | 475 ms (1.4×) | **192 ms (3.5×)** |
-| **Runtime**, API descriptions | 131 ms | 85 ms (1.5×) | **32 ms (4.1×)** |
-| **Runtime**, API descriptions embedded in a parsed API definition | 125 ms | 90 ms (1.4×) | **22 ms (5.7×)** |
-| **Build**, pages (parse → validate → serialize) | 794 ms | 693 ms (1.15×) | 632 ms (1.26×) |
-| **Build**, API descriptions | 181 ms | 167 ms (1.08×) | 121 ms (1.5×) |
+| **Build**, pages (parse → validate → serialize) | 793 ms | 648 ms (1.2×) | **355 ms (2.2×)** |
+| **Build**, API descriptions | 174 ms | 158 ms (1.1×) | **50 ms (3.5×)** |
+| **Runtime**, pages (deserialize → transform → React) | 667 ms | 419 ms (1.6×) | **186 ms (3.6×)** |
+| **Runtime**, API descriptions | 117 ms | 88 ms (1.3×) | **31 ms (3.8×)** |
+| **Runtime**, API descriptions embedded in a parsed API definition | 122 ms | 93 ms (1.3×) | **22 ms (5.5×)** |
 | **Stored AST**, pages (6.66 MB of markdown) | 29.2 MB | 29.2 MB | **10.1 MB (2.9× smaller)** |
 | **Stored AST**, API descriptions (0.49 MB) | 2.47 MB | 2.47 MB | **0.70 MB (3.5× smaller)** |
 
-- **Drop-in** means the same API calls as today, with byte-identical output.
-- **Opt-in** means three new, backwards-compatible APIs:
-  `prepareConfig(config, { cloneAst: false })`, `Ast.pack(ast, { compact: true })`
-  for storage, and `Ast.unpack(value)` to load. Output is identical there too.
-- **Nothing here needs Rust or a different engine.**
-  - The biggest costs were not in markdown parsing. They were in reviving
-    JSON, re-merging the config on every call, and copying the whole tree
-    before each transform.
-  - WASM engines lose their speed advantage as soon as they hand a tree to
-    JS (details below).
+- **Drop-in** means the same calls as the portal makes today
+  (`parse(tokenizer.tokenize(src))`, `fromJSON`, `transform`), with
+  byte-identical output.
+- **Opt-in fast path** means the new, backwards-compatible calls. Output is
+  identical there too.
+  - `parse(src, { tokenizer })` runs the new parser. Plain `parse(string)`
+    gets it automatically.
+  - `prepareConfig(config, { cloneAst: false })`.
+  - `Ast.pack(ast, { compact: true })` to store, and `Ast.unpack(value)` to
+    load.
+- **A new parser, in TypeScript.** `src/fastparse` reimplements markdown-it
+  12.3.2 plus Markdoc's plugins using mdastic's techniques.
+  - It goes from source text straight to Markdoc Nodes.
+  - It produces the identical AST 2.4× faster on pages and 4.2× faster on API
+    descriptions, about as fast as mdastic and commonmark.js.
+- **No Rust needed.** WASM engines lose their speed advantage as soon as they
+  hand a tree to JS (details below).
 
 ## Setup
 
@@ -38,22 +45,23 @@ in `bench/results/`.
 - **Config:** every custom tag the corpus uses, declaring every attribute
   it passes (47 custom tags). This gives the transformer the same per-node
   work as production, without the theme's React components.
+- **Tokenizer settings:** pages use the portal's (`html`, `allowIndentation`,
+  `allowComments`); descriptions use the defaults with `compact: true`.
 - **Machine:** darwin, 11 cores, Node 24.21. The machine is shared and was
   heavily loaded (load average 12–57).
   - All timings are **process CPU time** (user+sys), not wall time.
   - Each figure is the median of interleaved rounds.
 - **A/B runs** go through separate processes: each library build gets its own
   fresh process, and order alternates between rounds.
-  - Loading two copies of Markdoc into one process made whichever was
-    required *first* ~35% faster on transform and validate, even when the
-    two files were byte-identical. An earlier version of the harness was
-    fooled by this.
-  - An A/A run of the fixed harness agrees within ~3%. Small stages
-    (< 10 ms) wobble by up to ~8%.
+  - Two copies of Markdoc in one process made whichever was required *first*
+    ~35% faster, even when the files were byte-identical. An earlier version
+    of the harness was fooled by this.
+  - An A/A run agrees within ~3%. Stages under 10 ms wobble by up to ~8%.
 - **Correctness gate:** before any timing, `bench/ab.mjs` checks the branch
-  against 0.6.4 on all 8,940 documents. Tokens, parsed AST, stored JSON,
-  validation errors, renderable tree, HTML and React element tree must all be
-  identical. The unit suite grew from 481 to 501 specs, all passing.
+  against 0.6.4 on all 8,940 documents. Tokens, parsed AST (from tokens and
+  from source), stored JSON, validation errors, renderable tree, HTML and
+  React element tree must all be identical. The unit suite grew from 481 to
+  504 specs, all passing.
 
 ## Where 0.6.4 spends its time
 
@@ -71,46 +79,129 @@ Pages, sum of all stages = 1.83 s:
   and function schemas into fresh objects.
 - `transform` also deep-copies the whole AST first (`resolve`), even when
   the tree contains no variables or functions.
+- Tokenizing is markdown-it's own block and inline rules, plus ~18% for
+  Markdoc's plugins, plus a separate pass turning tokens into Nodes.
 
-## 1. Drop-in changes (same API, byte-identical output)
+## 1. A new parser (`src/fastparse`)
+
+The fastest JS markdown parsers are 2.5–3× quicker than markdown-it. The
+reason is mostly their machinery rather than their grammar. So the new
+parser keeps Markdoc's exact grammar and replaces only the machinery:
+
+- **Same grammar:** markdown-it 12.3.2's block and inline rules, with
+  Markdoc's indentation patch.
+  - Markdoc's plugins: tags, annotations, comments, frontmatter, GitHub
+    admonitions and link validation.
+  - `parser.ts`'s token-to-Node logic, including its odd cases (stray
+    closing tags, unclosed inline tags, errors on mismatches).
+- **Machinery, as in mdastic:**
+  - Line offsets live in typed arrays reused across documents, found with
+    `indexOf('\n')`. markdown-it loops over every character.
+  - Tokens are pooled objects reused across documents, not `new Token()`.
+  - There is no separate tokens-to-AST pass: Nodes are built as tokens are
+    consumed.
+  - Rules are dispatched by first character, instead of trying each rule in
+    turn.
+  - Anchored regexes run sticky at the current position, instead of on a
+    fresh `src.slice(pos)` copy per attempt.
+- **Work Markdoc never reads is skipped.** Two examples:
+  - Image labels are not re-parsed (an image is a leaf node in Markdoc).
+  - The table transform doesn't walk documents that contain no `table` tag.
+- markdown-it's pure link helpers (URL normalization) are memoized.
+
+**Correctness**, compared with `parse(new Tokenizer(cfg).tokenize(src), args)`
+(byte-identical AST JSON, or both throwing):
+
+| check | result |
+|---|---|
+| all 8,940 corpus documents × 6 tokenizer/parser settings (26,000+ parses) | identical |
+| unit suite with every `parse(string)` routed through the new parser | 504/504 pass |
+| marktest suite, routed the same way | output identical |
+| random documents from markdown edge-case fragments (5,000 × 5 settings, plus a longer run stopped after 30 CPU-minutes) | 0 mismatches |
+| real corpus documents mutated (lines dropped, duplicated, re-indented, characters spliced; 6,300 × 5 settings) | 0 mismatches |
+
+**Speed**, source text → AST, each engine in its own process (`bench/exp-engines.mjs`):
+
+| | pages | vs 0.6.4 | descriptions | vs 0.6.4 |
+|---|---|---|---|---|
+| markdoc 0.6.4: markdown-it tokens + parse | 428 ms | 1.00× | 77.9 ms | 1.00× |
+| this branch: markdown-it tokens + parse | 376 ms | 1.14× | 67.9 ms | 1.15× |
+| **this branch: new parser** | **176 ms** | **2.43×** | **18.7 ms** | **4.17×** |
+| mdastic 0.1 (mdast, no Markdoc tags) | 153–163 ms | 2.6–2.8× | 14.2–14.6 ms | 5.3–5.5× |
+| commonmark.js 0.31 (no tables, no Markdoc tags) | 166 ms | 2.57× | 30.8 ms | 2.53× |
+
+The new parser is now in the same class as the fastest JS engines. It also
+does more work than they do: Markdoc tags and annotations, and a `location`
+object (three allocations) on every node.
+
+**API:**
+- `parse(string)` uses the new parser by default.
+- `parse(source, { tokenizer: config })` takes the same settings as
+  `new Tokenizer(config)`.
+- Passing tokens (`parse(tokenizer.tokenize(src))`) still goes through
+  markdown-it. It's the escape hatch, and the `Tokenizer` API (`stopAfter`,
+  `tokenizeUntil`, token consumers) is unchanged.
+- String parses whose tokenizer settings use options the new parser does not
+  implement (`linkify`, `typographer`, a non-default `maxNesting`) fall back
+  to markdown-it automatically.
+
+**Costs:**
+- The bundle ships both parsers: 68 KB → 87 KB gzipped (this includes the
+  rest of this branch's work).
+- A markdown-it upgrade or a new Markdoc tokenizer plugin now has to be
+  ported to `src/fastparse`. `bench/exp-fastparse.mjs` and
+  `bench/fuzz-fastparse.mjs` are there to catch drift.
+- One markdown-it quirk is deliberately not reproduced. At inline nesting
+  depth ≥ 100, markdown-it reuses a stale "rule matched" flag and can loop
+  forever; the new parser just stops matching rules there.
+
+## 2. Other drop-in changes (same API, byte-identical output)
+
+Stage by stage. Timings come from one worker process per build, which runs
+every stage over the whole corpus.
 
 | stage | pages 0.6.4 | pages branch | | descriptions 0.6.4 | descriptions branch | |
 |---|---|---|---|---|---|---|
-| tokenize | 359 ms | 357 ms | 1.01× | 51.4 ms | 51.2 ms | 1.00× |
-| parse | 156 ms | 118 ms | **1.32×** | 13.9 ms | 11.7 ms | 1.20× |
-| validate | 287 ms | 226 ms | **1.27×** | 74.4 ms | 72.7 ms | 1.02× |
-| compact + stringify | 158 ms | 157 ms | 1.01× | 15.8 ms | 15.3 ms | 1.03× |
-| revive (`fromJSON`) | 513 ms | 270 ms | **1.90×** | 45.6 ms | 17.0 ms | **2.69×** |
-| transform | 190 ms | 160 ms | 1.18× | 66.9 ms | 59.1 ms | 1.13× |
-| render html | 86.1 ms | 74.4 ms | 1.16× | 6.09 ms | 1.11 ms | **5.50×** |
-| render react | 83.5 ms | 82.9 ms | 1.01× | 7.06 ms | 7.17 ms | 0.99× |
-| **sum** | **1833 ms** | **1445 ms** | **1.27×** | **281 ms** | **235 ms** | **1.20×** |
+| **source → AST** (0.6.4: tokens + parse; branch: new parser) | 463 ms | 216 ms | **2.14×** | 60.8 ms | 22.6 ms | **2.70×** |
+| tokenize (markdown-it tokens)¹ | 364 ms | 395 ms | 0.92× | 48.4 ms | 56.2 ms | 0.86× |
+| parse (tokens → AST) | 153 ms | 120 ms | **1.27×** | 12.6 ms | 9.55 ms | 1.32× |
+| validate | 284 ms | 196 ms | **1.45×** | 72.7 ms | 65.1 ms | 1.12× |
+| compact + stringify | 158 ms | 154 ms | 1.03× | 14.9 ms | 15.3 ms | 0.98× |
+| revive (`fromJSON`) | 510 ms | 268 ms | **1.91×** | 44.1 ms | 16.4 ms | **2.68×** |
+| transform | 192 ms | 159 ms | 1.21× | 65.4 ms | 56.9 ms | 1.15× |
+| render html | 85.6 ms | 75.1 ms | 1.14× | 6.03 ms | 1.06 ms | **5.69×** |
+| render react | 83.0 ms | 84.2 ms | 0.99× | 6.79 ms | 7.09 ms | 0.96× |
+
+¹ Not a regression in the tokenizer itself. Timed alone, in a process
+running only that stage, the branch tokenizes in 376 ms against 375 ms for
+the pre-parser build. In the full worker, the branch's `source → AST` stage
+runs the new parser, so markdown-it's code is colder there than in 0.6.4's
+worker, which runs markdown-it in both stages.
 
 What changed:
 
-- **`Ast.fromJSON`:** plain `JSON.parse`, then one walk that turns
-  `$$mdtype` objects into class instances bottom-up. Same result as the
-  reviver.
+- **`Ast.fromJSON`:** plain `JSON.parse`, then one bottom-up walk that turns
+  `$$mdtype` objects into class instances. Same result as the reviver.
 - **`Node.walk()`:** iterative instead of one nested generator per ancestor.
-  - The table transform walks every parsed document with it, so parse
-    pays for this whether or not a page has tables.
-  - Children are still read lazily, after the consumer has seen the parent,
-    so replacing `node.children` mid-walk behaves as before.
+  Children are still read lazily, so replacing `node.children` mid-walk
+  behaves as before.
 - **`validate`:**
   - no generator;
-  - one `parents` array and one per-node config per *parent*, not per node;
-  - no merged `{...globalAttributes, ...schema.attributes}` object per node.
+  - one `parents` array and config per *parent*, not per node;
+  - nodes and configs are collected into flat arrays;
+  - no per-node temporaries (merged attribute schemas, mapped empty error
+    lists).
 - **`transform`:**
-  - attributes are visited in the merged order without building the merged
+  - attributes are visited in merged order without building the merged
     object;
-  - stateless built-in attribute types (`Class`, `Id`, `String`, …) are
-    instantiated once. Custom types are still constructed per use.
-- **Parser:** no regex per token (`_open`/`_close` suffix), no array
-  allocated per token for an `includes` check.
+  - the stateless built-in attribute types are instantiated once.
+- **Token parser:** no regex per token, no array allocated per token.
+- **Tag helpers:** `findTagEnd` compares character codes; `parseTags`
+  returns early for fence content without tags.
 - **HTML renderer:** appends into one string instead of `map(render).join('')`
   at every level.
 
-## 2. Opt-in APIs (identical output, new calls)
+## 3. Opt-in APIs (identical output, new calls)
 
 ### `Markdoc.prepareConfig(config)`
 
@@ -125,8 +216,8 @@ This merges the built-in tags, nodes and functions once.
 
 | | pages | descriptions |
 |---|---|---|
-| validate (vs 0.6.4) | 287 → 222 ms (1.29×) | 74.4 → **30.8 ms (2.41×)** |
-| transform (vs 0.6.4) | 190 → 156 ms (1.21×) | 66.9 → **22.3 ms (3.00×)** |
+| validate (vs 0.6.4) | 284 → 196 ms (1.45×) | 72.7 → **24.3 ms (2.99×)** |
+| transform (vs 0.6.4) | 192 → 153 ms (1.26×) | 65.4 → **23.6 ms (2.77×)** |
 
 I also measured automatic caches:
 - A cache keyed by object identity *with* an exact staleness check only
@@ -185,11 +276,12 @@ document:
   under `$`-keys in the attributes object. Those can never clash with real
   attributes, because attribute names are identifiers.
 - **Lossless:** `unpack(pack(ast))` serializes exactly like
-  `fromJSON(JSON.stringify(ast))`. This is checked on all 8,940 corpus
-  documents and in unit tests, including errors, slots, annotations,
-  variables, functions, and hand-built `$`-named attributes.
+  `fromJSON(JSON.stringify(ast))`, checked on every corpus document and in
+  unit tests.
 - **No input mutation:** `unpack` takes the already-parsed value and never
   mutates it.
+- **Fused compaction:** `pack(ast, { compact: true })` applies `compact()` in
+  the same pass. Serializing a page AST drops from 158 to 99 ms (1.6×).
 
 | format | pages raw | gzip | brotli | decode¹ | descriptions raw | gzip | brotli | decode¹ |
 |---|---|---|---|---|---|---|---|---|
@@ -199,24 +291,21 @@ document:
 | packed + 1-letter type codes | 9.51 MB | 2.66 MB | 2.47 MB | 131 ms | 610 KB | 631 KB | 473 KB | 8.9 ms |
 
 ¹ `JSON.parse` + revive to `Node`s, versus *this branch's* already 1.9× faster
-`fromJSON`. Against 0.6.4's `fromJSON` (513 ms / 45.6 ms), packed decodes
-**3.9× / 5.1× faster**. gzip/brotli are per document.
+`fromJSON`. Against 0.6.4's `fromJSON` (510 / 44.1 ms), packed decodes
+**3.9× / 5.0× faster**. gzip/brotli are per document.
 
 - **Raw size** shrinks about 3×. That is what lands in memory, JSON caches
   and `JSON.parse`.
 - **Compressed size** only shrinks 10–45%, since gzip already removes most
   of the repetition. Packed is not mainly a network win.
-- **Single-letter type codes** save another 6–13% raw but under 2%
-  compressed, at a real cost in readability. Not worth it.
-- **Fused compaction:** `pack(ast, { compact: true })` applies `compact()`
-  in the same pass, without building the intermediate tree. Serializing a
-  page AST drops from 158 to 99 ms (1.6×).
+- **Single-letter type codes** save little compressed and cost readability.
+  Not worth it.
 
-## 3. End to end
+## 4. End to end
 
 Per document, the way the portal uses Markdoc (`bench/e2e.mjs`):
 
-- **build:** tokenize + parse → validate → compact → stringify.
+- **build:** source → AST → validate → compact → stringify.
 - **runtime:** deserialize → transform with per-call variables → render.
 - **embedded:** the API-docs case, where the AST arrives as an already-parsed
   object inside the API definition. Today `markdocRenderer.tsx` does
@@ -224,74 +313,56 @@ Per document, the way the portal uses Markdoc (`bench/e2e.mjs`):
 
 | | 0.6.4 | drop-in | fast path |
 |---|---|---|---|
-| pages — build | 794 ms | 693 ms (1.15×) | 632 ms (1.26×) |
-| pages — runtime → HTML | 661 ms | 424 ms (1.56×) | **187 ms (3.53×)** |
-| pages — runtime → React | 665 ms | 475 ms (1.40×) | **192 ms (3.46×)** |
-| pages — embedded → React | 739 ms | 487 ms (1.52×) | **161 ms (4.59×)** |
-| descriptions — build | 181 ms | 167 ms (1.08×) | 121 ms (1.49×) |
-| descriptions — runtime → HTML | 116 ms | 91.6 ms (1.27×) | **32.4 ms (3.60×)** |
-| descriptions — runtime → React | 131 ms | 85.2 ms (1.53×) | **31.9 ms (4.10×)** |
-| descriptions — embedded → React | 125 ms | 89.5 ms (1.40×) | **21.9 ms (5.72×)** |
+| pages — build | 793 ms | 648 ms (1.22×) | **355 ms (2.23×)** |
+| pages — runtime → HTML | 653 ms | 419 ms (1.56×) | **183 ms (3.57×)** |
+| pages — runtime → React | 667 ms | 419 ms (1.59×) | **186 ms (3.59×)** |
+| pages — embedded → React | 704 ms | 477 ms (1.48×) | **157 ms (4.47×)** |
+| descriptions — build | 174 ms | 158 ms (1.10×) | **49.9 ms (3.48×)** |
+| descriptions — runtime → HTML | 116 ms | 90.0 ms (1.29×) | **38.9 ms (2.98×)** |
+| descriptions — runtime → React | 117 ms | 88.0 ms (1.33×) | **30.8 ms (3.80×)** |
+| descriptions — embedded → React | 122 ms | 93.0 ms (1.31×) | **22.1 ms (5.53×)** |
 
-Build numbers are the noisiest: 0.6.4's page build measured 794 ms in this
-run and 965 ms in an earlier one, while drop-in measured 693–696 ms in both.
+The fast build is `parse(src, { tokenizer })`, then validate with a prepared
+config, then `pack(ast, { compact: true })`. Build numbers vary the most
+between runs: 0.6.4's page build measured 793–965 ms across runs.
 
-## 4. Other engines, and Rust
+End-to-end numbers come out lower than the sum of the stage table. Here each
+document's AST is garbage as soon as it is done, which keeps garbage
+collection cheap; the stage runs keep the whole corpus's ASTs alive.
 
-Each engine below ran in its own process, on the same pages, with the
-portal's tokenizer settings. **None of them understands `{% tag %}`
-syntax**, so these are upper bounds for the CommonMark core only.
+## 5. Other engines, and Rust
+
+Each engine ran in its own process, on the same pages, with the portal's
+tokenizer settings. None of them understands `{% tag %}` syntax.
 
 | engine | output | pages | vs 0.6.4 | descriptions² | vs 0.6.4 |
 |---|---|---|---|---|---|
-| markdoc 0.6.4 — tokenize+parse | tree | 452 ms | 1.00× | 78.3 ms | 1.00× |
-| markdoc branch — tokenize+parse | tree | 392 ms | 1.15× | 69.8 ms | 1.12× |
-| markdoc branch — tokenize only | tokens | 296 ms | 1.53× | 34.1 ms | 2.30× |
-| markdown-it 12.3 (what Markdoc uses), no Markdoc plugins | tokens | 250 ms | 1.81× | 25.3 ms | 3.10× |
-| markdown-it 15.0, no plugins | tokens | 377 ms | 1.20× | 54.5 ms | 1.44× |
-| marked 18 — lexer | tokens | 326 ms | 1.39× | 20.8 ms | 3.76× |
-| **mdastic 0.1** (GFM, mdast out) | tree | **168–201 ms** | **2.3–2.7×** | **24 ms** | **3.3×** |
-| **commonmark.js 0.31** (no GFM tables) | tree | **144 ms** | **3.1×** | 38.2 ms | 2.1× |
-| remark (`mdast-util-from-markdown` 2) | tree | 2304 ms | 0.20× | 287 ms | 0.27× |
-| **comrak 0.48 (Rust → WASM) — parse to JS tree** | tree | **450 ms** | **1.00×** | 87.0 ms | 0.90× |
-| comrak 0.48 (Rust → WASM) — straight to HTML | html | 117 ms | 3.9× | 55.2 ms | 1.4× |
-| pulldown-cmark (Rust → WASM) — to HTML | html | 98 ms | 4.6× | 30.8 ms | 2.5× |
-| md4c (C → WASM, `markdown-wasm`) — to HTML | html | 48 ms | 9.3× | 24.0 ms | 3.3× |
-| markdown-it 15 / marked 18 / micromark 4 — to HTML | html | 400 / 395 / 2402 ms | | 67 / 44 / 300 ms | |
+| markdoc 0.6.4 — tokens + parse | tree | 428 ms | 1.00× | 77.9 ms | 1.00× |
+| **markdoc branch — new parser** | tree | **176 ms** | **2.43×** | **18.7 ms** | **4.17×** |
+| markdown-it 12.3 (what Markdoc uses), no Markdoc plugins | tokens | 246 ms | 1.74× | 30.9 ms | 2.52× |
+| markdown-it 15.0, no plugins | tokens | 362 ms | 1.18× | 51.4 ms | 1.52× |
+| marked 18 — lexer | tokens | 271 ms | 1.58× | 20.9 ms | 3.73× |
+| mdastic 0.1 (GFM, mdast out) | tree | 153–163 ms | 2.6–2.8× | 14.2–14.6 ms | 5.3–5.5× |
+| commonmark.js 0.31 (no GFM tables) | tree | 166 ms | 2.57× | 30.8 ms | 2.53× |
+| remark (`mdast-util-from-markdown` 2) | tree | 2430 ms | 0.18× | 259 ms | 0.30× |
+| **comrak 0.48, Rust → WASM, parse to JS tree** | tree | **443 ms** | **0.96×** | 84.0 ms | 0.93× |
+| comrak 0.48, Rust → WASM, straight to HTML | html | 115 ms | 3.7× | 55.1 ms | 1.4× |
+| pulldown-cmark, Rust → WASM, to HTML | html | 97 ms | 4.4× | 23.5 ms | 3.3× |
+| md4c, C → WASM (`markdown-wasm`), to HTML | html | 48 ms | 9.0× | 27.0 ms | 2.9× |
 
-² Descriptions here use the page tokenizer settings and no compact mode, so
-they don't line up with the stage tables above.
-
-What this says:
+² Descriptions here use the page tokenizer settings and no compact mode.
 
 - **The boundary eats the Rust speed.**
-  - comrak's Rust core turns pages into HTML in 117 ms. Asking it for a tree
-    JS can work with costs 450 ms, the same as Markdoc's whole JS
-    tokenize+parse.
-  - Markdoc needs a JS tree: validation, schema transforms and the
-    renderers are all JS and user-extensible. So a WASM core would mostly
-    trade parsing for serialization.
-  - On short API descriptions, the per-call WASM overhead makes even the
-    HTML path barely faster.
-- **The best plausible Rust design** has the Rust side emit the packed format
-  as a string, then JS does `JSON.parse` + `unpack`.
-  - Estimate for pages: ~100–120 ms in Rust (the comrak/pulldown HTML
-    times) plus 131 ms to decode ≈ 230–250 ms, versus 392 ms today.
-  - That's about 1.6× on the parse step alone, which is roughly a quarter
-    of build time.
-  - It would mean reimplementing the Markdoc tag grammar, annotations, the
-    `allowIndentation` patch, admonitions, comments, frontmatter and
-    `stopAfter` with exact markdown-it compatibility. I didn't build it:
-    **not worth it for the payoff**.
-- **A faster JS core exists.**
-  - mdastic is 2.3–3.3× faster than 0.6.4's tokenize+parse and supports GFM;
-    commonmark.js is 3.1× on pages but has no tables.
-  - Rebuilding Markdoc on one of them is the same compatibility project as
-    above, for at most ~2× on about a quarter of build time.
-  - Markdoc's own plugins cost ~18% on top of markdown-it core (296 vs
-    250 ms).
-- **Do not upgrade markdown-it for speed:** 15.0 is 1.5× slower than 12.3 on
-  pages, and 2.2× slower on descriptions.
+  - comrak's Rust core turns pages into HTML in 115 ms. Asking it for a JS
+    tree costs 443 ms, slower than the new JS parser's 176 ms for a full
+    Markdoc AST.
+  - Validation, schema transforms and renderers are user-extensible JS, so
+    Markdoc needs a JS tree. A WASM core would trade parsing for
+    serialization.
+- **A Rust parser emitting the packed format as a string** would still pay
+  `JSON.parse` + `unpack` (131 ms on pages) on top of its own parse time.
+  That's no better than the 176 ms the JS parser takes now. **Not worth it.**
+- **Do not upgrade markdown-it for speed:** 15.0 is 1.5× slower than 12.3.
 
 ## Tried and dropped
 
@@ -300,35 +371,31 @@ What this says:
 - **Restructured `Node.resolve` / `base.resolve` clone:** no measurable
   change. Reverted.
 - **One-pass props in the React renderer:** 0–15% slower. React rendering is
-  bound by `React.createElement` itself; the renderer is unchanged.
+  bound by `React.createElement` itself.
 - **Exact-semantics automatic `mergeConfig` cache:** 1.4×, against 3.0× for
-  the opt-in `prepareConfig` (see above).
+  the opt-in `prepareConfig`.
 - **Single-letter type codes in the packed format:** not worth the
-  readability (see above).
+  readability.
 
-## Not done yet (ideas with expected value)
+## Next steps
 
-1. **Adopt the opt-in APIs in Redocly.** This is where most of the measured
-   wins come from:
-   - `markdocRenderer.tsx`: `unpack(source)` instead of
-     `fromJSON(JSON.stringify(source))`;
-   - `runtime-transform.ts`: `prepareConfig(markdocOptions, { cloneAst: false })`
-     once per process;
-   - storage: `pack(ast, { compact: true })`.
-   - Existing stored JSON stays readable via `fromJSON`, so the packed format
-     can roll out behind a cache-version bump.
-2. **Transform straight from the packed form.** This would skip building
-   `Node`s for subtrees with no custom `transform`. The upper bound measured
-   with a prepared config and no clone at all is 108 ms, against 121 ms with
-   sharing: a small remaining gain for a lot of complexity.
+1. **Adopt in Redocly.** Four changes bring most of the gain:
+   - **Build:** `markdoc.parse(src, { ...args, tokenizer: tokenizerOptions })`
+     instead of `markdoc.parse(tokenizer.tokenize(src), args)`.
+   - **Storage:** `pack(ast, { compact: true })` behind a cache-version bump.
+     Old JSON stays readable through `fromJSON`.
+   - **`markdocRenderer.tsx`:** `unpack(source)` instead of
+     `fromJSON(JSON.stringify(source))`.
+   - **`runtime-transform.ts`:** `prepareConfig(markdocOptions, { cloneAst: false })`
+     once per process.
+2. **Release plan for the parser.** It is the default for `parse(string)` on
+   this branch. A more cautious rollout would ship it opt-in for a release
+   first, behind `parse(src, { tokenizer })` only.
 3. **Build-time parallelism.** Pages are independent, so `worker_threads`
-   should scale close to linearly with cores for tokenize, parse and
-   validate. Not measured, because the shared machine was too loaded for
-   meaningful wall-clock numbers.
-4. **Tokenizer.** It is now the largest build-time stage (357 ms on pages).
-   What's left is markdown-it's own block and inline rules plus ~18% in
-   Markdoc plugins. Real gains need a parser rewrite (see the engines
-   section).
+   should scale close to linearly with cores. Not measured, because the
+   shared machine was too loaded for wall-clock numbers.
+4. **The remaining build cost** is mostly validate (~200 ms on pages, about
+   0.7 µs per node), then the parser.
 
 ## Reproduce
 
@@ -336,9 +403,12 @@ What this says:
 npm install && npm run build
 NODE_ENV=production node --expose-gc bench/ab.mjs             # stage A/B vs 0.6.4 (+ output identity check)
 NODE_ENV=production node --expose-gc bench/e2e.mjs            # end-to-end paths
+NODE_ENV=production node --expose-gc bench/exp-fastparse.mjs  # new parser: corpus identity check + timing
+NODE_ENV=production node bench/fuzz-fastparse.mjs 5000 1 random   # differential fuzzing
+NODE_ENV=production node bench/fuzz-fastparse.mjs 5000 1 mutate
 NODE_ENV=production node --expose-gc bench/exp-format.mjs     # storage formats
 NODE_ENV=production node --expose-gc bench/exp-engines.mjs    # other engines (pages|descriptions)
-NODE_ENV=production node bench/profile.mjs transform pages candidate   # CPU profile of one stage
+NODE_ENV=production node bench/profile.mjs fastparse pages candidate   # CPU profile of one stage
 ```
 
 The corpus is read from `REDOCLY_REPO` (default `~/Projects/redocly`) and

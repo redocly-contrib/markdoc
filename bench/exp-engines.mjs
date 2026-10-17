@@ -30,12 +30,17 @@ const ENGINES = {
     const tk = new M.Tokenizer({ html: true, allowIndentation: true, allowComments: true });
     return { kind: 'tree', run: (s) => M.parse(tk.tokenize(s)) };
   },
-  'markdoc candidate: tokenize+parse': async () => {
+  'markdoc branch: markdown-it tokens + parse': async () => {
     const M = require('../dist/index.js');
     const tk = new M.Tokenizer({ html: true, allowIndentation: true, allowComments: true });
     return { kind: 'tree', run: (s) => M.parse(tk.tokenize(s)) };
   },
-  'markdoc candidate: tokenize only': async () => {
+  'markdoc branch: new parser (source → AST)': async () => {
+    const M = require('../dist/index.js');
+    const config = { html: true, allowIndentation: true, allowComments: true };
+    return { kind: 'tree', run: (s) => M.parse(s, { tokenizer: config }) };
+  },
+  'markdoc branch: markdown-it tokens only': async () => {
     const M = require('../dist/index.js');
     const tk = new M.Tokenizer({ html: true, allowIndentation: true, allowComments: true });
     return { kind: 'tokens', run: (s) => tk.tokenize(s) };

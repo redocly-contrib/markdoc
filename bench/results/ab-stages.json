@@ -1,45 +1,49 @@
 {
   "pages": {
     "stages": {
+      "source → AST": {
+        "baseline": 463.40300000000025,
+        "candidate": 216.3819999999978
+      },
       "tokenize": {
-        "baseline": 359.424500000001,
-        "candidate": 356.83800000000156
+        "baseline": 363.97599999999875,
+        "candidate": 394.6219999999994
       },
       "parse": {
-        "baseline": 156.09799999999905,
-        "candidate": 118.0570000000007
+        "baseline": 152.86199999999917,
+        "candidate": 120.37249999999767
       },
       "validate": {
-        "baseline": 287.3644999999997,
-        "candidate": 225.58550000000105
+        "baseline": 283.91649999999936,
+        "candidate": 196.4185000000016
       },
       "compact+stringify": {
-        "baseline": 158.13900000000012,
-        "candidate": 157.23849999999948
+        "baseline": 157.91650000000118,
+        "candidate": 154.0555000000004
       },
       "revive": {
-        "baseline": 512.8719999999994,
-        "candidate": 269.52099999999973
+        "baseline": 510.4270000000015,
+        "candidate": 267.52400000000125
       },
       "transform": {
-        "baseline": 189.6329999999998,
-        "candidate": 160.05750000000262
+        "baseline": 191.9240000000009,
+        "candidate": 159.2484999999997
       },
       "render html": {
-        "baseline": 86.14300000000003,
-        "candidate": 74.38700000000063
+        "baseline": 85.58249999999862,
+        "candidate": 75.14099999999962
       },
       "render react": {
-        "baseline": 83.49099999999908,
-        "candidate": 82.93900000000212
+        "baseline": 82.98399999999856,
+        "candidate": 84.15099999999984
       },
       "validate (prepared)": {
-        "baseline": 287.3644999999997,
-        "candidate": 222.09699999999611
+        "baseline": 283.91649999999936,
+        "candidate": 195.59100000000217
       },
       "transform (prepared)": {
-        "baseline": 189.6329999999998,
-        "candidate": 156.17499999999927
+        "baseline": 191.9240000000009,
+        "candidate": 152.81099999999788
       }
     },
     "storedBytes": {
@@ -49,45 +53,49 @@
   },
   "descriptions": {
     "stages": {
+      "source → AST": {
+        "baseline": 60.8280000000002,
+        "candidate": 22.564000000000306
+      },
       "tokenize": {
-        "baseline": 51.44800000000009,
-        "candidate": 51.22350000000006
+        "baseline": 48.43199999999979,
+        "candidate": 56.24099999999976
       },
       "parse": {
-        "baseline": 13.948499999999967,
-        "candidate": 11.651999999999816
+        "baseline": 12.571500000000242,
+        "candidate": 9.548999999999978
       },
       "validate": {
-        "baseline": 74.39300000000003,
-        "candidate": 72.68000000000029
+        "baseline": 72.68500000000017,
+        "candidate": 65.12900000000013
       },
       "compact+stringify": {
-        "baseline": 15.808999999999969,
-        "candidate": 15.294499999999744
+        "baseline": 14.906500000000051,
+        "candidate": 15.268500000000131
       },
       "revive": {
-        "baseline": 45.64099999999985,
-        "candidate": 16.958000000000084
+        "baseline": 44.09199999999987,
+        "candidate": 16.429999999999836
       },
       "transform": {
-        "baseline": 66.93600000000015,
-        "candidate": 59.10799999999949
+        "baseline": 65.40599999999972,
+        "candidate": 56.86899999999946
       },
       "render html": {
-        "baseline": 6.091499999999996,
-        "candidate": 1.1084999999998217
+        "baseline": 6.026499999999942,
+        "candidate": 1.0589999999997417
       },
       "render react": {
-        "baseline": 7.063999999999851,
-        "candidate": 7.1684999999999945
+        "baseline": 6.789499999999862,
+        "candidate": 7.086500000000115
       },
       "validate (prepared)": {
-        "baseline": 74.39300000000003,
-        "candidate": 30.80749999999989
+        "baseline": 72.68500000000017,
+        "candidate": 24.2795000000001
       },
       "transform (prepared)": {
-        "baseline": 66.93600000000015,
-        "candidate": 22.332999999999856
+        "baseline": 65.40599999999972,
+        "candidate": 23.612499999999955
       }
     },
     "storedBytes": {

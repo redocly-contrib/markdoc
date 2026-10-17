@@ -2,86 +2,91 @@
   {
     "name": "markdoc 0.6.4: tokenize+parse",
     "kind": "tree",
-    "ms": 78.29100000000005
+    "ms": 77.85300000000001
   },
   {
-    "name": "markdoc candidate: tokenize+parse",
+    "name": "markdoc branch: markdown-it tokens + parse",
     "kind": "tree",
-    "ms": 69.77600000000001
+    "ms": 67.86000000000001
   },
   {
-    "name": "markdoc candidate: tokenize only",
+    "name": "markdoc branch: new parser (source → AST)",
+    "kind": "tree",
+    "ms": 18.658999999999992
+  },
+  {
+    "name": "markdoc branch: markdown-it tokens only",
     "kind": "tokens",
-    "ms": 34.08600000000001
+    "ms": 30.511000000000024
   },
   {
     "name": "markdown-it 12.3 (no markdoc plugins)",
     "kind": "tokens",
-    "ms": 25.293000000000006
+    "ms": 30.918999999999983
   },
   {
     "name": "markdown-it 15.0 (no markdoc plugins)",
     "kind": "tokens",
-    "ms": 54.51800000000003
+    "ms": 51.37899999999999
   },
   {
     "name": "marked 18: lexer",
     "kind": "tokens",
-    "ms": 20.803999999999974
+    "ms": 20.88900000000001
   },
   {
     "name": "mdastic 0.1 (gfm, no positions)",
     "kind": "tree",
-    "ms": 24.241999999999962
+    "ms": 14.605000000000018
   },
   {
     "name": "mdastic 0.1 (gfm, positions)",
     "kind": "tree",
-    "ms": 23.652999999999963
+    "ms": 14.226999999999975
   },
   {
     "name": "mdast-util-from-markdown 2 (remark)",
     "kind": "tree",
-    "ms": 286.5170000000003
+    "ms": 258.78999999999996
   },
   {
     "name": "commonmark.js 0.31",
     "kind": "tree",
-    "ms": 38.20600000000002
+    "ms": 30.831000000000017
   },
   {
     "name": "comrak 0.48 wasm: parseMarkdown (Rust)",
     "kind": "tree",
-    "ms": 86.99199999999996
+    "ms": 84
   },
   {
     "name": "comrak 0.48 wasm: to HTML (Rust)",
     "kind": "html",
-    "ms": 55.19200000000001
+    "ms": 55.11699999999996
   },
   {
     "name": "pulldown-cmark wasm: to HTML (Rust)",
     "kind": "html",
-    "ms": 30.806999999999988
+    "ms": 23.457000000000022
   },
   {
     "name": "markdown-wasm (md4c, C): to HTML",
     "kind": "html",
-    "ms": 24.031000000000006
+    "ms": 26.966999999999985
   },
   {
     "name": "markdown-it 15.0: to HTML",
     "kind": "html",
-    "ms": 67.072
+    "ms": 66.91999999999996
   },
   {
     "name": "marked 18: to HTML",
     "kind": "html",
-    "ms": 43.85300000000001
+    "ms": 43.93000000000001
   },
   {
     "name": "micromark 4: to HTML",
     "kind": "html",
-    "ms": 299.82299999999987
+    "ms": 276.78499999999985
   }
 ]

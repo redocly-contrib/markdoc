@@ -3,28 +3,30 @@ DESCRIPTIONS: candidate output identical to baseline on 7811 docs
 
 PAGES (1129 docs; 4 processes per build; stored JSON 29.18 MB -> 29.18 MB)
   stage                   baseline   candidate   speedup   candidate range
-  tokenize                  359 ms      357 ms     1.01x   355 ms–360 ms
-  parse                     156 ms      118 ms     1.32x   117 ms–120 ms
-  validate                  287 ms      226 ms     1.27x   224 ms–230 ms
-  compact+stringify         158 ms      157 ms     1.01x   156 ms–159 ms
-  revive                    513 ms      270 ms     1.90x   269 ms–271 ms
-  transform                 190 ms      160 ms     1.18x   158 ms–163 ms
-  render html              86.1 ms     74.4 ms     1.16x   74.3 ms–74.8 ms
-  render react             83.5 ms     82.9 ms     1.01x   82.7 ms–85.6 ms
-  validate (prepared)       287 ms      222 ms     1.29x   221 ms–226 ms
-  transform (prepared)      190 ms      156 ms     1.21x   153 ms–158 ms
-  total (plain stages)     1833 ms     1445 ms     1.27x
+  source → AST              463 ms      216 ms     2.14x   213 ms–223 ms
+  tokenize                  364 ms      395 ms     0.92x   392 ms–401 ms
+  parse                     153 ms      120 ms     1.27x   119 ms–123 ms
+  validate                  284 ms      196 ms     1.45x   196 ms–201 ms
+  compact+stringify         158 ms      154 ms     1.03x   153 ms–156 ms
+  revive                    510 ms      268 ms     1.91x   267 ms–269 ms
+  transform                 192 ms      159 ms     1.21x   157 ms–160 ms
+  render html              85.6 ms     75.1 ms     1.14x   74.8 ms–76.0 ms
+  render react             83.0 ms     84.2 ms     0.99x   82.8 ms–85.0 ms
+  validate (prepared)       284 ms      196 ms     1.45x   193 ms–198 ms
+  transform (prepared)      192 ms      153 ms     1.26x   152 ms–156 ms
+  total (plain stages)     2293 ms     1668 ms     1.37x
 
 DESCRIPTIONS (7811 docs; 4 processes per build; stored JSON 2.47 MB -> 2.47 MB)
   stage                   baseline   candidate   speedup   candidate range
-  tokenize                 51.4 ms     51.2 ms     1.00x   49.1 ms–55.3 ms
-  parse                    13.9 ms     11.7 ms     1.20x   10.8 ms–12.1 ms
-  validate                 74.4 ms     72.7 ms     1.02x   70.6 ms–74.9 ms
-  compact+stringify        15.8 ms     15.3 ms     1.03x   15.0 ms–18.2 ms
-  revive                   45.6 ms     17.0 ms     2.69x   16.3 ms–19.3 ms
-  transform                66.9 ms     59.1 ms     1.13x   56.6 ms–62.9 ms
-  render html              6.09 ms     1.11 ms     5.50x   1.07 ms–4.50 ms
-  render react             7.06 ms     7.17 ms     0.99x   6.60 ms–7.39 ms
-  validate (prepared)      74.4 ms     30.8 ms     2.41x   27.8 ms–32.2 ms
-  transform (prepared)     66.9 ms     22.3 ms     3.00x   22.1 ms–25.0 ms
-  total (plain stages)      281 ms      235 ms     1.20x
+  source → AST             60.8 ms     22.6 ms     2.70x   21.5 ms–35.2 ms
+  tokenize                 48.4 ms     56.2 ms     0.86x   53.7 ms–57.5 ms
+  parse                    12.6 ms     9.55 ms     1.32x   9.36 ms–11.8 ms
+  validate                 72.7 ms     65.1 ms     1.12x   64.1 ms–67.0 ms
+  compact+stringify        14.9 ms     15.3 ms     0.98x   15.1 ms–18.5 ms
+  revive                   44.1 ms     16.4 ms     2.68x   16.4 ms–17.6 ms
+  transform                65.4 ms     56.9 ms     1.15x   56.2 ms–83.4 ms
+  render html              6.03 ms     1.06 ms     5.69x   1.04 ms–4.53 ms
+  render react             6.79 ms     7.09 ms     0.96x   7.05 ms–7.46 ms
+  validate (prepared)      72.7 ms     24.3 ms     2.99x   23.4 ms–37.0 ms
+  transform (prepared)     65.4 ms     23.6 ms     2.77x   21.5 ms–29.8 ms
+  total (plain stages)      332 ms      250 ms     1.33x
