@@ -22,7 +22,10 @@ const M = loadMarkdoc('candidate');
 const { Node, Variable, Function: Fn } = M.Ast;
 
 // ---------------------------------------------------------------- helpers
-const isEmpty = (o) => { for (const _ in o) return false; return true; };
+const isEmpty = (o) => {
+  for (const _ in o) return false;
+  return true;
+};
 
 // Revive Variable/Function (and any Node) values nested in attribute values.
 function reviveValue(value) {
@@ -33,9 +36,12 @@ function reviveValue(value) {
   }
   for (const k in value) value[k] = reviveValue(value[k]);
   switch (value.$$mdtype) {
-    case 'Node': return Object.assign(new Node(), value);
-    case 'Variable': return Object.assign(new Variable(), value);
-    case 'Function': return Object.assign(new Fn(), value);
+    case 'Node':
+      return Object.assign(new Node(), value);
+    case 'Variable':
+      return Object.assign(new Variable(), value);
+    case 'Function':
+      return Object.assign(new Fn(), value);
   }
   return value;
 }
@@ -49,7 +55,10 @@ function leanEncode(n) {
   if (n.children.length) o.c = n.children.map(leanEncode);
   if (n.errors.length) o.e = n.errors;
   if (n.annotations.length) o.n = n.annotations;
-  if (!isEmpty(n.slots)) o.s = Object.fromEntries(Object.entries(n.slots).map(([k, v]) => [k, leanEncode(v)]));
+  if (!isEmpty(n.slots))
+    o.s = Object.fromEntries(
+      Object.entries(n.slots).map(([k, v]) => [k, leanEncode(v)])
+    );
   if (n.location) o.l = n.location;
   return o;
 }
@@ -70,12 +79,35 @@ function leanDecode(o) {
 
 // ---------------------------------------------------------------- packed
 const CODES = {
-  text: 'T', paragraph: 'P', softbreak: 'B', item: 'I', list: 'L', code: 'C',
-  heading: 'H', strong: 'S', em: 'E', link: 'A', td: 'D', tr: 'R', th: 'X',
-  tag: 'G', fence: 'F', blockquote: 'Q', hr: 'Z', image: 'M', table: 'W',
-  thead: 'U', tbody: 'Y', hardbreak: 'K', document: 'O', comment: 'N', error: 'V',
+  text: 'T',
+  paragraph: 'P',
+  softbreak: 'B',
+  item: 'I',
+  list: 'L',
+  code: 'C',
+  heading: 'H',
+  strong: 'S',
+  em: 'E',
+  link: 'A',
+  td: 'D',
+  tr: 'R',
+  th: 'X',
+  tag: 'G',
+  fence: 'F',
+  blockquote: 'Q',
+  hr: 'Z',
+  image: 'M',
+  table: 'W',
+  thead: 'U',
+  tbody: 'Y',
+  hardbreak: 'K',
+  document: 'O',
+  comment: 'N',
+  error: 'V',
 };
-const DECODE = Object.fromEntries(Object.entries(CODES).map(([k, v]) => [v, k]));
+const DECODE = Object.fromEntries(
+  Object.entries(CODES).map(([k, v]) => [v, k])
+);
 
 function makePacked(codes) {
   const enc = (t) => (codes && CODES[t]) || t;
@@ -83,14 +115,25 @@ function makePacked(codes) {
 
   function encode(n) {
     if (
-      n.type === 'text' && n.inline && n.tag === undefined && n.children.length === 0 &&
-      !n.errors.length && !n.annotations.length && isEmpty(n.slots) && !n.location
+      n.type === 'text' &&
+      n.inline &&
+      n.tag === undefined &&
+      n.children.length === 0 &&
+      !n.errors.length &&
+      !n.annotations.length &&
+      isEmpty(n.slots) &&
+      !n.location
     ) {
       const keys = Object.keys(n.attributes);
-      if (keys.length === 1 && keys[0] === 'content' && typeof n.attributes.content === 'string')
+      if (
+        keys.length === 1 &&
+        keys[0] === 'content' &&
+        typeof n.attributes.content === 'string'
+      )
         return n.attributes.content;
     }
-    let head = n.type === 'tag' && n.tag !== undefined ? '%' + n.tag : enc(n.type);
+    let head =
+      n.type === 'tag' && n.tag !== undefined ? '%' + n.tag : enc(n.type);
     if (n.inline) head = '~' + head;
     const out = [head];
     let attrs = n.attributes;
@@ -99,7 +142,9 @@ function makePacked(codes) {
     if (n.errors.length) extra.$e = n.errors;
     if (n.annotations.length) extra.$a = n.annotations;
     if (!isEmpty(n.slots))
-      extra.$s = Object.fromEntries(Object.entries(n.slots).map(([k, v]) => [k, encode(v)]));
+      extra.$s = Object.fromEntries(
+        Object.entries(n.slots).map(([k, v]) => [k, encode(v)])
+      );
     if (n.location) extra.$l = n.location;
     if (!isEmpty(extra)) attrs = { ...attrs, ...extra };
     if (!isEmpty(attrs)) out.push(attrs);
@@ -115,10 +160,15 @@ function makePacked(codes) {
     }
     let head = x[0];
     let inline = false;
-    if (head.charCodeAt(0) === 126 /* ~ */) { inline = true; head = head.slice(1); }
+    if (head.charCodeAt(0) === 126 /* ~ */) {
+      inline = true;
+      head = head.slice(1);
+    }
     let type, tag;
-    if (head.charCodeAt(0) === 37 /* % */) { type = 'tag'; tag = head.slice(1); }
-    else type = dec(head);
+    if (head.charCodeAt(0) === 37 /* % */) {
+      type = 'tag';
+      tag = head.slice(1);
+    } else type = dec(head);
 
     let i = 1;
     let attrs = {};
@@ -128,7 +178,11 @@ function makePacked(codes) {
       i = 2;
       attrs = second;
       // "$"-keys are never attribute names (those are identifiers).
-      for (const k in attrs) if (k.charCodeAt(0) === 36) { extra = attrs; break; }
+      for (const k in attrs)
+        if (k.charCodeAt(0) === 36) {
+          extra = attrs;
+          break;
+        }
       if (extra) {
         attrs = {};
         for (const k in extra) if (k.charCodeAt(0) !== 36) attrs[k] = extra[k];
@@ -142,7 +196,8 @@ function makePacked(codes) {
     if (extra) {
       if (extra.$e) node.errors = extra.$e;
       if (extra.$a) node.annotations = reviveValue(extra.$a);
-      if (extra.$s) for (const k in extra.$s) node.slots[k] = decode(extra.$s[k]);
+      if (extra.$s)
+        for (const k in extra.$s) node.slots[k] = decode(extra.$s[k]);
       if (extra.$l) node.location = extra.$l;
     }
     return node;
@@ -153,17 +208,24 @@ function makePacked(codes) {
 // ---------------------------------------------------------------- formats
 const packed = makePacked(false);
 const packedCodes = makePacked(true);
-const rootEnc = (enc) => (root) => JSON.stringify(Array.isArray(root) ? { $list: root.map(enc) } : enc(root));
+const rootEnc = (enc) => (root) =>
+  JSON.stringify(Array.isArray(root) ? { $list: root.map(enc) } : enc(root));
 const rootDec = (dec) => (text) => {
   const v = JSON.parse(text);
   return v && v.$list ? v.$list.map(dec) : dec(v);
 };
 
 const FORMATS = {
-  json: { encode: (root) => JSON.stringify(root), decode: (t) => M.Ast.fromJSON(t) },
+  json: {
+    encode: (root) => JSON.stringify(root),
+    decode: (t) => M.Ast.fromJSON(t),
+  },
   lean: { encode: rootEnc(leanEncode), decode: rootDec(leanDecode) },
   packed: { encode: rootEnc(packed.encode), decode: rootDec(packed.decode) },
-  'packed+codes': { encode: rootEnc(packedCodes.encode), decode: rootDec(packedCodes.decode) },
+  'packed+codes': {
+    encode: rootEnc(packedCodes.encode),
+    decode: rootDec(packedCodes.decode),
+  },
 };
 
 const results = {};
@@ -172,8 +234,18 @@ for (const corpusName of ['pages', 'descriptions']) {
   // The stored tree: compact()ed, revived — exactly what runtime starts from.
   const roots = s.revived;
   const sourceBytes = s.sources.reduce((n, x) => n + Buffer.byteLength(x), 0);
-  console.log(`\n${corpusName.toUpperCase()} — ${roots.length} docs, source ${fmtBytes(sourceBytes)}`);
-  console.log('  format'.padEnd(18) + 'raw'.padStart(10) + 'x src'.padStart(7) + 'gzip'.padStart(10) + 'brotli'.padStart(10));
+  console.log(
+    `\n${corpusName.toUpperCase()} — ${roots.length} docs, source ${fmtBytes(
+      sourceBytes
+    )}`
+  );
+  console.log(
+    '  format'.padEnd(18) +
+      'raw'.padStart(10) +
+      'x src'.padStart(7) +
+      'gzip'.padStart(10) +
+      'brotli'.padStart(10)
+  );
 
   const encoded = {};
   for (const [name, f] of Object.entries(FORMATS)) {
@@ -181,8 +253,12 @@ for (const corpusName of ['pages', 'descriptions']) {
     // Exactness: decodes to the same Nodes (same JSON) and the same output.
     for (let i = 0; i < roots.length; i++) {
       const back = f.decode(encoded[name][i]);
-      if (JSON.stringify(back) !== s.json[i]) throw new Error(`${name}: mismatch on #${i}`);
-      if (JSON.stringify(M.transform(back, s.config)) !== JSON.stringify(s.trees[i]))
+      if (JSON.stringify(back) !== s.json[i])
+        throw new Error(`${name}: mismatch on #${i}`);
+      if (
+        JSON.stringify(M.transform(back, s.config)) !==
+        JSON.stringify(s.trees[i])
+      )
         throw new Error(`${name}: transform mismatch on #${i}`);
     }
     const raw = encoded[name].reduce((n, x) => n + x.length, 0);
@@ -190,14 +266,22 @@ for (const corpusName of ['pages', 'descriptions']) {
     // and as one blob.
     const gz = encoded[name].reduce((n, x) => n + zlib.gzipSync(x).length, 0);
     const br = encoded[name].reduce(
-      (n, x) => n + zlib.brotliCompressSync(x, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } }).length,
+      (n, x) =>
+        n +
+        zlib.brotliCompressSync(x, {
+          params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 },
+        }).length,
       0
     );
     results[corpusName] ??= {};
     results[corpusName][name] = { raw, gz, br };
     console.log(
-      `  ${name}`.padEnd(18) + fmtBytes(raw).padStart(10) + (raw / sourceBytes).toFixed(1).padStart(6) + 'x' +
-        fmtBytes(gz).padStart(10) + fmtBytes(br).padStart(10)
+      `  ${name}`.padEnd(18) +
+        fmtBytes(raw).padStart(10) +
+        (raw / sourceBytes).toFixed(1).padStart(6) +
+        'x' +
+        fmtBytes(gz).padStart(10) +
+        fmtBytes(br).padStart(10)
     );
   }
 
@@ -205,7 +289,12 @@ for (const corpusName of ['pages', 'descriptions']) {
     `${corpusName.toUpperCase()} — decode (JSON.parse + revive to Nodes)`,
     compare(
       Object.fromEntries(
-        Object.entries(FORMATS).map(([name, f]) => [name, () => { for (const t of encoded[name]) f.decode(t); }])
+        Object.entries(FORMATS).map(([name, f]) => [
+          name,
+          () => {
+            for (const t of encoded[name]) f.decode(t);
+          },
+        ])
       ),
       { rounds: 11, warmup: 3 }
     )
@@ -214,11 +303,20 @@ for (const corpusName of ['pages', 'descriptions']) {
     `${corpusName.toUpperCase()} — encode (Nodes to stored string)`,
     compare(
       Object.fromEntries(
-        Object.entries(FORMATS).map(([name, f]) => [name, () => { for (const r of roots) f.encode(r); }])
+        Object.entries(FORMATS).map(([name, f]) => [
+          name,
+          () => {
+            for (const r of roots) f.encode(r);
+          },
+        ])
       ),
       { rounds: 7, warmup: 2 }
     )
   );
 }
 
-if (process.env.EXP_JSON) (await import('node:fs')).writeFileSync(process.env.EXP_JSON, JSON.stringify(results, null, 2));
+if (process.env.EXP_JSON)
+  (await import('node:fs')).writeFileSync(
+    process.env.EXP_JSON,
+    JSON.stringify(results, null, 2)
+  );

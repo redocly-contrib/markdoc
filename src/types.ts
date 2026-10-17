@@ -1,4 +1,3 @@
-import type { TokenizerConfig } from './tokenizer';
 import type Func from './ast/function';
 import type Node from './ast/node';
 import type Var from './ast/variable';
@@ -211,17 +210,27 @@ export type ParserArgs = {
   // that must not silently discard content, such as a visual editor.
   // @default false
   strictTables?: boolean;
-  // GitHub-style admonitions (`> [!NOTE]\n> body`) are recognized by the
-  // default tokenizer used when `parse()` is given a string. Pass `false`
-  // here to opt out — the convenience `parse(string)` path will use an
-  // alternate tokenizer without the plugin. Ignored when `content` is
-  // already a Token[] (you control the tokenizer in that case).
+  // GitHub-style admonitions (`> [!NOTE]\n> body`) become a blockquote with a
+  // `kind` attribute. Pass `false` to leave them as plain blockquotes.
   // @default true
   githubAdmonitions?: boolean;
-  // Tokenizer settings for `parse(string)`, the same options `new
-  // Tokenizer(...)` takes. `parse(source, { tokenizer: config })` gives the
-  // same AST as `parse(new Tokenizer(config).tokenize(source))`, without
-  // creating markdown-it tokens. Ignored when `content` is a Token[].
-  // @default {}
-  tokenizer?: TokenizerConfig;
+  // Recognize raw HTML: HTML blocks and inline HTML become `html_block` and
+  // `html_inline` nodes instead of text.
+  // @default false
+  html?: boolean;
+  // Allow indenting Markdoc content — tags, fences, lists, blockquotes and the
+  // rest — by any amount. Indentation never makes a code block either way:
+  // Markdoc has no indented code blocks.
+  // @default false
+  allowIndentation?: boolean;
+  // Recognize HTML comments, `<!-- like this -->`, as `comment` nodes.
+  // @default false
+  allowComments?: boolean;
+  // Report Markdoc tags and variables used inside a URL in link text (a URL
+  // must be a static string) as `href-format-invalid` errors.
+  // @default false
+  allowLinkValidation?: boolean;
+  // The URL schemes `allowLinkValidation` checks.
+  // @default { validatedProtocols: ['http', 'https'] }
+  linkValidationOptions?: { validatedProtocols: string[] };
 };

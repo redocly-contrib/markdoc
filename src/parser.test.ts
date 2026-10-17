@@ -1,19 +1,16 @@
 // @ts-check
 
-import Tokenizer from '../src/tokenizer';
-import parser from '../src/parser';
+import { parseDocument } from '../src/fastparse';
 import Variable from '../src/ast/variable';
 import { any } from 'deep-assert';
 import Markdoc from '../index';
 
 describe('Markdown parser', function () {
   const fence = '```';
-  const tokenizer = new Tokenizer({ allowComments: true });
-
   function convert(example, options?) {
     const content = example.replace(/\n\s+/gm, '\n').trim();
-    const tokens = tokenizer.tokenize(content);
-    return parser(tokens, options);
+    const args = typeof options === 'string' ? { file: options } : options;
+    return parseDocument(content, { ...args, allowComments: true });
   }
 
   describe('handling options', function () {
@@ -1005,13 +1002,17 @@ describe('Markdown parser', function () {
     });
 
     it('keeps document when there are multiple children', function () {
-      const example = Markdoc.parse(`# heading\n\nparagraph`, { compact: true });
+      const example = Markdoc.parse(`# heading\n\nparagraph`, {
+        compact: true,
+      });
       expect(example.type).toEqual('document');
       expect(example.children.length).toBe(2);
     });
 
     it('keeps document when frontmatter is present', function () {
-      const example = Markdoc.parse(`---\nfoo: bar\n---\n# heading`, { compact: true });
+      const example = Markdoc.parse(`---\nfoo: bar\n---\n# heading`, {
+        compact: true,
+      });
       expect(example.type).toEqual('document');
       expect(example.attributes.frontmatter).toContain('foo: bar');
     });

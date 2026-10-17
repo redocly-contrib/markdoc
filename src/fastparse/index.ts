@@ -1,12 +1,11 @@
 /**
- * A Markdoc parser that goes straight from source text to Markdoc Nodes, with
- * no markdown-it tokens in between.
+ * Markdoc's parser: source text straight to Markdoc Nodes.
  *
- * It implements the same grammar as `Tokenizer` + `parse` — markdown-it
- * 12.3.2 with Markdoc's plugins and indentation patch — and produces the same
- * AST. The speed comes from the machinery: line offsets in reused typed
- * arrays, pooled tokens instead of `Token` objects, first-character rule
- * dispatch, and building Nodes directly.
+ * The grammar is markdown-it 12.3.2's (CommonMark plus tables and
+ * strikethrough) with Markdoc's tags, annotations and indentation rules,
+ * and the AST is the one Markdoc has always produced from it. The machinery
+ * is its own: line offsets in reused typed arrays, pooled tokens, first-
+ * character rule dispatch, and Nodes built directly.
  */
 import Node from '../ast/node';
 import { BlockState } from './block';
@@ -14,16 +13,6 @@ import { InlineState } from './inline';
 import { build } from './build';
 
 import type { ParserArgs } from '../types';
-
-export type FastParseOptions = {
-  /** markdown-it's `html` option: recognize raw HTML. */
-  html?: boolean;
-  allowIndentation?: boolean;
-  allowComments?: boolean;
-  allowLinkValidation?: boolean;
-  linkValidationOptions?: { validatedProtocols: string[] };
-  githubAdmonitions?: boolean;
-};
 
 type Parser = {
   block: BlockState;
@@ -33,7 +22,7 @@ type Parser = {
 
 const parsers = new Map<number, Parser>();
 
-function parserFor(options: FastParseOptions): Parser {
+function parserFor(options: ParserArgs): Parser {
   const key =
     (options.html ? 1 : 0) |
     (options.allowIndentation ? 2 : 0) |
@@ -66,19 +55,18 @@ const NULL_RE = /\0/g;
 /** markdown-it's core `normalize` rule. */
 function normalize(src: string) {
   if (src.indexOf('\r') >= 0) src = src.replace(NEWLINES_RE, '\n');
-  if (src.indexOf('\0') >= 0) src = src.replace(NULL_RE, '�');
+  if (src.indexOf('\0') >= 0) src = src.replace(NULL_RE, '\uFFFD');
   return src;
 }
 
-/** Parses `source` like `Markdoc.parse(new Tokenizer(options).tokenize(source), args)`. */
+/** Parses `source` into a `document` Node. */
 export function parseDocument(
   source: string,
-  options: FastParseOptions = {},
-  args?: string | ParserArgs
+  args: string | ParserArgs = {}
 ): Node {
   if (typeof args === 'string') args = { file: args };
 
-  const parser = parserFor(options);
+  const parser = parserFor(args);
   parser.busy = true;
   try {
     parser.block.reset(normalize(String(source)));
@@ -87,10 +75,12 @@ export function parseDocument(
       parser.block,
       parser.inline,
       {
-        allowLinkValidation: !!options.allowLinkValidation,
-        validatedProtocols: options.linkValidationOptions
-          ?.validatedProtocols ?? ['http', 'https'],
-        githubAdmonitions: options.githubAdmonitions !== false,
+        allowLinkValidation: !!args.allowLinkValidation,
+        validatedProtocols: args.linkValidationOptions?.validatedProtocols ?? [
+          'http',
+          'https',
+        ],
+        githubAdmonitions: args.githubAdmonitions !== false,
       },
       args
     );
@@ -99,13 +89,9 @@ export function parseDocument(
   }
 }
 
-/** Like `Markdoc.parse(source, args)` for a string, including compact unwrapping. */
-export function fastParse(
-  source: string,
-  options: FastParseOptions = {},
-  args?: string | ParserArgs
-): Node {
-  const doc = parseDocument(source, options, args);
+/** `parseDocument`, then compact mode's unwrapping of a single-child document. */
+export function parse(source: string, args?: string | ParserArgs): Node {
+  const doc = parseDocument(source, args);
 
   const opts = typeof args === 'object' ? args : undefined;
   if (

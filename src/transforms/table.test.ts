@@ -128,10 +128,8 @@ This is invalid non-conditional content at the row level.
 
   it('does not produce errors for comments in a table', function () {
     function validateWithComments(string: string, config = {}) {
-      const tokenizer = new Markdoc.Tokenizer({ allowComments: true });
-      const tokens = tokenizer.tokenize(string);
       return Markdoc.validate(
-        Markdoc.parse(tokens, { strictTables: true }),
+        Markdoc.parse(string, { allowComments: true, strictTables: true }),
         config
       );
     }
@@ -228,7 +226,9 @@ This is not a valid row
     const config = { tags: { callout: { render: 'div' } } };
 
     function tableSyntaxErrors(input: string) {
-      return validate(input, config).filter((e) => e.error.id === 'table-syntax');
+      return validate(input, config).filter(
+        (e) => e.error.id === 'table-syntax'
+      );
     }
 
     it('produces an error when the header row is a tag', function () {
@@ -271,7 +271,10 @@ This is not a valid row
         'paragraph header row',
         '{% table %}\nSome text\n\n---\n\n- a\n- b\n{% /table %}\n',
       ],
-      ['paragraph body row', '{% table %}\n- Head\n---\nSome text\n{% /table %}\n'],
+      [
+        'paragraph body row',
+        '{% table %}\n- Head\n---\nSome text\n{% /table %}\n',
+      ],
       [
         'unindented cell continuation',
         '{% table %}\n- Head\n---\n- Cell\n\nNot indented\n{% /table %}\n',
@@ -302,9 +305,7 @@ This is not a valid row
 
       it(`renders a ${label} identically either way`, function () {
         // The flag must gate only the diagnostic, never the output.
-        expect(
-          JSON.stringify(Markdoc.transform(Markdoc.parse(src)))
-        ).toEqual(
+        expect(JSON.stringify(Markdoc.transform(Markdoc.parse(src)))).toEqual(
           JSON.stringify(
             Markdoc.transform(Markdoc.parse(src, { strictTables: true }))
           )

@@ -1,7 +1,20 @@
-import MarkdownIt from 'markdown-it';
 import Tag from '../tag';
 import type { RenderableTreeNodes } from '../types';
-const { escapeHtml } = MarkdownIt().utils;
+const HTML_ESCAPE_TEST_RE = /[&<>"]/;
+const HTML_ESCAPE_REPLACE_RE = /[&<>"]/g;
+const HTML_REPLACEMENTS: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+};
+
+// markdown-it's `escapeHtml`, which this renderer has always used.
+function escapeHtml(str: string): string {
+  if (HTML_ESCAPE_TEST_RE.test(str))
+    return str.replace(HTML_ESCAPE_REPLACE_RE, (ch) => HTML_REPLACEMENTS[ch]);
+  return str;
+}
 
 // HTML elements that do not have a matching close tag
 // Defined in the HTML standard: https://html.spec.whatwg.org/#void-elements

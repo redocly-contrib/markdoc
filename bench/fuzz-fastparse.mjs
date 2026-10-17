@@ -1,4 +1,4 @@
-// Differential fuzzing: fastParse against Tokenizer + parse on random
+// Differential fuzzing: the parser against published 0.6.4 on random
 // documents built from markdown edge cases.
 //
 //   node bench/fuzz-fastparse.mjs [iterations] [seed] [random|mutate]
@@ -13,12 +13,18 @@ import { loadMarkdoc } from './lib/pipeline.mjs';
 import { loadCorpus } from './lib/corpus.mjs';
 
 const M = loadMarkdoc('candidate');
+// Published 0.6.4 is the reference: markdown-it plus Markdoc's tokenizer plugins.
+const B = loadMarkdoc('baseline');
 const iterations = Number(process.argv[2] || 20000);
 let seed = Number(process.argv[3] || 1);
 const strategy = process.argv[4] || 'random';
-const corpusDocs = strategy === 'mutate'
-  ? (() => { const c = loadCorpus(); return [...c.pages.map((p) => p.source), ...c.descriptions]; })()
-  : [];
+const corpusDocs =
+  strategy === 'mutate'
+    ? (() => {
+        const c = loadCorpus();
+        return [...c.pages.map((p) => p.source), ...c.descriptions];
+      })()
+    : [];
 
 function rng() {
   // mulberry32
@@ -31,34 +37,207 @@ function rng() {
 const pick = (a) => a[Math.floor(rng() * a.length)];
 
 const INLINE = [
-  'word', 'two words', ' ', '  ', '\t', '*', '**', '***', '_', '__', '~~', '~', '~~~',
-  '`', '``', '`code`', '``a`b``', '[', ']', '(', ')', '[link](/url)', '[a](<b c> "t")',
-  '![img](/i.png)', '![a *b*](/x "y")', '[ref]', '[ref][]', '[x][ref]', '<https://a.b/c>',
-  '<a@b.co>', '<b>', '</b>', '<!-- c -->', '<!--', '-->', '&amp;', '&#35;', '&#x41;', '&nope;',
-  '\\*', '\\', '\\[', '{% $var %}', '{% $a.b %}', '{% tag %}', '{% /tag %}', '{% tag /%}',
-  '{% .cls %}', '{% #id %}', '{% foo x=1 %}', '{% bad "unterminated %}', '{%', '%}',
-  '{% if $x %}', '{% /if %}', '{% else /%}', '{% slot "s" %}', '{% /slot %}', 'http://x.y/{% $v %}',
-  '[a]', '[a][]', '[b][a]', '[e]', '«', '—', '“q”', 'ä', '🙂', '.', ',', '!', '?', ':', ';', '"', "'", '|', '\\|', '#', '-', '+',
-  'a*b*c', '*a **b** c*', '_a_b_', '**a*', '*a**', '~~a~~', '~~~a~~~', 'x~~y', '***a***',
+  'word',
+  'two words',
+  ' ',
+  '  ',
+  '\t',
+  '*',
+  '**',
+  '***',
+  '_',
+  '__',
+  '~~',
+  '~',
+  '~~~',
+  '`',
+  '``',
+  '`code`',
+  '``a`b``',
+  '[',
+  ']',
+  '(',
+  ')',
+  '[link](/url)',
+  '[a](<b c> "t")',
+  '![img](/i.png)',
+  '![a *b*](/x "y")',
+  '[ref]',
+  '[ref][]',
+  '[x][ref]',
+  '<https://a.b/c>',
+  '<a@b.co>',
+  '<b>',
+  '</b>',
+  '<!-- c -->',
+  '<!--',
+  '-->',
+  '&amp;',
+  '&#35;',
+  '&#x41;',
+  '&nope;',
+  '\\*',
+  '\\',
+  '\\[',
+  '{% $var %}',
+  '{% $a.b %}',
+  '{% tag %}',
+  '{% /tag %}',
+  '{% tag /%}',
+  '{% .cls %}',
+  '{% #id %}',
+  '{% foo x=1 %}',
+  '{% bad "unterminated %}',
+  '{%',
+  '%}',
+  '{% if $x %}',
+  '{% /if %}',
+  '{% else /%}',
+  '{% slot "s" %}',
+  '{% /slot %}',
+  'http://x.y/{% $v %}',
+  '[a]',
+  '[a][]',
+  '[b][a]',
+  '[e]',
+  '«',
+  '—',
+  '“q”',
+  'ä',
+  '🙂',
+  '.',
+  ',',
+  '!',
+  '?',
+  ':',
+  ';',
+  '"',
+  "'",
+  '|',
+  '\\|',
+  '#',
+  '-',
+  '+',
+  'a*b*c',
+  '*a **b** c*',
+  '_a_b_',
+  '**a*',
+  '*a**',
+  '~~a~~',
+  '~~~a~~~',
+  'x~~y',
+  '***a***',
 ];
 const BLOCK_PREFIX = [
-  '', '', '', '', '# ', '## ', '###### ', '####### ', '#', '> ', '>', '> > ', '- ', '* ', '+ ',
-  '1. ', '2) ', '10. ', '0. ', '  - ', '    ', '\t', '   > ', '- [ ] ', '> - ', '- > ',
-  '    - ', '  1. ', '   ',
+  '',
+  '',
+  '',
+  '',
+  '# ',
+  '## ',
+  '###### ',
+  '####### ',
+  '#',
+  '> ',
+  '>',
+  '> > ',
+  '- ',
+  '* ',
+  '+ ',
+  '1. ',
+  '2) ',
+  '10. ',
+  '0. ',
+  '  - ',
+  '    ',
+  '\t',
+  '   > ',
+  '- [ ] ',
+  '> - ',
+  '- > ',
+  '    - ',
+  '  1. ',
+  '   ',
 ];
 const WHOLE_LINES = [
-  '', '', '', '---', '***', '___', '- - -', '```', '```js', '``` js {% .c %}', '~~~', '````',
-  '```{% process=false %}', '| a | b |', '|---|:-:|', '| 1 | 2 |', 'a | b', '--- | ---',
-  '|:--|--:|', '[ref]: /url "title"', '[ref]: <x y>', '[Ref]:\n/url', '<div>', '</div>',
-  '<script>', '</script>', '<!-- block', 'comment -->', '<?php ?>', '<![CDATA[ x ]]>',
-  '{% tag %}', '{% /tag %}', '{% tag /%}', '{% callout type="note" %}', '{% /callout %}',
-  '{% if $x %}', '{% else /%}', '{% /if %}', '{% table %}', '{% /table %}', '{% .x %}',
-  '{% partial file="a.md" /%}', '{%\n  tag\n%}', '{% $v %}', '{% f(1) %}', '{% tag "unclosed',
-  '> [!NOTE]', '> [!TIP]  ', '> [!WARNING]\n> body', '> [!bogus]', '[!NOTE]',
-  '[a]: /u', '[a]: /u "t"', '[a]:\n/u', '[a]: /u\n"t"', '[a]: /u\n"multi', 'line"', "'t'", '(t)',
-  '"t"', '"unclosed', '[a\nb]: /x', '[b]: <x y> (t)', '[c]: /u "t" junk', '[d]: /u "t"\n# h',
-  '[e]:', '[ref]: /x\n[ref2]: /y\n[ref3]: /z', '> [q]: /x', '- [l]: /x', '[\\]]: /x', '[ ]: /x',
-  '---\ntitle: x\n---', '  ', '\t', 'text  ', 'text\\', 'line\r', '\0',
+  '',
+  '',
+  '',
+  '---',
+  '***',
+  '___',
+  '- - -',
+  '```',
+  '```js',
+  '``` js {% .c %}',
+  '~~~',
+  '````',
+  '```{% process=false %}',
+  '| a | b |',
+  '|---|:-:|',
+  '| 1 | 2 |',
+  'a | b',
+  '--- | ---',
+  '|:--|--:|',
+  '[ref]: /url "title"',
+  '[ref]: <x y>',
+  '[Ref]:\n/url',
+  '<div>',
+  '</div>',
+  '<script>',
+  '</script>',
+  '<!-- block',
+  'comment -->',
+  '<?php ?>',
+  '<![CDATA[ x ]]>',
+  '{% tag %}',
+  '{% /tag %}',
+  '{% tag /%}',
+  '{% callout type="note" %}',
+  '{% /callout %}',
+  '{% if $x %}',
+  '{% else /%}',
+  '{% /if %}',
+  '{% table %}',
+  '{% /table %}',
+  '{% .x %}',
+  '{% partial file="a.md" /%}',
+  '{%\n  tag\n%}',
+  '{% $v %}',
+  '{% f(1) %}',
+  '{% tag "unclosed',
+  '> [!NOTE]',
+  '> [!TIP]  ',
+  '> [!WARNING]\n> body',
+  '> [!bogus]',
+  '[!NOTE]',
+  '[a]: /u',
+  '[a]: /u "t"',
+  '[a]:\n/u',
+  '[a]: /u\n"t"',
+  '[a]: /u\n"multi',
+  'line"',
+  "'t'",
+  '(t)',
+  '"t"',
+  '"unclosed',
+  '[a\nb]: /x',
+  '[b]: <x y> (t)',
+  '[c]: /u "t" junk',
+  '[d]: /u "t"\n# h',
+  '[e]:',
+  '[ref]: /x\n[ref2]: /y\n[ref3]: /z',
+  '> [q]: /x',
+  '- [l]: /x',
+  '[\\]]: /x',
+  '[ ]: /x',
+  '---\ntitle: x\n---',
+  '  ',
+  '\t',
+  'text  ',
+  'text\\',
+  'line\r',
+  '\0',
 ];
 
 function inline() {
@@ -81,8 +260,38 @@ function doc() {
   return s;
 }
 
-const SPLICE = ['*', '_', '`', '[', ']', '(', ')', '<', '>', '{%', '%}', '"', '|', '\\', '\t', '    ',
-  '\n', '\n\n', '- ', '> ', '1. ', '#', '!', '&', '~~', '{% /', '<!--', '-->', '---', '```'];
+const SPLICE = [
+  '*',
+  '_',
+  '`',
+  '[',
+  ']',
+  '(',
+  ')',
+  '<',
+  '>',
+  '{%',
+  '%}',
+  '"',
+  '|',
+  '\\',
+  '\t',
+  '    ',
+  '\n',
+  '\n\n',
+  '- ',
+  '> ',
+  '1. ',
+  '#',
+  '!',
+  '&',
+  '~~',
+  '{% /',
+  '<!--',
+  '-->',
+  '---',
+  '```',
+];
 
 function mutate() {
   const lines = pick(corpusDocs).split('\n');
@@ -93,17 +302,29 @@ function mutate() {
   for (let e = 0; e < edits; e++) {
     const i = Math.floor(rng() * window.length);
     switch (Math.floor(rng() * 6)) {
-      case 0: window.splice(i, 1); break;
-      case 1: window.splice(i, 0, window[i] ?? ''); break;
-      case 2: window[i] = pick(['', ' ', '  ', '   ', '    ', '\t', '> ', '- ']) + (window[i] ?? ''); break;
-      case 3: window[i] = (window[i] ?? '').replace(/^\s+/, ''); break;
+      case 0:
+        window.splice(i, 1);
+        break;
+      case 1:
+        window.splice(i, 0, window[i] ?? '');
+        break;
+      case 2:
+        window[i] =
+          pick(['', ' ', '  ', '   ', '    ', '\t', '> ', '- ']) +
+          (window[i] ?? '');
+        break;
+      case 3:
+        window[i] = (window[i] ?? '').replace(/^\s+/, '');
+        break;
       case 4: {
         const line = window[i] ?? '';
         const at = Math.floor(rng() * (line.length + 1));
         window[i] = line.slice(0, at) + pick(SPLICE) + line.slice(at);
         break;
       }
-      case 5: window.splice(i, 0, ''); break;
+      case 5:
+        window.splice(i, 0, '');
+        break;
     }
   }
   return window.join('\n');
@@ -113,7 +334,10 @@ const CONFIGS = [
   [{}, undefined],
   [{}, { compact: true }],
   [{ html: true, allowIndentation: true, allowComments: true }, undefined],
-  [{ html: true, allowIndentation: true, allowComments: true }, { slots: true, compact: true }],
+  [
+    { html: true, allowIndentation: true, allowComments: true },
+    { slots: true, compact: true },
+  ],
   [{ allowLinkValidation: true, githubAdmonitions: false }, { file: 'f.md' }],
 ];
 
@@ -125,11 +349,13 @@ function outcome(fn) {
   }
 }
 
-const tokenizers = CONFIGS.map(([cfg]) => new M.Tokenizer(cfg));
+const tokenizers = CONFIGS.map(([cfg]) => new B.Tokenizer(cfg));
+const viaReference = (src, k) =>
+  outcome(() => B.parse(tokenizers[k].tokenize(src), CONFIGS[k][1]));
+const viaParser = (src, k) =>
+  outcome(() => M.parse(src, { ...CONFIGS[k][1], ...CONFIGS[k][0] }));
 function mismatch(src, k) {
-  const [cfg, args] = CONFIGS[k];
-  return outcome(() => M.parse(tokenizers[k].tokenize(src), args)) !==
-    outcome(() => M.fastParse(src, cfg, args));
+  return viaReference(src, k) !== viaParser(src, k);
 }
 
 function minimize(src, k) {
@@ -156,13 +382,18 @@ for (let it = 0; it < iterations; it++) {
     if (!mismatch(src, k)) continue;
     failures++;
     const small = minimize(src, k);
-    console.log(`\n✗ iteration ${it} config ${JSON.stringify(CONFIGS[k])}\n${JSON.stringify(small)}`);
-    const [cfg, args] = CONFIGS[k];
-    console.log('  tokens:', outcome(() => M.parse(tokenizers[k].tokenize(small), args)).slice(0, 600));
-    console.log('  fast:  ', outcome(() => M.fastParse(small, cfg, args)).slice(0, 600));
+    console.log(
+      `\n✗ iteration ${it} config ${JSON.stringify(
+        CONFIGS[k]
+      )}\n${JSON.stringify(small)}`
+    );
+    console.log('  0.6.4: ', viaReference(small, k).slice(0, 600));
+    console.log('  branch:', viaParser(small, k).slice(0, 600));
     if (failures >= 8) process.exit(1);
     break;
   }
 }
-console.log(`\n${iterations} ${strategy} documents x ${CONFIGS.length} settings (seed ${startSeed}): ${failures} mismatches`);
+console.log(
+  `\n${iterations} ${strategy} documents x ${CONFIGS.length} settings (seed ${startSeed}): ${failures} mismatches`
+);
 if (failures) process.exitCode = 1;

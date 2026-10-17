@@ -27,23 +27,17 @@ const self = fileURLToPath(import.meta.url);
 const ENGINES = {
   'markdoc 0.6.4: tokenize+parse': async () => {
     const M = require('markdoc-baseline');
-    const tk = new M.Tokenizer({ html: true, allowIndentation: true, allowComments: true });
-    return { kind: 'tree', run: (s) => M.parse(tk.tokenize(s)) };
-  },
-  'markdoc branch: markdown-it tokens + parse': async () => {
-    const M = require('../dist/index.js');
-    const tk = new M.Tokenizer({ html: true, allowIndentation: true, allowComments: true });
+    const tk = new M.Tokenizer({
+      html: true,
+      allowIndentation: true,
+      allowComments: true,
+    });
     return { kind: 'tree', run: (s) => M.parse(tk.tokenize(s)) };
   },
   'markdoc branch: new parser (source → AST)': async () => {
     const M = require('../dist/index.js');
     const config = { html: true, allowIndentation: true, allowComments: true };
-    return { kind: 'tree', run: (s) => M.parse(s, { tokenizer: config }) };
-  },
-  'markdoc branch: markdown-it tokens only': async () => {
-    const M = require('../dist/index.js');
-    const tk = new M.Tokenizer({ html: true, allowIndentation: true, allowComments: true });
-    return { kind: 'tokens', run: (s) => tk.tokenize(s) };
+    return { kind: 'tree', run: (s) => M.parse(s, config) };
   },
   'markdown-it 12.3 (no markdoc plugins)': async () => {
     const MarkdownIt = require('markdown-it');
@@ -82,12 +76,18 @@ const ENGINES = {
   },
   'comrak 0.48 wasm: parseMarkdown (Rust)': async () => {
     const { parseMarkdown } = await import('comrak');
-    const options = { extension: { table: true, strikethrough: true }, render: { unsafe: true } };
+    const options = {
+      extension: { table: true, strikethrough: true },
+      render: { unsafe: true },
+    };
     return { kind: 'tree', run: (s) => parseMarkdown(s, options) };
   },
   'comrak 0.48 wasm: to HTML (Rust)': async () => {
     const { markdownToHTML } = await import('comrak');
-    const options = { extension: { table: true, strikethrough: true }, render: { unsafe: true } };
+    const options = {
+      extension: { table: true, strikethrough: true },
+      render: { unsafe: true },
+    };
     return { kind: 'html', run: (s) => markdownToHTML(s, options) };
   },
   'pulldown-cmark wasm: to HTML (Rust)': async () => {
@@ -110,7 +110,10 @@ const ENGINES = {
   },
   'micromark 4: to HTML': async () => {
     const { micromark } = await import('micromark');
-    return { kind: 'html', run: (s) => micromark(s, { allowDangerousHtml: true }) };
+    return {
+      kind: 'html',
+      run: (s) => micromark(s, { allowDangerousHtml: true }),
+    };
   },
 };
 
@@ -119,31 +122,59 @@ const [, , corpusName = 'pages', engineName] = process.argv;
 if (engineName) {
   // Worker: time one engine.
   const corpus = loadCorpus();
-  const sources = corpusName === 'pages' ? corpus.pages.map((p) => p.source) : corpus.descriptions;
+  const sources =
+    corpusName === 'pages'
+      ? corpus.pages.map((p) => p.source)
+      : corpus.descriptions;
   const { kind, run } = await ENGINES[engineName]();
-  const r = compare({ x: () => { for (const s of sources) run(s); } }, { rounds: 7, warmup: 2 });
+  const r = compare(
+    {
+      x: () => {
+        for (const s of sources) run(s);
+      },
+    },
+    { rounds: 7, warmup: 2 }
+  );
   process.stdout.write(JSON.stringify({ kind, ms: r.x.cpu.median }));
 } else {
   const rows = [];
   for (const name of Object.keys(ENGINES)) {
-    const p = spawnSync(process.execPath, ['--expose-gc', self, corpusName, name], {
-      encoding: 'utf8',
-      env: { ...process.env, NODE_ENV: 'production' },
-    });
+    const p = spawnSync(
+      process.execPath,
+      ['--expose-gc', self, corpusName, name],
+      {
+        encoding: 'utf8',
+        env: { ...process.env, NODE_ENV: 'production' },
+      }
+    );
     if (p.status !== 0) {
-      console.log(`  ${name}: FAILED\n${p.stderr.split('\n').slice(0, 6).join('\n')}`);
+      console.log(
+        `  ${name}: FAILED\n${p.stderr.split('\n').slice(0, 6).join('\n')}`
+      );
       continue;
     }
     rows.push({ name, ...JSON.parse(p.stdout) });
   }
   const ref = rows.find((r) => r.name.startsWith('markdoc 0.6.4'))?.ms;
-  console.log(`\n${corpusName.toUpperCase()} — engine comparison (CPU, median)`);
-  console.log('  engine'.padEnd(44) + 'kind'.padEnd(8) + 'time'.padStart(10) + '   vs markdoc 0.6.4 tokenize+parse');
+  console.log(
+    `\n${corpusName.toUpperCase()} — engine comparison (CPU, median)`
+  );
+  console.log(
+    '  engine'.padEnd(44) +
+      'kind'.padEnd(8) +
+      'time'.padStart(10) +
+      '   vs markdoc 0.6.4 tokenize+parse'
+  );
   for (const r of rows)
     console.log(
-      `  ${r.name}`.padEnd(44) + r.kind.padEnd(8) + fmtMs(r.ms).padStart(10) +
+      `  ${r.name}`.padEnd(44) +
+        r.kind.padEnd(8) +
+        fmtMs(r.ms).padStart(10) +
         `   ${(ref / r.ms).toFixed(2)}x`
     );
   if (process.env.EXP_JSON)
-    (await import('node:fs')).writeFileSync(process.env.EXP_JSON, JSON.stringify(rows, null, 2));
+    (await import('node:fs')).writeFileSync(
+      process.env.EXP_JSON,
+      JSON.stringify(rows, null, 2)
+    );
 }

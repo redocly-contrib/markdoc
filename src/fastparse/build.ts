@@ -11,12 +11,12 @@
 import Node from '../ast/node';
 import transforms from '../transforms/index';
 import tableTransform from '../transforms/table';
-import { handleToken as handleObjectToken } from '../parser';
+import { handleToken as handleObjectToken } from './objects';
 import { containsMarkdocTagInUrl, findTagEnd, parseTags, OPEN } from '../utils';
 import { parse as parseTag, SyntaxError } from '../grammar/tag';
 import Variable from '../ast/variable';
 import Function from '../ast/function';
-import { ADMONITION_KINDS } from '../tokenizer/plugins/githubAdmonitions';
+import { ADMONITION_KINDS } from '../admonitions';
 import * as T from './tokens';
 import { NESTING, NODE_TYPE, BlockToken, InlineToken } from './tokens';
 import type { BlockState } from './block';

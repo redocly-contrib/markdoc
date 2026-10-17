@@ -20,11 +20,13 @@ function anatomy(json) {
     add('$$mdtype:"Node"', len('$$mdtype') + 1 + len('Node') + 1);
     add('"type" key+value', len('type') + 1 + len(n.type) + 1);
     add('{} and commas', 2);
-    if (n.tag !== undefined) add('"tag" key+value', len('tag') + 1 + len(n.tag) + 1);
+    if (n.tag !== undefined)
+      add('"tag" key+value', len('tag') + 1 + len(n.tag) + 1);
     if (n.inline) add('"inline":true', len('inline') + 1 + 4 + 1);
     if (n.location) add('location', len('location') + 1 + len(n.location) + 1);
     if (n.errors) add('errors', len('errors') + 1 + len(n.errors) + 1);
-    if (n.annotations) add('annotations', len('annotations') + 1 + len(n.annotations) + 1);
+    if (n.annotations)
+      add('annotations', len('annotations') + 1 + len(n.annotations) + 1);
 
     const attrs = n.attributes;
     const keys = Object.keys(attrs);
@@ -41,7 +43,10 @@ function anatomy(json) {
         add('attribute keys', key);
       }
     }
-    add('"children" key + []', len('children') + 1 + 2 + 1 + Math.max(0, n.children.length - 1));
+    add(
+      '"children" key + []',
+      len('children') + 1 + 2 + 1 + Math.max(0, n.children.length - 1)
+    );
     for (const c of n.children) visitNode(c);
     if (n.slots) {
       add('slots', len('slots') + 3);
@@ -64,18 +69,32 @@ for (const corpusName of ['pages', 'descriptions']) {
   const { bytes, counts, total } = anatomy(s.json);
   const all = Buffer.from(s.json.join('\n'));
   console.log(
-    `\n${corpusName}: source ${fmtBytes(sourceBytes)}, stored JSON ${fmtBytes(total)} ` +
-      `(${(total / sourceBytes).toFixed(1)}x source); gzip ${fmtBytes(zlib.gzipSync(all).length)}, ` +
+    `\n${corpusName}: source ${fmtBytes(sourceBytes)}, stored JSON ${fmtBytes(
+      total
+    )} ` +
+      `(${(total / sourceBytes).toFixed(1)}x source); gzip ${fmtBytes(
+        zlib.gzipSync(all).length
+      )}, ` +
       `brotli ${fmtBytes(zlib.brotliCompressSync(all).length)}`
   );
   const accounted = [...bytes.values()].reduce((a, b) => a + b, 0);
   for (const [k, v] of [...bytes].sort((a, b) => b[1] - a[1]))
-    console.log(`  ${k.padEnd(34)}${fmtBytes(v).padStart(10)}  ${((v / total) * 100).toFixed(1).padStart(5)}%`);
-  console.log(`  ${'(accounted)'.padEnd(34)}${fmtBytes(accounted).padStart(10)}`);
+    console.log(
+      `  ${k.padEnd(34)}${fmtBytes(v).padStart(10)}  ${((v / total) * 100)
+        .toFixed(1)
+        .padStart(5)}%`
+    );
+  console.log(
+    `  ${'(accounted)'.padEnd(34)}${fmtBytes(accounted).padStart(10)}`
+  );
   const nodes = [...counts.values()].reduce((a, b) => a + b, 0);
   console.log(`  nodes: ${nodes}  (${(total / nodes).toFixed(0)} bytes/node)`);
   console.log(
     '  by type: ' +
-      [...counts].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([t, c]) => `${t} ${c}`).join(', ')
+      [...counts]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 12)
+        .map(([t, c]) => `${t} ${c}`)
+        .join(', ')
   );
 }

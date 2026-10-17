@@ -1,10 +1,21 @@
-import Node from './ast/node';
-import transforms from './transforms/index';
-import { OPEN } from './utils';
+/**
+ * Turns token-shaped objects into Nodes: what `parser.ts` did for every
+ * markdown-it token. The fast parser builds Nodes from its own tokens in
+ * `build.ts`; this handles the plain objects it gets from elsewhere — tag
+ * tokens found inside fence content by `parseTags`, and the tokens an HTML
+ * handler emits.
+ */
+import Node from '../ast/node';
+import { OPEN } from '../utils';
 
-import type { AttributeValue, NodeType, ParserArgs } from './types';
+import type { AttributeValue, NodeType } from '../types';
 
-import type Token from 'markdown-it/lib/token';
+/**
+ * A markdown-it-style token. Producers set only what they have — a text token
+ * from `parseTags` has no `nesting`, for one — so every field but `type` is
+ * optional, exactly as `handleToken` has always treated them.
+ */
+export type ObjectToken = { type: string; [field: string]: any };
 
 const mappings: Record<string, string> = {
   ordered_list: 'list',
@@ -40,7 +51,7 @@ function annotate(node: Node, attributes: AttributeValue[]) {
   }
 }
 
-function handleAttrs(token: Token, type: string) {
+function handleAttrs(token: ObjectToken, type: string) {
   switch (type) {
     case 'heading':
       return { level: Number(token.tag.replace('h', '')) };
@@ -111,7 +122,7 @@ function handleAttrs(token: Token, type: string) {
 }
 
 export function handleToken(
-  token: Token,
+  token: ObjectToken,
   nodes: Node[],
   file?: string,
   handleSlots?: boolean,
@@ -258,33 +269,4 @@ export function handleToken(
   }
 
   nodes.pop();
-}
-
-export default function parser(tokens: Token[], args?: string | ParserArgs) {
-  const doc = new Node('document');
-  const nodes = [doc];
-
-  if (typeof args === 'string') args = { file: args };
-
-  for (const token of tokens)
-    handleToken(
-      token,
-      nodes,
-      args?.file,
-      args?.slots,
-      args?.location,
-      args?.compact
-    );
-
-  if (nodes.length > 1)
-    for (const node of nodes.slice(1))
-      node.addError({
-        id: 'missing-closing',
-        level: 'critical',
-        message: `Node '${node.tag || node.type}' is missing closing`,
-      });
-
-  for (const transform of transforms) transform(doc, args);
-
-  return doc;
 }

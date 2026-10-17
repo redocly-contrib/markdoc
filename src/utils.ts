@@ -2,7 +2,7 @@ import { parse, SyntaxError } from './grammar/tag';
 import Variable from './ast/variable';
 import Function from './ast/function';
 
-import type Token from 'markdown-it/lib/token';
+import type { ObjectToken } from './fastparse/objects';
 
 enum STATES {
   normal,
@@ -102,7 +102,7 @@ function parseTag(content: string, line: number, contentStart: number) {
   }
 }
 
-export function parseTags(content: string, firstLine = 0): Token[] {
+export function parseTags(content: string, firstLine = 0): ObjectToken[] {
   // No tag anywhere: the loop below would produce exactly this one token.
   if (content.indexOf(OPEN) === -1)
     return [

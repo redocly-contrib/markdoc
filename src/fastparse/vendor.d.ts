@@ -10,7 +10,7 @@ declare module 'uc.micro/categories/P/regex' {
   export default regex;
 }
 
-declare module 'punycode' {
+declare module 'punycode/punycode.js' {
   const punycode: {
     toASCII(input: string): string;
     toUnicode(input: string): string;

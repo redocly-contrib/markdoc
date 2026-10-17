@@ -8,7 +8,8 @@
  */
 import entities from 'entities/lib/maps/entities.json';
 import mdurl from 'mdurl';
-import punycode from 'punycode';
+// The npm package, not Node's deprecated built-in module of the same name.
+import punycode from 'punycode/punycode.js';
 import UNICODE_PUNCT_RE from 'uc.micro/categories/P/regex';
 
 export { entities };

@@ -6,10 +6,12 @@
 //            object inside a bigger JSON document, then transform + render
 //
 // Three setups:
-//   0.6.4     the published baseline
-//   drop-in   this branch, same calls as 0.6.4 (byte-identical output)
-//   fast      this branch with the opt-in APIs: prepareConfig (once, with
-//             cloneAst: false), Ast.pack for storage, Ast.unpack to load
+//   0.6.4       the published baseline, as the portal calls it today
+//               (Tokenizer + parse(tokens), validate, compact, fromJSON, ...)
+//   same steps  this branch, the same steps: parse(source, options),
+//               validate, compact + JSON, fromJSON, transform
+//   fast        this branch with the opt-in APIs: prepareConfig (once, with
+//               cloneAst: false), Ast.pack for storage, Ast.unpack to load
 //
 //   NODE_ENV=production node --expose-gc bench/e2e.mjs [rounds]
 import { spawnSync } from 'node:child_process';
@@ -27,16 +29,26 @@ function scenarios(M, corpusName) {
   const sources = spec.sources(corpus);
   const config = buildConfig(M, corpus.pages);
   const components = buildComponents(config);
-  const tk = spec.tokenizer(M);
   const parseArgs = spec.parseArgs;
+  const tk =
+    typeof M.Tokenizer === 'function'
+      ? new M.Tokenizer(spec.config)
+      : undefined;
   const fast = !!M.Ast.pack;
-  const prepared = fast ? M.prepareConfig(config, { cloneAst: false }) : undefined;
+  const prepared = fast
+    ? M.prepareConfig(config, { cloneAst: false })
+    : undefined;
 
-  const parse = (s) => M.parse(tk.tokenize(s), parseArgs);
+  // 0.6.4 parses markdown-it tokens; this branch parses source directly.
+  const parse = tk
+    ? (s) => M.parse(tk.tokenize(s), parseArgs)
+    : (s) => M.parse(s, { ...parseArgs, ...spec.config });
   const asts = sources.map(parse);
   const json = asts.map((a) => JSON.stringify(M.compact(a)));
   const objects = json.map((j) => JSON.parse(j));
-  const packedText = fast ? asts.map((a) => JSON.stringify(M.Ast.pack(a, { compact: true }))) : [];
+  const packedText = fast
+    ? asts.map((a) => JSON.stringify(M.Ast.pack(a, { compact: true })))
+    : [];
   const packedObjects = packedText.map((t) => JSON.parse(t));
   const vars = () => ({ name: 'x' });
 
@@ -50,17 +62,26 @@ function scenarios(M, corpusName) {
     },
     'runtime html': () => {
       for (const j of json)
-        M.renderers.html(M.transform(M.Ast.fromJSON(j), { ...config, variables: vars() }));
+        M.renderers.html(
+          M.transform(M.Ast.fromJSON(j), { ...config, variables: vars() })
+        );
     },
     'runtime react': () => {
       for (const j of json)
-        M.renderers.react(M.transform(M.Ast.fromJSON(j), { ...config, variables: vars() }), React, { components });
+        M.renderers.react(
+          M.transform(M.Ast.fromJSON(j), { ...config, variables: vars() }),
+          React,
+          { components }
+        );
     },
     'embedded react': () => {
       // What api-docs does today: re-stringify the object to revive it.
       for (const o of objects)
         M.renderers.react(
-          M.transform(M.Ast.fromJSON(JSON.stringify(o)), { ...config, variables: vars() }),
+          M.transform(M.Ast.fromJSON(JSON.stringify(o)), {
+            ...config,
+            variables: vars(),
+          }),
           React,
           { components }
         );
@@ -70,22 +91,38 @@ function scenarios(M, corpusName) {
     Object.assign(out, {
       'build (fast)': () => {
         for (const s of sources) {
-          const ast = M.parse(s, { ...parseArgs, tokenizer: spec.config });
+          const ast = parse(s);
           M.validate(ast, { ...prepared, variables: {} });
           JSON.stringify(M.Ast.pack(ast, { compact: true }));
         }
       },
       'runtime html (fast)': () => {
         for (const t of packedText)
-          M.renderers.html(M.transform(M.Ast.unpack(JSON.parse(t)), { ...prepared, variables: vars() }));
+          M.renderers.html(
+            M.transform(M.Ast.unpack(JSON.parse(t)), {
+              ...prepared,
+              variables: vars(),
+            })
+          );
       },
       'runtime react (fast)': () => {
         for (const t of packedText)
-          M.renderers.react(M.transform(M.Ast.unpack(JSON.parse(t)), { ...prepared, variables: vars() }), React, { components });
+          M.renderers.react(
+            M.transform(M.Ast.unpack(JSON.parse(t)), {
+              ...prepared,
+              variables: vars(),
+            }),
+            React,
+            { components }
+          );
       },
       'embedded react (fast)': () => {
         for (const o of packedObjects)
-          M.renderers.react(M.transform(M.Ast.unpack(o), { ...prepared, variables: vars() }), React, { components });
+          M.renderers.react(
+            M.transform(M.Ast.unpack(o), { ...prepared, variables: vars() }),
+            React,
+            { components }
+          );
       },
     });
   }
@@ -93,15 +130,27 @@ function scenarios(M, corpusName) {
     json: json.reduce((n, j) => n + j.length, 0),
     packed: packedText.reduce((n, j) => n + j.length, 0),
   };
-  return { run: out, bytes, docs: sources.length, check: () => {
-    // fast must produce exactly what drop-in produces.
-    if (!fast) return;
-    for (let i = 0; i < json.length; i++) {
-      const a = M.renderers.html(M.transform(M.Ast.fromJSON(json[i]), { ...config, variables: vars() }));
-      const b = M.renderers.html(M.transform(M.Ast.unpack(JSON.parse(packedText[i])), { ...prepared, variables: vars() }));
-      if (a !== b) throw new Error(`fast path output differs on doc #${i}`);
-    }
-  } };
+  return {
+    run: out,
+    bytes,
+    docs: sources.length,
+    check: () => {
+      // fast must produce exactly what drop-in produces.
+      if (!fast) return;
+      for (let i = 0; i < json.length; i++) {
+        const a = M.renderers.html(
+          M.transform(M.Ast.fromJSON(json[i]), { ...config, variables: vars() })
+        );
+        const b = M.renderers.html(
+          M.transform(M.Ast.unpack(JSON.parse(packedText[i])), {
+            ...prepared,
+            variables: vars(),
+          })
+        );
+        if (a !== b) throw new Error(`fast path output differs on doc #${i}`);
+      }
+    },
+  };
 }
 
 const [, , mode, which, corpusName] = process.argv;
@@ -109,40 +158,79 @@ if (mode === 'worker') {
   const s = scenarios(loadMarkdoc(which), corpusName);
   s.check();
   const r = compare(s.run, { rounds: 5, warmup: 2 });
-  process.stdout.write(JSON.stringify({
-    docs: s.docs,
-    bytes: s.bytes,
-    ms: Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.cpu.median])),
-  }));
+  process.stdout.write(
+    JSON.stringify({
+      docs: s.docs,
+      bytes: s.bytes,
+      ms: Object.fromEntries(
+        Object.entries(r).map(([k, v]) => [k, v.cpu.median])
+      ),
+    })
+  );
 } else {
   const rounds = Number(mode || 3);
   const results = {};
   for (const corpus of ['pages', 'descriptions']) {
     const runs = { baseline: [], candidate: [] };
     for (let r = 0; r < rounds; r++)
-      for (const w of r % 2 ? ['candidate', 'baseline'] : ['baseline', 'candidate']) {
-        const p = spawnSync(process.execPath, ['--expose-gc', self, 'worker', w, corpus], {
-          encoding: 'utf8', maxBuffer: 1 << 26, env: { ...process.env, NODE_ENV: 'production' },
-        });
+      for (const w of r % 2
+        ? ['candidate', 'baseline']
+        : ['baseline', 'candidate']) {
+        const p = spawnSync(
+          process.execPath,
+          ['--expose-gc', self, 'worker', w, corpus],
+          {
+            encoding: 'utf8',
+            maxBuffer: 1 << 26,
+            env: { ...process.env, NODE_ENV: 'production' },
+          }
+        );
         if (p.status !== 0) throw new Error(p.stderr);
         runs[w].push(JSON.parse(p.stdout));
       }
     const med = (w, k) => summarize(runs[w].map((x) => x.ms[k])).median;
-    const rows = ['build', 'runtime html', 'runtime react', 'embedded react'].map((k) => ({
+    const rows = [
+      'build',
+      'runtime html',
+      'runtime react',
+      'embedded react',
+    ].map((k) => ({
       stage: k,
       baseline: med('baseline', k),
       dropIn: med('candidate', k),
       fast: med('candidate', `${k} (fast)`),
     }));
-    results[corpus] = { docs: runs.baseline[0].docs, bytes: runs.candidate[0].bytes, rows };
-    console.log(`\n${corpus.toUpperCase()} (${runs.baseline[0].docs} docs; stored ${fmtBytes(runs.candidate[0].bytes.json)} JSON, ${fmtBytes(runs.candidate[0].bytes.packed)} packed)`);
-    console.log('  path'.padEnd(20) + '0.6.4'.padStart(10) + 'drop-in'.padStart(16) + 'fast'.padStart(16));
+    results[corpus] = {
+      docs: runs.baseline[0].docs,
+      bytes: runs.candidate[0].bytes,
+      rows,
+    };
+    console.log(
+      `\n${corpus.toUpperCase()} (${
+        runs.baseline[0].docs
+      } docs; stored ${fmtBytes(runs.candidate[0].bytes.json)} JSON, ${fmtBytes(
+        runs.candidate[0].bytes.packed
+      )} packed)`
+    );
+    console.log(
+      '  path'.padEnd(20) +
+        '0.6.4'.padStart(10) +
+        'same steps'.padStart(16) +
+        'fast'.padStart(16)
+    );
     for (const r of rows)
       console.log(
-        `  ${r.stage}`.padEnd(20) + fmtMs(r.baseline).padStart(10) +
-          `${fmtMs(r.dropIn)} ${(r.baseline / r.dropIn).toFixed(2)}x`.padStart(16) +
+        `  ${r.stage}`.padEnd(20) +
+          fmtMs(r.baseline).padStart(10) +
+          `${fmtMs(r.dropIn)} ${(r.baseline / r.dropIn).toFixed(2)}x`.padStart(
+            16
+          ) +
           `${fmtMs(r.fast)} ${(r.baseline / r.fast).toFixed(2)}x`.padStart(16)
       );
   }
-  if (process.env.EXP_JSON) (await import('node:fs')).writeFileSync(process.env.EXP_JSON, JSON.stringify(results, null, 2));
+  if (process.env.EXP_JSON)
+    (await import('node:fs')).writeFileSync(
+      process.env.EXP_JSON,
+      JSON.stringify(results, null, 2)
+    );
 }

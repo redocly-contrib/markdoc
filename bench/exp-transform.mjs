@@ -35,7 +35,8 @@ function resolveShared(value, config) {
     }
     return out ?? value;
   }
-  if (M.Ast.isAst(value) && value.resolve instanceof Function) return value.resolve(config);
+  if (M.Ast.isAst(value) && value.resolve instanceof Function)
+    return value.resolve(config);
   if (Object.getPrototypeOf(value) !== Object.prototype) return value;
   let out;
   for (const k of Object.keys(value)) {
@@ -51,9 +52,14 @@ function resolveNodeShared(node, config) {
   let slots = node.slots;
   for (const name of Object.keys(node.slots ?? {})) {
     const r = resolveNodeShared(node.slots[name], config);
-    if (r !== node.slots[name]) (slots === node.slots ? (slots = { ...slots }) : slots)[name] = r;
+    if (r !== node.slots[name])
+      (slots === node.slots ? (slots = { ...slots }) : slots)[name] = r;
   }
-  if (children === node.children && attributes === node.attributes && slots === node.slots)
+  if (
+    children === node.children &&
+    attributes === node.attributes &&
+    slots === node.slots
+  )
     return node;
   return Object.assign(new Node(), node, { children, attributes, slots });
 }
@@ -68,22 +74,37 @@ for (const corpusName of ['pages', 'descriptions']) {
   const s = prepare(M, corpusName);
   const merged = mergeConfig(s.config);
   const withAst = s.revived.filter(hasAstValues).length;
-  console.log(`\n${corpusName}: ${withAst} of ${s.revived.length} docs contain variables/functions`);
+  console.log(
+    `\n${corpusName}: ${withAst} of ${s.revived.length} docs contain variables/functions`
+  );
 
   // Same output for every variant.
   for (const a of s.revived) {
     const ref = JSON.stringify(M.transform(a, s.config));
-    if (JSON.stringify(a.resolve(merged).transform(merged)) !== ref) throw new Error('premerged');
-    if (JSON.stringify(resolveNodeShared(a, merged).transform(merged)) !== ref) throw new Error('share');
+    if (JSON.stringify(a.resolve(merged).transform(merged)) !== ref)
+      throw new Error('premerged');
+    if (JSON.stringify(resolveNodeShared(a, merged).transform(merged)) !== ref)
+      throw new Error('share');
   }
 
   const r = compare(
     {
-      full: () => { for (const a of s.revived) M.transform(a, s.config); },
-      'mergeConfig only': () => { for (let i = 0; i < s.revived.length; i++) mergeConfig(s.config); },
-      premerged: () => { for (const a of s.revived) a.resolve(merged).transform(merged); },
-      'premerged+share': () => { for (const a of s.revived) resolveNodeShared(a, merged).transform(merged); },
-      'premerged+noclone': () => { for (const a of s.revived) a.transform(merged); },
+      full: () => {
+        for (const a of s.revived) M.transform(a, s.config);
+      },
+      'mergeConfig only': () => {
+        for (let i = 0; i < s.revived.length; i++) mergeConfig(s.config);
+      },
+      premerged: () => {
+        for (const a of s.revived) a.resolve(merged).transform(merged);
+      },
+      'premerged+share': () => {
+        for (const a of s.revived)
+          resolveNodeShared(a, merged).transform(merged);
+      },
+      'premerged+noclone': () => {
+        for (const a of s.revived) a.transform(merged);
+      },
     },
     { rounds: 11, warmup: 3 }
   );

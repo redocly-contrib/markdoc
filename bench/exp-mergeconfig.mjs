@@ -29,7 +29,11 @@ function countKeys(o) {
 }
 
 function makeCache(check) {
-  const caches = { tags: new WeakMap(), nodes: new WeakMap(), functions: new WeakMap() };
+  const caches = {
+    tags: new WeakMap(),
+    nodes: new WeakMap(),
+    functions: new WeakMap(),
+  };
   const NONE = {};
   function merged(kind, builtins, custom = NONE) {
     const cache = caches[kind];
@@ -41,7 +45,11 @@ function makeCache(check) {
   }
   function fresh({ merged, count }, builtins, custom) {
     for (const k in custom)
-      if (Object.prototype.hasOwnProperty.call(custom, k) && merged[k] !== custom[k]) return false;
+      if (
+        Object.prototype.hasOwnProperty.call(custom, k) &&
+        merged[k] !== custom[k]
+      )
+        return false;
     for (const k in builtins)
       if (
         Object.prototype.hasOwnProperty.call(builtins, k) &&
@@ -49,7 +57,10 @@ function makeCache(check) {
         merged[k] !== builtins[k]
       )
         return false;
-    return countKeys(merged) === count && countKeys({ ...builtins, ...custom }) === count;
+    return (
+      countKeys(merged) === count &&
+      countKeys({ ...builtins, ...custom }) === count
+    );
   }
   return (config) => ({
     ...config,
@@ -70,12 +81,31 @@ function makeCheapCheck() {
     if (hit && hit.builtins === builtins) {
       let ok = true;
       let n = 0;
-      for (const k in custom) if (own(custom, k)) { n++; if (hit.merged[k] !== custom[k]) { ok = false; break; } }
-      if (ok) for (const k in builtins) if (own(builtins, k) && !own(custom, k)) { n++; if (hit.merged[k] !== builtins[k]) { ok = false; break; } }
-      if (ok && n === hit.count && countKeys(hit.merged) === n) return hit.merged;
+      for (const k in custom)
+        if (own(custom, k)) {
+          n++;
+          if (hit.merged[k] !== custom[k]) {
+            ok = false;
+            break;
+          }
+        }
+      if (ok)
+        for (const k in builtins)
+          if (own(builtins, k) && !own(custom, k)) {
+            n++;
+            if (hit.merged[k] !== builtins[k]) {
+              ok = false;
+              break;
+            }
+          }
+      if (ok && n === hit.count && countKeys(hit.merged) === n)
+        return hit.merged;
     }
     const value = { ...builtins, ...custom };
-    cache.set(custom, (hit = { builtins, merged: value, count: countKeys(value) }));
+    cache.set(
+      custom,
+      (hit = { builtins, merged: value, count: countKeys(value) })
+    );
     return value;
   }
   return (config) => ({
@@ -95,10 +125,17 @@ const variants = {
 // Per call, as the portal calls it: a fresh options object around shared schemas.
 const calls = s.revived.map(() => ({ ...s.config, variables: {} }));
 report(
-  `mergeConfig, ${calls.length} calls with ${Object.keys(s.config.tags).length} custom tags`,
+  `mergeConfig, ${calls.length} calls with ${
+    Object.keys(s.config.tags).length
+  } custom tags`,
   compare(
     Object.fromEntries(
-      Object.entries(variants).map(([n, f]) => [n, () => { for (const c of calls) f(c); }])
+      Object.entries(variants).map(([n, f]) => [
+        n,
+        () => {
+          for (const c of calls) f(c);
+        },
+      ])
     ),
     { rounds: 11, warmup: 3 }
   )
@@ -112,7 +149,12 @@ report(
     Object.fromEntries(
       Object.entries(variants).map(([n, f]) => [
         n,
-        () => { for (let i = 0; i < calls.length; i++) { const c = f(calls[i]); s.revived[i].resolve(c).transform(c); } },
+        () => {
+          for (let i = 0; i < calls.length; i++) {
+            const c = f(calls[i]);
+            s.revived[i].resolve(c).transform(c);
+          }
+        },
       ])
     ),
     { rounds: 11, warmup: 3 }

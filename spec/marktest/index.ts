@@ -18,14 +18,13 @@ class Loader extends yaml.loader.Loader {
   }
 }
 
-const tokenizer = new markdoc.Tokenizer({
-  allowIndentation: true,
-  allowComments: true,
-});
-
 function parse(content: string, slots?: boolean, file?: string) {
-  const tokens = tokenizer.tokenize(content);
-  return markdoc.parse(tokens, { file, slots });
+  return markdoc.parse(content, {
+    file,
+    slots,
+    allowIndentation: true,
+    allowComments: true,
+  });
 }
 
 function stripLines(object) {

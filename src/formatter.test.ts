@@ -79,11 +79,9 @@ break
 Markdoc uses…
 `;
 
-const tokenizer = new Markdoc.Tokenizer({ allowComments: true });
-
 function check(source, expected, options = {}) {
   const a = expected?.trimStart();
-  const b = format(Markdoc.parse(tokenizer.tokenize(source)), options);
+  const b = format(Markdoc.parse(source, { allowComments: true }), options);
   // console.log(a, b);
   const d = diff(a, b);
   if (d && d.includes('Compared values have no visual difference.')) return;
@@ -938,9 +936,7 @@ ${'`'.repeat(4)}
         { href: '/x', title: 'He said "hi" \\ bye' },
         [new Markdoc.Ast.Node('text', { content: 'a' })]
       );
-      expect(format(node)).toEqual(
-        '[a](/x "He said \\"hi\\" \\\\ bye")'
-      );
+      expect(format(node)).toEqual('[a](/x "He said \\"hi\\" \\\\ bye")');
     });
 
     it('round-trips parens and quotes', () => {
@@ -987,9 +983,7 @@ ${'`'.repeat(4)}
 
   describe('GFM tables', () => {
     it('preserves column alignment markers', () => {
-      stable(
-        '| a   | b   | c   |\n| :-- | :-: | --: |\n| 1   | 2   | 3   |\n'
-      );
+      stable('| a   | b   | c   |\n| :-- | :-: | --: |\n| 1   | 2   | 3   |\n');
     });
 
     it('escapes a pipe inside a cell', () => {

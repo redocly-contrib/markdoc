@@ -1,13 +1,9 @@
-import Tokenizer from '../index';
-import parser from '../../parser';
-import Markdoc from '../../../index';
-import { ADMONITION_KINDS } from './githubAdmonitions';
+import Markdoc from '../index';
+import { parseDocument } from './fastparse';
+import { ADMONITION_KINDS } from './admonitions';
 
 function parse(src: string, opts: any = {}) {
-  // Default Tokenizer now has githubAdmonitions enabled; tests can drop
-  // the explicit flag.
-  const tokenizer = new Tokenizer(opts);
-  return parser(tokenizer.tokenize(src));
+  return parseDocument(src, opts);
 }
 
 function collectText(node: any): string {
@@ -18,7 +14,16 @@ function collectText(node: any): string {
 }
 
 describe('github admonitions plugin', function () {
-  const kinds = ['note', 'tip', 'important', 'warning', 'caution', 'info', 'success', 'danger'];
+  const kinds = [
+    'note',
+    'tip',
+    'important',
+    'warning',
+    'caution',
+    'info',
+    'success',
+    'danger',
+  ];
 
   for (const kind of kinds) {
     it(`recognizes [!${kind.toUpperCase()}]`, function () {
@@ -58,8 +63,9 @@ describe('github admonitions plugin', function () {
   });
 
   it('does nothing when explicitly disabled via githubAdmonitions: false', function () {
-    const tokenizer = new Tokenizer({ githubAdmonitions: false });
-    const doc = parser(tokenizer.tokenize(`> [!NOTE]\n> body`));
+    const doc = parseDocument(`> [!NOTE]\n> body`, {
+      githubAdmonitions: false,
+    });
     const bq = doc.children[0];
     expect(bq.attributes.kind).toBeUndefined();
   });
@@ -117,10 +123,7 @@ describe('github admonitions plugin', function () {
 
   describe('validation', function () {
     it('accepts the kind attribute on blockquote', function () {
-      const errors = Markdoc.validate(
-        Markdoc.parse('> [!NOTE]\n> body\n'),
-        {}
-      );
+      const errors = Markdoc.validate(Markdoc.parse('> [!NOTE]\n> body\n'), {});
       expect(errors).toEqual([]);
     });
 

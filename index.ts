@@ -3,22 +3,18 @@ import Node, { resolveNodeShared } from './src/ast/node';
 import compact from './src/ast/compact';
 import format from './src/formatter';
 import functions from './src/functions';
-import parser from './src/parser';
-import { fastParse, parseDocument } from './src/fastparse';
+import { parse as parseSource } from './src/fastparse';
 import * as nodes from './src/schema';
 import renderers from './src/renderers';
 import Tag from './src/tag';
 import tags from './src/tags';
 import { truthy } from './src/tags/conditional';
-import Tokenizer from './src/tokenizer';
-import type { TokenizerConfig } from './src/tokenizer';
 import transformer, { globalAttributes } from './src/transformer';
 import transforms from './src/transforms';
 import { parseTags } from './src/utils';
 import validator, { validateTree } from './src/validator';
 
 import type { ParserArgs } from './src/types';
-import type Token from 'markdown-it/lib/token';
 import type {
   Config,
   RenderableTreeNode,
@@ -28,19 +24,6 @@ import type {
 
 export * from './src/types';
 export type { Packed, PackedNode } from './src/ast/pack';
-
-/**
- * The fast parser implements markdown-it's grammar with its default rule set.
- * Options that add markdown-it rules or change its limits take the token path.
- */
-function supportsFastParse(config: TokenizerConfig): boolean {
-  const { maxNesting } = config as { maxNesting?: number };
-  return (
-    !config.linkify &&
-    !config.typographer &&
-    (maxNesting === undefined || maxNesting === 100)
-  );
-}
 
 // Brands a config returned by `prepareConfig`. A symbol key so it never shows
 // up in `Object.keys` or JSON, and enumerable so it survives the
@@ -118,42 +101,8 @@ export function prepareConfig<C extends Config = Config>(
   return merged;
 }
 
-export function parse(
-  content: string | Token[],
-  args?: string | ParserArgs
-): Node {
-  const opts = typeof args === 'object' ? args : undefined;
-  let doc: Node;
-
-  if (typeof content === 'string') {
-    const config = opts?.tokenizer ?? {};
-    const githubAdmonitions =
-      opts?.githubAdmonitions === false ? false : config.githubAdmonitions;
-
-    if (supportsFastParse(config)) {
-      // Same AST as tokenizing with markdown-it and parsing the tokens.
-      doc = parseDocument(content, { ...config, githubAdmonitions }, args);
-    } else {
-      const custom = new Tokenizer({ ...config, githubAdmonitions });
-      doc = parser(custom.tokenize(content), args);
-    }
-  } else {
-    doc = parser(content, args);
-  }
-
-  if (
-    opts?.compact &&
-    doc.type === 'document' &&
-    doc.children.length === 1 &&
-    !Object.keys(doc.slots ?? {}).length &&
-    !doc.errors?.length &&
-    !doc.children[0].errors?.length &&
-    !doc.attributes.frontmatter
-  ) {
-    return doc.children[0];
-  }
-
-  return doc;
+export function parse(content: string, args?: string | ParserArgs): Node {
+  return parseSource(content, args);
 }
 
 export function resolve<C extends Config = Config>(
@@ -232,14 +181,12 @@ export {
   Ast,
   Node,
   Tag,
-  Tokenizer,
   parseTags,
   transformer,
   validator,
   truthy,
   format,
   compact,
-  fastParse,
 };
 
 export default class Markdoc {
@@ -251,7 +198,6 @@ export default class Markdoc {
   static transforms = transforms;
   static Ast = Ast;
   static Tag = Tag;
-  static Tokenizer = Tokenizer;
   static parseTags = parseTags;
   static transformer = transformer;
   static validator = validator;
@@ -263,7 +209,6 @@ export default class Markdoc {
   static truthy = truthy;
   static format = format;
   static compact = compact;
-  static fastParse = fastParse;
 
   config;
   constructor(config: Config) {

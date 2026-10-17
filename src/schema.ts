@@ -1,6 +1,6 @@
 import type { Schema } from './types';
 import Tag from './tag';
-import { ADMONITION_KINDS } from './tokenizer/plugins/githubAdmonitions';
+import { ADMONITION_KINDS } from './admonitions';
 
 export const document: Schema = {
   render: 'article',

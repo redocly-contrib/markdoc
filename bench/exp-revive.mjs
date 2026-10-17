@@ -34,10 +34,14 @@ function makeReviver(toNode) {
       if (v !== null && typeof v === 'object') value[key] = revive(v);
     }
     switch (value.$$mdtype) {
-      case 'Node': return toNode(value);
-      case 'Variable': return Object.assign(new Variable(), value);
-      case 'Function': return Object.assign(new Fn(), value);
-      default: return value;
+      case 'Node':
+        return toNode(value);
+      case 'Variable':
+        return Object.assign(new Variable(), value);
+      case 'Function':
+        return Object.assign(new Fn(), value);
+      default:
+        return value;
     }
   };
 }
@@ -69,7 +73,9 @@ for (const [label, sources, args] of [
   ['PAGES', pages.map((p) => p.source), undefined],
   ['DESCRIPTIONS', descriptions, { compact: true }],
 ]) {
-  const json = sources.map((s) => JSON.stringify(Markdoc.compact(Markdoc.parse(s, args))));
+  const json = sources.map((s) =>
+    JSON.stringify(Markdoc.compact(Markdoc.parse(s, args)))
+  );
 
   // Correctness: every variant must serialize back to the same JSON as
   // the baseline revival, and produce the same transform output.
@@ -91,7 +97,12 @@ for (const [label, sources, args] of [
     `${label} — revive only`,
     compare(
       Object.fromEntries(
-        Object.entries(variants).map(([n, fn]) => [n, () => { for (const j of json) fn(j); }])
+        Object.entries(variants).map(([n, fn]) => [
+          n,
+          () => {
+            for (const j of json) fn(j);
+          },
+        ])
       )
     )
   );
@@ -106,7 +117,9 @@ for (const [label, sources, args] of [
       Object.fromEntries(
         Object.entries(revivedBy).map(([n, trees]) => [
           n,
-          () => { for (const t of trees) Markdoc.transform(t, config); },
+          () => {
+            for (const t of trees) Markdoc.transform(t, config);
+          },
         ])
       )
     )

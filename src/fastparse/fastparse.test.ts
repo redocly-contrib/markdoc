@@ -1,53 +1,72 @@
+import { createRequire } from 'module';
 import Markdoc from '../../index';
+import fixtures from './fixtures/test-inputs.json';
 
-const sources = [
-  '# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u "t") ![i](/i.png)\n',
-  '- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n',
-  '{% callout type="note" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n',
-  '| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n',
-  '---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n',
-  '<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n',
-];
+// Published @redocly/markdoc 0.6.4: markdown-it plus Markdoc's tokenizer
+// plugins. The parser is checked against it as the reference.
+const reference = createRequire(__filename)('markdoc-baseline');
 
-const configs = [
+type Options = Record<string, any>;
+
+function viaReference(source: string, options: Options, args?: Options) {
+  const tokenizer = new reference.Tokenizer(options);
+  return reference.parse(tokenizer.tokenize(source), args);
+}
+
+function outcome(fn: () => unknown) {
+  try {
+    return JSON.stringify(fn());
+  } catch (error) {
+    return `threw ${(error as Error)?.constructor?.name}`;
+  }
+}
+
+const SETTINGS: Options[] = [
   {},
   { html: true, allowIndentation: true, allowComments: true },
   { allowLinkValidation: true, githubAdmonitions: false },
 ];
 
-describe('parse(string) fast path', function () {
-  it('gives the same AST as parsing markdown-it tokens', function () {
-    for (const tokenizer of configs)
+describe('parser, against the markdown-it reference', function () {
+  it('parses every test input like the reference', function () {
+    let compared = 0;
+    for (const { source, options, args } of fixtures as {
+      source: string;
+      options: Options;
+      args?: Options;
+    }[]) {
+      for (const extra of [undefined, { compact: true }, { slots: true }]) {
+        const parseArgs = args || extra ? { ...args, ...extra } : undefined;
+        const expected = outcome(() =>
+          viaReference(source, options, parseArgs)
+        );
+        const actual = outcome(() =>
+          Markdoc.parse(source, { ...parseArgs, ...options })
+        );
+        if (actual !== expected)
+          fail(`differs for ${JSON.stringify({ source, options, parseArgs })}`);
+        compared++;
+      }
+    }
+    expect(compared).toBeGreaterThan(1000);
+  });
+
+  it('parses edge cases under each setting like the reference', function () {
+    const sources = [
+      '# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u "t") ![i](/i.png)\n',
+      '- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n',
+      '{% callout type="note" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n',
+      '| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n',
+      '---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n',
+      '<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n',
+      '[a]: /u\n"title on the next line"\n\n[b\nc]: /x\n\n[d]: /u "unclosed\n\nSee [a], [b c], [d].\n',
+    ];
+    for (const options of SETTINGS)
       for (const source of sources)
-        for (const args of [
-          {},
-          { compact: true },
-          { slots: true, file: 'f' },
-        ]) {
-          const viaTokens = Markdoc.parse(
-            new Markdoc.Tokenizer(tokenizer).tokenize(source),
-            args
-          );
-          const direct = Markdoc.parse(source, { ...args, tokenizer });
-          expect(JSON.stringify(direct)).toEqual(JSON.stringify(viaTokens));
-        }
-  });
-
-  it('honors githubAdmonitions: false in parser args', function () {
-    const source = '> [!NOTE]\n> body';
-    const plain = Markdoc.parse(source, { githubAdmonitions: false });
-    expect(plain.children[0].attributes.kind).toBeUndefined();
-    expect(Markdoc.parse(source).children[0].attributes.kind).toEqual('note');
-  });
-
-  it('falls back to markdown-it for options the fast parser lacks', function () {
-    const source = 'Visit https://example.com today';
-    const ast = Markdoc.parse(source, { tokenizer: { linkify: true } });
-    const viaTokens = Markdoc.parse(
-      new Markdoc.Tokenizer({ linkify: true }).tokenize(source)
-    );
-    expect(JSON.stringify(ast)).toEqual(JSON.stringify(viaTokens));
-    expect(JSON.stringify(ast)).toContain('"href":"https://example.com"');
+        for (const args of [undefined, { compact: true }, { file: 'f.md' }])
+          expect(outcome(() => Markdoc.parse(source, { ...args, ...options })))
+            .withContext(JSON.stringify({ source, options, args }))
+            .toEqual(outcome(() => viaReference(source, options, args)));
   });
 });
 

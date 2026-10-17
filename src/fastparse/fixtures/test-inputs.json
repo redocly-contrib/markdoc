@@ -1,0 +1,3093 @@
+[
+ {
+  "source": "this is a test <!-- example comment --> foo",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "this is a test <!-- \nexample comment\n--> foo",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "this is a test\n<!--\nexample comment\n-->\nfoo",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "this is a test\n<!--\nexample comment -->\nfoo",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "foo <!-- example\n\n      comment --> bar",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "this is a test\n<!-- example comment -->\nfoo",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# heading\n\nbody",
+  "options": {}
+ },
+ {
+  "source": "# Only heading",
+  "options": {}
+ },
+ {
+  "source": "---\nfoo: bar\n---\n# heading",
+  "options": {}
+ },
+ {
+  "source": "{% box %}inside{% /box %}",
+  "options": {}
+ },
+ {
+  "source": "Text {% box %}inside{% /box %}",
+  "options": {}
+ },
+ {
+  "source": "# heading",
+  "options": {}
+ },
+ {
+  "source": "\n{% checkout %}\n  {% if true %}\n  Yes!\n  {% /if %}\n{% /checkout %}\n    ",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% checkout %}\n  {% if true %}\n    Yes!\n  {% /if %}\n{% /checkout %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% tab %}\n```json {% filename=\"package.json\" %}\n{\n  \"dependencies\": {\n    ...\n    {% highlight type=\"remove\" %}\n    \"beta\": \"1.2.3\",\n    {% /highlight %}\n    {% highlight type=\"add\" %}\n    \"main\": \"1.2.4\",\n    {% /highlight %}\n    ...\n  }\n}\n```\n{% /tab %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```js\n```\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n| Syntax      | Description |\n| ------ | ---- |\n| Header      | Title  |\n| Paragraph        | Text        |\n\n{% table %}\n\n- One {% align=\"middle\" %}\n- Two\n\n\n---\n- Three\n- Four {% align=\"end\" %}\n\n---\n\n* **Five**\n*\n  A bunch of words\n  \n  And more words\n\n{% /table %}\n\n{% table %}\n---\n- H1\n- H2\n{% /table %}\n    ",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n| Syntax    | Description |\n| --------- | ----------- |\n| Header    | Title       |\n| Paragraph | Text        |\n\n{% table %}\n- One {% align=\"middle\" %}\n- Two\n---\n- Three\n- Four {% align=\"end\" %}\n---\n- **Five**\n- A bunch of words\n\n  And more words\n{% /table %}\n\n{% table %}\n---\n- H1\n- H2\n{% /table %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n* Create your CNAME record\n\n  1. Click **Add record**.\n\n     ```json\n     {\n       \"nested\": \"code block\"\n     }\n     ```\n  \n  1. Enter these values in the form that opens:\n\n      {% table %}\n      * Field\n      * Value to enter\n      * Description\n      ---\n      * Type\n      * Select `CNAME` from the dropdown\n      * What kind of DNS record this is.\n      ---\n      * Target\n      * If your custom subdomain is checkout.powdur.me, enter `checkout`\n      * For CNAME records, this field is the first part of your subdomain (the part leading up to the first period).\n      ---\n      * Value\n      * {% code %}hosted-checkout.stripecdn.com{% /code %}\n      * This is what the new subdomain record points to-in this case, Stripe Checkout.\n      ---\n      * TTL\n      * `5 min`\n      * An expiration of 5 minutes (300 seconds) is OK.\n      ---\n      * Proxy status\n      * `Off`\n      * Set the proxy status to `off` to avoid issues during setup.\n      {% /table %}\n    1. foo\\\n       baz\n    \n       Soft \n         break\n       Markdoc uses…",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n* Create your CNAME record\n\n  1. Click **Add record**.\n\n     ```json\n     {\n       \"nested\": \"code block\"\n     }\n     ```\n\n  1. Enter these values in the form that opens:\n\n     {% table %}\n     - Field\n     - Value to enter\n     - Description\n     ---\n     - Type\n     - Select `CNAME` from the dropdown\n     - What kind of DNS record this is.\n     ---\n     - Target\n     - If your custom subdomain is checkout.powdur.me, enter `checkout`\n     - For CNAME records, this field is the first part of your subdomain (the part leading up to the first period).\n     ---\n     - Value\n     - {% code %}hosted-checkout.stripecdn.com{% /code %}\n     - This is what the new subdomain record points to-in this case, Stripe Checkout.\n     ---\n     - TTL\n     - `5 min`\n     - An expiration of 5 minutes (300 seconds) is OK.\n     ---\n     - Proxy status\n     - `Off`\n     - Set the proxy status to `off` to avoid issues during setup.\n     {% /table %}\n\n  1. foo\\\n     baz\n\n     Soft\n     break\n     Markdoc uses…\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- attributes: An object literal with key-value pairs that describe the attributes accepted by the tag. {% #id %}\n    - localizable: A boolean value (or an array) indicating whether the attribute’s value is translatable. {% #localizable %}\n        - Defaults to `false`\n    - description: A documentation string that describes the purpose of the attribute {% align=\"center\" %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- attributes: An object literal with key-value pairs that describe the attributes accepted by the tag. {% #id %}\n  - localizable: A boolean value (or an array) indicating whether the attribute’s value is translatable. {% #localizable %}\n    - Defaults to `false`\n  - description: A documentation string that describes the purpose of the attribute {% align=\"center\" %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% button type=\"button\" href=\"https://example.com/a-very-long-inline-tag\" %}A very long inline tag{% /button %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "### {% image src=\"/src\" alt=\"A very long alt text to test if the tag wraps or not\" /%}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "a `` ` `` b\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "a ``` `` ``` b\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n````\n\n```\nFence within a fence\n```\n\n\n````\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if $gates[\"<string_key>\"].test[\"@var\"] id=\"id with space\" class=\"class with space\" /%}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- List\n  {% list %}\n  One\n  {% /list %}\n  Inline text:\n  {% list %}\n  Two\n  {% /list %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n* **One {% colspan=1 %}**\n* **Two {% colspan=2 %}**\n* **Three {% colspan=3 %}**\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n* **One**{% colspan=1 %}\n* **Two**{% colspan=2 %}\n* **Three**{% colspan=3 %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n> Blockquote {% .class %}\n>\n> with two paragraphs",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n> Blockquote {% .class %}\n>\n> with two paragraphs\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% tag a=true b=\"My very long text well over 80 characters in total\" c=123456789 d=false /%}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- a\n\n- b\n\n---\n\n- One\n\n  My first paragraph\n  Test\n\n  {% tag %} \n    Indented tag\n  {% /tag %} \n\n  ```\n  {% $code %}\n  ```\n- Two\n\n  My second paragraph\n  \n  ---\n  \n  ## Indented header\n\n  > Indented blockquote",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- a\n\n- b\n\n---\n\n- One\n\n  My first paragraph\n  Test\n\n  {% tag %}\n  Indented tag\n  {% /tag %}\n\n  ```\n  {% $code %}\n  ```\n\n- Two\n\n  My second paragraph\n\n  ---\n\n  ## Indented header\n\n  > Indented blockquote\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "[a](https://e.com?q=\\(\\))\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "[a](/x \"He said \\\"hi\\\"\")\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "<https://example.com>",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\\# not heading\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\\# not heading",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% tag \"complex primary\" /%}\n{% if $primary %}\nX\n{% /if %}\n{% $user.name %}\n{% key x=$user.name y=$flag z=$array[5] /%}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% tag \"complex primary\" /%}\n\n{% if $primary %}\nX\n{% /if %}\n\n{% $user.name %}\n\n{% key x=$user.name y=$flag z=$array[5] /%}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% key id=$user.name class=default($y, \"test\") %}Child{% /key %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% key id=$user.name class=default($y, \"test\") %}Child{% /key %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "| a   | b   | c   |\n| :-- | :-: | --: |\n| 1   | 2   | 3   |\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n- a | b\n{% /table %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "| a      |\n| ------ |\n| x \\| y |\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% markdoc(\"test\", 1) %}\n{% key x=default($x, 1) /%}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% markdoc(\"test\", 1) %}\n{% key x=default($x, 1) /%}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "---\ntitle: Title\nsubtitle: Subtitle\n---\n\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "<!--\n    comment -->\n\n<!-- comment\n   with more\n  than one\nline  -->\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n> - One\n>   - Nested\n> - Two\n>\n> > Inner\n> > quote\n>\n> ```js\n> code();\n> ```\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "*foo* bar baz",
+  "options": {}
+ },
+ {
+  "source": "**foo** bar baz",
+  "options": {}
+ },
+ {
+  "source": "_foo_ bar baz",
+  "options": {}
+ },
+ {
+  "source": "__foo__ bar baz",
+  "options": {}
+ },
+ {
+  "source": "foo*bar*baz",
+  "options": {}
+ },
+ {
+  "source": "foo_bar_baz",
+  "options": {}
+ },
+ {
+  "source": "\nregular_word_with_underscores\n\n\\* List item\n\n\\> Blockquote\n\nText > not a blockquote\n\n\\# Heading\n\n\\### Heading\n\n#Not a heading\n\n**/docs/\\***\n\n~~**a \\_sentence\\_ with \\_underscores**~~\n\n- Item with [brackets]\n\n-not a list item\n\n```\n\\*\\_[\\[]\n```\n\n{% table %}\n- [https://autolink.com](https://autolink.com)\n- **[Link](https://example.com?q=()**\n- **[Link](https://example.com?q=\\()**\n- **[Link](https://example.com?q=\\(\\))**\n- ![Image](https://example.com?q=()\n- ![Image](https://example.com?q=\\()\n- ![Image](https://example.com?q=\\(\\))\n{% /table %}\n\nparagraph 1\n\n&nbsp;\n\nparagraph 2\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- foo\n- bar\n* baz\n* qux\n\n\n7) foo\n1) bar\n1) baz\n3. foo\n1. bar\n1. baz\n1) foo\n4) bar\n9) baz\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- foo\n- bar\n\n* baz\n* qux\n\n7) foo\n1) bar\n1) baz\n\n3. foo\n1. bar\n1. baz\n\n1) foo\n1) bar\n1) baz\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- foo\n- bar\n\n* baz\n* qux\n\n7) foo\n8) bar\n9) baz\n\n3. foo\n4. bar\n5. baz\n\n1) foo\n2) bar\n3) baz\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n> Intro:\n>\n> - One\n> - Two\n>\n> 1. First\n> 2. Second\n>\n> After",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n> Intro:\n>\n> - One\n> - Two\n>\n> 1. First\n> 1. Second\n>\n> After\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n```{% filename=\"package.json\" %}\nPackage.json\n```\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n\n\t\n   \n  \n\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% table %}\n* H1\n* H2\n{% if $var %}\n---\n* H3\n* H4\n{% /if %}\n{% /table %}\n    ",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% table %}\n- H1\n- H2\n{% if $var %}\n---\n- H3\n- H4\n{% /if %}\n{% /table %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- Item\n\n  > Quote\n  >\n  > - One\n  > - Two\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "---\n\n\ntitle: What is Markdoc?\n\n---\n\n# {% $markdoc.frontmatter.title %} {% #overview %}\n\nMarkdoc is a **Markdown**-based `syntax` and _toolchain_ for creating ~~custom~~ documentation sites. Stripe created Markdoc to power [our public docs](http://stripe.com/docs).\n\n> Blockquote {% .special %}\n\n---\n\n[Link](/href   \"title\")\n    ![Alt](/image   \"title\")\n\n{% callout #id   .class  .class2   a=\"check\" b={\"e\":{\"with space\": 5}} c=8 d=[1,    \"2\",true,  null] %}\nMarkdoc is open-source—check out it's [source](http://github.com/markdoc/markdoc) to see how it works.\n{% /callout %}\n\n```js {% .class #id x=\"test\"   render=false %}\nCode!\n```\n\n## How is {% markdoc(\"test\", 1) %} different? {% .classname %}\n\nfoo\\\nbaz\n\nSoft \n break\nMarkdoc uses…\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "---\ntitle: What is Markdoc?\n---\n\n# {% $markdoc.frontmatter.title %} {% #overview %}\n\nMarkdoc is a **Markdown**-based `syntax` and _toolchain_ for creating ~~custom~~ documentation sites. Stripe created Markdoc to power [our public docs](http://stripe.com/docs).\n\n> Blockquote {% .special %}\n\n---\n\n[Link](/href \"title\")\n![Alt](/image \"title\")\n\n{% callout\n   #id\n   .class\n   .class2\n   a=\"check\"\n   b={e: {\"with space\": 5}}\n   c=8\n   d=[1, \"2\", true, null] %}\nMarkdoc is open-source—check out it's [source](http://github.com/markdoc/markdoc) to see how it works.\n{% /callout %}\n\n```js {% .class #id x=\"test\" render=false %}\nCode!\n```\n\n## How is {% markdoc(\"test\", 1) %} different? {% .classname %}\n\nfoo\\\nbaz\n\nSoft\nbreak\nMarkdoc uses…\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- [Install Markdoc](/docs/getting-started)\n- [Try it out online](/sandbox)\n\n3. One {% align=\"left\" %}\n4. Two\n5. Three\n\n- A\n- B\n  - B2\n- C",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n- [Install Markdoc](/docs/getting-started)\n- [Try it out online](/sandbox)\n\n3. One {% align=\"left\" %}\n1. Two\n1. Three\n\n- A\n- B\n  - B2\n- C\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% key /%}\n\n{% a %}{% /a %}\n\n{% a %}\n{% /a %}\n\n{% a %}\n\n{% /a %}\n  \n{% checkout %}\n  {% if true %}\n  Yes!\n  {% /if %}\n{% /checkout %}\n    ",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% key /%}\n\n{% a /%}\n\n{% a /%}\n\n{% a /%}\n\n{% checkout %}\n{% if true %}\nYes!\n{% /if %}\n{% /checkout %}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% tag a=true b=\"My very long text well over 80 characters in total\" c=123456789 d=false /%}\n    ",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "\n{% tag\n   a=true\n   b=\"My very long text well over 80 characters in total\"\n   c=123456789\n   d=false /%}\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "![img](/src)",
+  "options": {}
+ },
+ {
+  "source": "```js {% z=true .class y=2 x=\"1\" #id %} \nContent\n```",
+  "options": {}
+ },
+ {
+  "source": "# Title\n\n{% callout title=$name %}Body {% $name %}{% /callout %}\n\nPlain *text*.",
+  "options": {}
+ },
+ {
+  "source": "hello",
+  "options": {}
+ },
+ {
+  "source": "# h\n\nbody",
+  "options": {}
+ },
+ {
+  "source": "[Link](vscode://{% $variable.custom_value %})",
+  "options": {
+   "allowLinkValidation": true,
+   "linkValidationOptions": {
+    "validatedProtocols": [
+     "vscode"
+    ]
+   }
+  }
+ },
+ {
+  "source": "https://example.com/{% tag %}content{% /tag %})",
+  "options": {
+   "allowLinkValidation": true
+  }
+ },
+ {
+  "source": "https://en.wikipedia.org/wiki/Exam_(disambiguation){% tag /%}",
+  "options": {
+   "allowLinkValidation": true
+  }
+ },
+ {
+  "source": "[Link](https://{% $variable.custom_value %})",
+  "options": {
+   "allowLinkValidation": true
+  }
+ },
+ {
+  "source": "[Link](https://example.com/{% tag /%})",
+  "options": {
+   "allowLinkValidation": true
+  }
+ },
+ {
+  "source": "The link is https://example.com. {% tag /%})",
+  "options": {
+   "allowLinkValidation": true
+  }
+ },
+ {
+  "source": "[Link](https://example.com/{% tag %}content{% /tag %})",
+  "options": {
+   "allowLinkValidation": true
+  }
+ },
+ {
+  "source": "[Link]({% tag %})",
+  "options": {
+   "allowLinkValidation": true
+  }
+ },
+ {
+  "source": "{% callout type=\"warning\" #my-id .cls %}\nbody\n{% /callout %}\n\n```js {% title=\"example\" %}\ncode\n```\n",
+  "options": {}
+ },
+ {
+  "source": "{% mytag %}\nbody\n",
+  "options": {}
+ },
+ {
+  "source": "# H **b**\n\npara\n",
+  "options": {}
+ },
+ {
+  "source": "{% mytag %}\n{% slot \"footer\" %}\n# In slot **b**\n{% /slot %}\nbody\n{% /mytag %}\n",
+  "options": {},
+  "args": {
+   "slots": true
+  }
+ },
+ {
+  "source": "# Head {% #my-id .cls %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% c x=$foo.bar /%}\n",
+  "options": {}
+ },
+ {
+  "source": "{% c x=equals(1,2) /%}\n",
+  "options": {}
+ },
+ {
+  "source": "# H\n\npara **b**\n",
+  "options": {}
+ },
+ {
+  "source": "# Only\n",
+  "options": {}
+ },
+ {
+  "source": "para\n",
+  "options": {}
+ },
+ {
+  "source": "# Head {% #my-id .cls %}\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "{% table %}\n- H1\n- H2\n---\n- a\n- b\n{% /table %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% table %}\n- H1\n- H2\n---\n- a\n- b\n{% /table %}\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "| a | b |\n| - | - |\n| 1 | 2 |\n",
+  "options": {}
+ },
+ {
+  "source": "| a | b |\n| - | - |\n| 1 | 2 |\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "{% mytag a=1 b=[1,2] c={\"k\":\"v\"} /%}\n",
+  "options": {}
+ },
+ {
+  "source": "{% mytag a=1 b=[1,2] c={\"k\":\"v\"} /%}\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "---\ntitle: x\n---\n\n# H\n",
+  "options": {}
+ },
+ {
+  "source": "---\ntitle: x\n---\n\n# H\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "{% callout type=\"warning\" #id .cls %}\nbody **b**\n{% /callout %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% callout type=\"warning\" #id .cls %}\nbody **b**\n{% /callout %}\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "> # H\n>\n> - x\n",
+  "options": {}
+ },
+ {
+  "source": "> # H\n>\n> - x\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "{% callout x=$foo.bar %}\nb\n{% /callout %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% callout x=$foo.bar %}\nb\n{% /callout %}\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "- a\n  - b\n    - c\n",
+  "options": {}
+ },
+ {
+  "source": "- a\n  - b\n    - c\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "a\\\nb\nc\n",
+  "options": {}
+ },
+ {
+  "source": "a\\\nb\nc\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "{% callout x=equals(1,2) %}\nb\n{% /callout %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% callout x=equals(1,2) %}\nb\n{% /callout %}\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "> [!NOTE]\n> body\n",
+  "options": {}
+ },
+ {
+  "source": "> [!NOTE]\n> body\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "Para with [l](/x \"t\") and ![i](/y).\n",
+  "options": {}
+ },
+ {
+  "source": "Para with [l](/x \"t\") and ![i](/y).\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "# Head **bold** `code`\n",
+  "options": {}
+ },
+ {
+  "source": "# Head **bold** `code`\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "{% mytag %}\nbody\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "```js {% .cls %}\ncode()\n```\n",
+  "options": {}
+ },
+ {
+  "source": "```js {% .cls %}\ncode()\n```\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "",
+  "options": {}
+ },
+ {
+  "source": "",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "# H\n\npara\n\n- a\n- b\n\n> quote\n",
+  "options": {}
+ },
+ {
+  "source": "# H\n\npara\n\n- a\n- b\n\n> quote\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "# Head **bold**\n",
+  "options": {}
+ },
+ {
+  "source": "# H\n\n```js {% title=\"t\" %}\ncode\n```\n",
+  "options": {}
+ },
+ {
+  "source": "```js\n# not a heading\n# also not a heading\n```\n\n## Real Heading\n\nBody paragraph.\n\n## Second Heading\n\nMore body.",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Heading\n\nbody\n\n## Another\n\nmore\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```\n# fake\n```\n\n### Third Level\n\ntail paragraph\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "## Heading 2\n\nbody\n\n## later heading\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "Just a paragraph.\n\n- a list\n- of items\n\n> a quote\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "### Heading 3\n\nbody\n\n## later heading\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "#### Heading 4\n\nbody\n\n## later heading\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "##### Heading 5\n\nbody\n\n## later heading\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "###### Heading 6\n\nbody\n\n## later heading\n",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Title {% #t %}\n\nPara with *em* and {% $v %}.\n\n{% tag a=1 %}\nInner **b**\n{% /tag %}\n\n- [x] item",
+  "options": {},
+  "args": {
+   "slots": true
+  }
+ },
+ {
+  "source": "{% slotted %}\n{% slot \"s\" %}S *x*{% /slot %}\nbody\n{% /slotted %}",
+  "options": {},
+  "args": {
+   "slots": true
+  }
+ },
+ {
+  "source": "{% unclosed %}\n\ntext",
+  "options": {},
+  "args": {
+   "slots": true
+  }
+ },
+ {
+  "source": "* foo\n* bar",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "1. foo\n2. bar",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% callout .foo .bar %}\n### Heading\nThis is a paragraph\n{% /callout %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% callout %}\n{% callout %}\nThis is a test\n{% /callout %}\n{% /callout %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Sample Heading {% .foo-bar .test %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Sample Heading {% #asdf .foo-bar .test foo=\"bar\" %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Sample Heading {% #foo-bar %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% $bar.baz[1].test %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a test: {% $test %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% $test %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "~~~\ntest\n{% #foo %}\ntest\n~~~",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "this is a test\n<!-- foo -->",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# This is a test\n{% foo %}\nAnother {% bar %}test{% /bar %} test\n{% /foo %}\n* bar",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% tag1 %}\n{% tag2 %}\nContents\n{% /tag2 %}\n{% /tag1 %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "testing {% foo=1 foo=2 %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo #bar #baz #qux /%}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo bar=1 bar=2 bar=3 bar=4 /%}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo .bar .baz .qux /%}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "testing {% foo=1 %} another test {% foo=1 %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# This is a test",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% mytag %}\nContent\n{% /mytag %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "text {% #my-id %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "A **bold** word",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Just one heading",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "---\nfoo: bar\n---\n# heading",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "# heading\n\nparagraph",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "# Hello\nWorld",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% mytag %}\nhi\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "---\nfoo: bar\n---",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "---\nfoo: bar\ntest: true\n---\n# This is a test",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\nTest\n{% /bar %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\nTest",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This a test\n{% /foo %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n- column 1\n- column 2\n---\n{% if-pref conditions=[{platform: 'web'}] %}\n- cell 1\n- cell 2\n{% /if-pref %}\n{% if-pref conditions=[{platform: 'ios'}] %}\n- cell 1\n- cell 2\n{% /if-pref %}\n{% /table %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n- column 1\n- column 2\n---\n{% if-pref conditions=[{platform: 'web'}] %}\n- cell 1\n- cell 2\n{% /if-pref %}\n{% if-pref conditions=[{platform: 'ios'}] %}\n- cell 1\n- cell 2\n{% /if-pref %}\n{% if $fakeCondition.condition1 %}\n- cell 1\n- cell 2\n{% else /%}\n- cell 3\n- cell 4\n{% /if %}\n{% unregistered-if-tag $fakeCondition.condition2 %}\n- cell 1\n- cell 2\n{% /unregistered-if-tag %}\n{% /table %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n- column 1\n- column 2\n---\n{% if $fakeCondition.condition1 %}\n- cell 1\n- cell 2\n{% else /%}\n- cell 3\n- cell 4\n{% /if %}\n{% /table %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```ruby {% #foo .bar %}\ntest\n```",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```ruby\nputs \"foo\"\n```",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "a*b*c",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "a**b**c",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "_foo_ bar",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "__foo__ bar",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "foo *bar* baz",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "foo **bar** baz",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "[foo](/bar)",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "* Example 1\n* Example 2\n* Example 3",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "3. Example 1\n4. Example 2\n5. Example 3",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "1. Example 1\n4. Example 2\n5. Example 3",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Sample Heading",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "![foo](/url \"title\")",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```ruby\nThis is a test\n```",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```ruby this is a test\nThis is a test\n```",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```\nThis is a test\n```",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a test",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "![foo](/url)",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "1. Example 1\n2. Example 2\n3. Example 3",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "[this is a test](/bar)",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "[foo](/bar \"title\")",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "| Left | Center | Right |\n| :--- | :----: | ----: |\n| Left | Center | Right |",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "![Alt](/logo.png)",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Sample Heading\nThis is a sample paragraph",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% tag a=$x %}text{% /tag %}",
+  "options": {}
+ },
+ {
+  "source": "---\ntitle: Example\n---\n\n# Heading {% .title #main %}\n\nSome *emphasis*, **strong**, `code` and a [link](/a \"Title\").\n\n- one\n- two\n  - nested\n\n{% callout type=\"note\" %}\nInside {% $user.name %} and {% if $flag %}yes{% /if %}\n{% /callout %}\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n```js {% .x %}\nconst a = 1;\n```\n\n{% partial file=\"p.md\" /%}\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "---\ntitle: Example\n---\n\n# Heading {% .title #main %}\n\nSome *emphasis*, **strong**, `code` and a [link](/a \"Title\").\n\n- one\n- two\n  - nested\n\n{% callout type=\"note\" %}\nInside {% $user.name %} and {% if $flag %}yes{% /if %}\n{% /callout %}\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n```js {% .x %}\nconst a = 1;\n```\n\n{% partial file=\"p.md\" /%}\n",
+  "options": {}
+ },
+ {
+  "source": "{% tag %}\n{% slot \"x\" %}hi{% /slot %}\n{% /tag %}\n\n{% unclosed %}",
+  "options": {},
+  "args": {
+   "slots": true
+  }
+ },
+ {
+  "source": "{% tag a=$x.y b=f(1, $z) /%}",
+  "options": {}
+ },
+ {
+  "source": "Hello",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "\n{% example %}\n# bar\n\n{% slot \"foo\" %}\nbaz\n{% /slot %}\n{% /example %}\n    ",
+  "options": {},
+  "args": {
+   "slots": true
+  }
+ },
+ {
+  "source": "\n{% example %}\n# bar\n\nbaz\n{% /example %}\n    ",
+  "options": {},
+  "args": {
+   "slots": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Heading 1\n* Heading 2\n---\n* Cell 1\n* Cell 2\n{% if $foo %}\nThis is invalid conditional content at the row level of the table.\n{% /if %}\nThis is invalid non-conditional content at the row level.\n{% /table %}",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n---\n* a\n{% /table %}",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n{% callout %}\nnope\n{% /callout %}\n---\n* a\n{% /table %}",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\nplain text header\n---\n* a\n{% /table %}",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Head\n---\n* a\n{% /table %}",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Heading 1\n* Heading 2\n---\n{% if $foo %}\n* Row 1 Cell 1\n* Row 1 Cell 2\n---\n* Row 2 Cell 1\n* Row 2 Cell 2\n{% /if %}\n{% /table %}",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Heading 1\n* Heading 2\n---\n{% if $foo %}\n{% callout %}\nThis is not a valid row\n{% /callout %}\n{% /if %}\n{% /table %}",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Heading 1\n* Heading 2\n---\n{% callout %}\nThis is not a valid row\n{% /callout %}\n{% /table %}",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\nSome text\n\n---\n\n- a\n- b\n{% /table %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% table %}\n- Head\n---\n- Cell\n\nNot indented\n{% /table %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% table %}\nSome text\n\n---\n\n- a\n- b\n{% /table %}\n",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n- Head\n---\n{% if $x %}\nstray\n{% /if %}\n{% /table %}\n",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n- Head\n---\nSome text\n{% /table %}\n",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n- Head\n---\nSome text\n{% /table %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% table %}\n- Head\n---\n- Cell\n\nNot indented\n{% /table %}\n",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n- Head\n---\n{% if $x %}\nstray\n{% /if %}\n{% /table %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% table %}\n- H1\n- H2\n---\n- a\n- b\n{% /table %}\n",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Heading 1\n* Heading 2\n---\n* Cell 1\n* Cell 2\n  {% if $foo %}\n  This is a conditional paragraph inside cell 2.\n  {% else /%}\n  This is an alternate paragraph inside cell 2.\n  {% /if %}\n{% /table %}",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Heading 1\n* Heading 2\n---\n{% comment %}\ncomment row\n{% /comment %}\n* Cell 1\n* Cell 2\n---\n{% if $foo %}\n{% comment %}\ncomment inside conditional\n{% /comment %}\n* Row Cell 1\n* Row Cell 2\n{% /if %}\n{% /table %}",
+  "options": {
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Heading 1\n* Heading 2\n---\n{% if $foo %}\n* Row 1 Cell 1\n* Row 1 Cell 2\n{% /if %}\n---\n{% if $bar %}\n* Row 2 Cell 1\n* Row 2 Cell 2\n{% else /%}\n* Alt Row 2 Cell 1\n* Alt Row 2 Cell 2\n{% /if %}\n{% /table %}",
+  "options": {},
+  "args": {
+   "strictTables": true
+  }
+ },
+ {
+  "source": "---\ntest: true\nfoo: bar\n---",
+  "options": {}
+ },
+ {
+  "source": "---\ntest: true\n---\n# Test",
+  "options": {}
+ },
+ {
+  "source": "---\ntest: true\n# Test",
+  "options": {}
+ },
+ {
+  "source": "---   \ntest: true\n---   \n# Test",
+  "options": {}
+ },
+ {
+  "source": "test: true\n---\n# Test",
+  "options": {}
+ },
+ {
+  "source": "> [!IMPORTANT]\n> body",
+  "options": {}
+ },
+ {
+  "source": "> [!WARNING]\n> body",
+  "options": {}
+ },
+ {
+  "source": "> [!CAUTION]\n> body",
+  "options": {}
+ },
+ {
+  "source": "> [!Note]\n> body",
+  "options": {}
+ },
+ {
+  "source": "> [!TIP]\n> body\n",
+  "options": {}
+ },
+ {
+  "source": "> body\n",
+  "options": {}
+ },
+ {
+  "source": "> [!IMPORTANT]\n> body\n",
+  "options": {}
+ },
+ {
+  "source": "> [!WARNING]\n> body\n",
+  "options": {}
+ },
+ {
+  "source": "> [!CAUTION]\n> body\n",
+  "options": {}
+ },
+ {
+  "source": "> [!INFO]\n> body\n",
+  "options": {}
+ },
+ {
+  "source": "> [!SUCCESS]\n> body\n",
+  "options": {}
+ },
+ {
+  "source": "> [!DANGER]\n> body\n",
+  "options": {}
+ },
+ {
+  "source": "> [!NOTE]",
+  "options": {}
+ },
+ {
+  "source": "> [!WARNING]\n> first line\n> second line",
+  "options": {}
+ },
+ {
+  "source": "> [!NOTE]\n> body",
+  "options": {}
+ },
+ {
+  "source": "> [!WARNING]\n> Body text.\n",
+  "options": {}
+ },
+ {
+  "source": "> [!SUCCESS]\n> Body text.\n",
+  "options": {}
+ },
+ {
+  "source": "> [!SUCCESS]\n",
+  "options": {}
+ },
+ {
+  "source": "> [!IMPORTANT]\n",
+  "options": {}
+ },
+ {
+  "source": "> [!IMPORTANT]\n> First para.\n>\n> - one\n> - two\n",
+  "options": {}
+ },
+ {
+  "source": "> [!INFO]\n> First para.\n>\n> - one\n> - two\n",
+  "options": {}
+ },
+ {
+  "source": "> [!INFO]\n> Body text.\n",
+  "options": {}
+ },
+ {
+  "source": "> [!INFO]\n",
+  "options": {}
+ },
+ {
+  "source": "> [!NOTE]\n",
+  "options": {}
+ },
+ {
+  "source": "> [!IMPORTANT]\n> Body text.\n",
+  "options": {}
+ },
+ {
+  "source": "> [!NOTE]\n> Body text.\n",
+  "options": {}
+ },
+ {
+  "source": "> [!CAUTION]\n",
+  "options": {}
+ },
+ {
+  "source": "> [!TIP]\n",
+  "options": {}
+ },
+ {
+  "source": "> [!CAUTION]\n> First para.\n>\n> - one\n> - two\n",
+  "options": {}
+ },
+ {
+  "source": "> [!SUCCESS]\n> First para.\n>\n> - one\n> - two\n",
+  "options": {}
+ },
+ {
+  "source": "> [!TIP]\n> First para.\n>\n> - one\n> - two\n",
+  "options": {}
+ },
+ {
+  "source": "> [!NOTE]\n> First para.\n>\n> - one\n> - two\n",
+  "options": {}
+ },
+ {
+  "source": "> [!WARNING]\n> First para.\n>\n> - one\n> - two\n",
+  "options": {}
+ },
+ {
+  "source": "> [!DANGER]\n> Body text.\n",
+  "options": {}
+ },
+ {
+  "source": "> [!CAUTION]\n> Body text.\n",
+  "options": {}
+ },
+ {
+  "source": "> [!TIP]\n> Body text.\n",
+  "options": {}
+ },
+ {
+  "source": "> [!DANGER]\n",
+  "options": {}
+ },
+ {
+  "source": "> [!WARNING]\n",
+  "options": {}
+ },
+ {
+  "source": "> [!DANGER]\n> First para.\n>\n> - one\n> - two\n",
+  "options": {}
+ },
+ {
+  "source": "> Just a quote.\n",
+  "options": {}
+ },
+ {
+  "source": "> regular quote",
+  "options": {}
+ },
+ {
+  "source": "> [!NOTE]\n> body",
+  "options": {
+   "githubAdmonitions": false
+  }
+ },
+ {
+  "source": "> [!UNKNOWN]\n> body",
+  "options": {}
+ },
+ {
+  "source": "> > [!NOTE]\n> > body",
+  "options": {}
+ },
+ {
+  "source": "> [!INFO]\n> body",
+  "options": {}
+ },
+ {
+  "source": "> [!NOTE]\n> Has **bold** text.",
+  "options": {}
+ },
+ {
+  "source": "> [!SUCCESS]\n> body",
+  "options": {}
+ },
+ {
+  "source": "> [!TIP]\n> body",
+  "options": {}
+ },
+ {
+  "source": "> [!DANGER]\n> body",
+  "options": {}
+ },
+ {
+  "source": "> [!NOTE]\n>\n> This is the body.",
+  "options": {}
+ },
+ {
+  "source": "{% callout type=\"note\" %}Hi {% $name %}{% /callout %}\n{% missing /%}",
+  "options": {}
+ },
+ {
+  "source": "{% callout type=\"note\" %}Hi {% $name %}{% /callout %}",
+  "options": {}
+ },
+ {
+  "source": "{% other /%}",
+  "options": {}
+ },
+ {
+  "source": "{% probe /%}",
+  "options": {}
+ },
+ {
+  "source": "# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u \"t\") ![i](/i.png)\n",
+  "options": {}
+ },
+ {
+  "source": "# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u \"t\") ![i](/i.png)\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u \"t\") ![i](/i.png)\n",
+  "options": {},
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n",
+  "options": {}
+ },
+ {
+  "source": "- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n",
+  "options": {},
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "{% callout type=\"note\" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% callout type=\"note\" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "{% callout type=\"note\" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n",
+  "options": {},
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n",
+  "options": {}
+ },
+ {
+  "source": "| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n",
+  "options": {},
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n",
+  "options": {}
+ },
+ {
+  "source": "---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n",
+  "options": {},
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n",
+  "options": {}
+ },
+ {
+  "source": "<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n",
+  "options": {},
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n",
+  "options": {},
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u \"t\") ![i](/i.png)\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u \"t\") ![i](/i.png)\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u \"t\") ![i](/i.png)\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "{% callout type=\"note\" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% callout type=\"note\" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "{% callout type=\"note\" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n",
+  "options": {
+   "html": true,
+   "allowIndentation": true,
+   "allowComments": true
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u \"t\") ![i](/i.png)\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  }
+ },
+ {
+  "source": "# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u \"t\") ![i](/i.png)\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "# Title {% #t .x %}\n\nText *em* **strong** `code` ~~s~~ [l](/u \"t\") ![i](/i.png)\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  }
+ },
+ {
+  "source": "- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "- a\n- b\n  - c\n\n1. x\n2. y\n\n> quote\n> more\n\n---\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "{% callout type=\"note\" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  }
+ },
+ {
+  "source": "{% callout type=\"note\" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "{% callout type=\"note\" %}\nBody {% $v %}\n{% /callout %}\n\n{% unclosed %}\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  }
+ },
+ {
+  "source": "| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "| a | b |\n|:--|--:|\n| 1 | 2 |\n\n```js {% .c %}\nconst x = 1; {% $y %}\n```\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  }
+ },
+ {
+  "source": "---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "---\ntitle: T\n---\n\n> [!NOTE]\n> admonition body\n\n[ref]: /url\n\nSee [ref].\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  }
+ },
+ {
+  "source": "<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "compact": true
+  }
+ },
+ {
+  "source": "<div>\n\n*html*\n\n</div>\n\n<!-- comment -->\n\n    indented\n\n\ttabbed\n",
+  "options": {
+   "allowLinkValidation": true,
+   "githubAdmonitions": false
+  },
+  "args": {
+   "slots": true,
+   "file": "f"
+  }
+ },
+ {
+  "source": "# This is a test {% #foo .bar .baz foo=2 %}",
+  "options": {}
+ },
+ {
+  "source": "# This is a test {% #foo .bar .baz %}",
+  "options": {}
+ },
+ {
+  "source": "{% test #foo .bar %}\nThis is a test\n{% /test %}",
+  "options": {}
+ },
+ {
+  "source": "{% test %}\nThis is a test\n{% /test %}",
+  "options": {}
+ },
+ {
+  "source": "> {% test #foo .bar baz=1 %}\n> This is a test\n> {% /test %}",
+  "options": {}
+ },
+ {
+  "source": "```\nhello {%\n```",
+  "options": {}
+ },
+ {
+  "source": "```\nhello\n```",
+  "options": {}
+ },
+ {
+  "source": "```\nhello {% foo %}bar{% /foo %}\n```",
+  "options": {}
+ },
+ {
+  "source": "{% foo %}bar{% /foo %}",
+  "options": {}
+ },
+ {
+  "source": "Example {% foo %}bar{% /foo %} baz",
+  "options": {}
+ },
+ {
+  "source": "Example {% foo %}bar{% /foo %}{% test %}test{% /test %} baz",
+  "options": {}
+ },
+ {
+  "source": "Example {% foo %}this is a *test*{% /foo %} baz",
+  "options": {}
+ },
+ {
+  "source": "> - {% test #foo .bar\n>     baz=1 %}\n>   This is a test\n>   {% /test %}",
+  "options": {}
+ },
+ {
+  "source": "> {% test #foo .bar\n>   baz=1 %}\n> This is a test\n> {% /test %}",
+  "options": {}
+ },
+ {
+  "source": "> {% test #foo .bar\n>   baz=1 %}\n> This is a test\n> {% /test %}\nAfter the blockquote",
+  "options": {}
+ },
+ {
+  "source": "- {% test #foo .bar\n    baz=1 %}\n  This is a test\n  {% /test %}",
+  "options": {}
+ },
+ {
+  "source": "{% test #foo .bar\nbaz=1 %}\nThis is a test\n{% /test %}",
+  "options": {}
+ },
+ {
+  "source": "{%\ntest #foo .bar\nbaz=1\n%}\nThis is a test\n{% /test %}",
+  "options": {}
+ },
+ {
+  "source": "This is a test\n{% test /%}",
+  "options": {}
+ },
+ {
+  "source": "{% test /%}",
+  "options": {}
+ },
+ {
+  "source": "This is a test\n{% test #foo .bar baz=1 /%}\nThis is another test",
+  "options": {}
+ },
+ {
+  "source": "# foo {% #bar %}",
+  "options": {}
+ },
+ {
+  "source": "# foo {% #1bar %}",
+  "options": {}
+ },
+ {
+  "source": "# foo {% id=\"#bar\" %}",
+  "options": {}
+ },
+ {
+  "source": "{% partial file=\"non-existent.md\" /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo jawn=\"cat\" /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=20 /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=5 /%}",
+  "options": {}
+ },
+ {
+  "source": "{% link href=\"http://google.com\"  /%}",
+  "options": {}
+ },
+ {
+  "source": "{% link href=\"/relative-link\"  /%}",
+  "options": {}
+ },
+ {
+  "source": "{% $undefinedVariable %}",
+  "options": {}
+ },
+ {
+  "source": "{% $valid.variable %}",
+  "options": {}
+ },
+ {
+  "source": "this is inline {% baz %}bar{% /baz %}",
+  "options": {}
+ },
+ {
+  "source": "\n{% baz %}\nbar\n{% /baz %}\n      ",
+  "options": {}
+ },
+ {
+  "source": "this is inline {% foo %}bar{% /foo %}",
+  "options": {}
+ },
+ {
+  "source": "\n{% foo %}\nbar\n{% /foo %}\n      ",
+  "options": {}
+ },
+ {
+  "source": "\n{% bar %}\nbar\n{% /bar %}\n",
+  "options": {}
+ },
+ {
+  "source": "this is inline {% bar %}bar{% /bar %}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=baz(1) /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=baz(1, test=2) /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=baz(foo=1) /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=qux() /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=qux(test=\"example\") /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=noTyping(foo=1) /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=requiredParam() /%}",
+  "options": {}
+ },
+ {
+  "source": "{% union-tag-1 foo=withUnion() bar=withUnion() /%}",
+  "options": {}
+ },
+ {
+  "source": "{% union-tag-1 foo=withUnion() bar=withUnion() baz=withUnion() /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=nested(baz(), number()) /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=nested(number(), baz()) /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar=baz() /%}",
+  "options": {}
+ },
+ {
+  "source": "{% foo bar={baz: 3} /%}",
+  "options": {}
+ },
+ {
+  "source": "\n{% foo %}\n{% bar %}\n{% baz %}\n# testing\n{% /baz %}\n{% /bar %}\n{% /foo %}\n",
+  "options": {}
+ },
+ {
+  "source": "\n{% foo %}\n{% bar %}\n{% /bar %}\n{% /foo %}\n\n{% bar %}\n{% baz %}\n# testing\n{% /baz %}\n{% /bar %}\n",
+  "options": {}
+ },
+ {
+  "source": "{% foo %}{% bar %}this is a test{% /bar %}{% /foo %}",
+  "options": {}
+ },
+ {
+  "source": "   # https://spec.commonmark.org/0.30/#indented-code-block\n    4-space indented code",
+  "options": {}
+ },
+ {
+  "source": "```js\nconsole.log(1);\n```",
+  "options": {}
+ },
+ {
+  "source": "Just a plain paragraph.",
+  "options": {}
+ },
+ {
+  "source": "# heading\n\nparagraph with [link](https://a)\n\n> quote",
+  "options": {}
+ },
+ {
+  "source": "> quoted text",
+  "options": {}
+ },
+ {
+  "source": "# Hello, world",
+  "options": {}
+ },
+ {
+  "source": "{% mytag %}hi{% /mytag %}",
+  "options": {}
+ },
+ {
+  "source": "{% mytag /%}",
+  "options": {}
+ },
+ {
+  "source": "- one\n- two",
+  "options": {}
+ },
+ {
+  "source": "Some **bold** and *italic* text.",
+  "options": {}
+ },
+ {
+  "source": "{% callout %}hi{% /callout %}",
+  "options": {}
+ },
+ {
+  "source": "{% mytag %}\nhi\n{% /mytag %}",
+  "options": {},
+  "args": {
+   "noParagraphForLoneTag": true
+  }
+ },
+ {
+  "source": "{% callout %}hi{% /callout %}{% .red %}",
+  "options": {},
+  "args": {
+   "noParagraphForLoneTag": true
+  }
+ },
+ {
+  "source": "{% callout %}{% /callout %}",
+  "options": {},
+  "args": {
+   "noParagraphForLoneTag": true
+  }
+ },
+ {
+  "source": "text {% mytag /%} more",
+  "options": {},
+  "args": {
+   "noParagraphForLoneTag": true
+  }
+ },
+ {
+  "source": "> {% callout %}hi{% /callout %}",
+  "options": {},
+  "args": {
+   "noParagraphForLoneTag": true
+  }
+ },
+ {
+  "source": "{% callout %}hi{% /callout %}",
+  "options": {},
+  "args": {
+   "noParagraphForLoneTag": true
+  }
+ },
+ {
+  "source": "# This is a test {% #asdf %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "1. foo\n2. bar\n3. baz\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "2. foo\n3. bar\n4. baz\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# This is a test {% .asdf %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# This is a test {% .foo .bar %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo={bar: [1, 2, 3]} %}\nThis is a test\n{% /test %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo={,} /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo=[,] /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo=[1 2 3] /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo={i: 1, j: 2, k: 3,} /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo=[1, 2 , 3, ] /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test %}\nThis is a test\n{% /test %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% partial file=\"foo\" %}\nbar\n{% /partial %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a `test`\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```ruby {% #test %}\nexample\n```\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "---\nfoo: bar\n---\n\n# Example\n\nThis is a test\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a test: {% $foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Testing\n\nThis is a {% foo %}test{% /foo %}.\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "foo {% and(1, 2, 3) %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo bar=and(true, true, true) /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if $foo %}\nThis is a test\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if $foo %}\nCondition is true\n{% else /%}\nCondition is false\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if $foo %}\nCondition foo is true\n{% else $bar /%}\nCondition bar is true\n{% else /%}\nNo condition is true\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if equals($foo, \"test\") %}\ntest\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if and(equals($foo, \"test\"), $bar) %}\ntest\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if or(equals($foo, \"wrong\"), $bar) %}\ntest\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if equals($foo, \"wrong\") %}\ntest\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if and(equals($foo, \"wrong\"), $bar) %}\ntest\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if equals($foo.bar, \"test\") %}\ntest\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if not($foo) %}\nConditions are met\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if not(and($baz, or($foo, $bar))) %}\nConditions are met\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if and($foo, $bar) %}\nConditions are met\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if default($foo, true) %}\nConditions are met\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a test\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo=[1,2,3] %}\nThis is a test\n{% /test %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```javascript {% process=false %}\nfoo\n{% bar %}\n```\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "~~~yaml {% title=\"this is a `test`\" %}\nexample\n~~~\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```javascript {% process=true %}\ntesting\n{% if $baz %}\nconsole.log('This is a test: {% $foo %}');\n{% /if %}\ntest\n```\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```javascript\nfunction test() {\n  testing();\n  {% if $baz %}\n  console.log('This is a test: {% $foo %}');\n  {% /if %}\n  return;\n}\n```\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```\n# Testing\n\n{% test /%}\ntest\n```\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```\n{% test /%}\n\n{% test /%}\n\n{% test /%}\n```\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```javascript {% process=true %}\ntesting {% $foo %} test{% if $baz %}example{% /if %} another test\n```\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```javascript {% process=true %}\ntesting\n{% test foo=\"bar\" %}\nThis is a test\n{% /test %}\n```\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "```javascript {% process=true %}\nvar stripe = Stripe('{% token %}{% $foo %}{% /token %}');\n```\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "this is a test\nwith softbreaks\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "this is a test: {% $foo[\"this is a test\"] %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "Testing\n-------\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Test 1 - 1 {% width=\"20%\" %}\n* Test 1 - 2\n* Test 1 - 3\n---\n* Test 2 - 1\n* Test 2 - 2 {% colspan=2 %}\n* Test 2 - 3\n---\n* Test 3 - 1\n* Test 3 - 2\n* Test 3 - 3\n{% /table %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n---\n* foo\n* bar\n{% /table %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Test 1 - 1\n* Test 1 - 2\n* Test 1 - 3\n---\n{% if $foo %}\n* Test 2 - 1\n* Test 2 - 2\n* Test 2 - 3\n{% /if %}\n---\n{% if $bar %}\n* Test 3 - 1\n* Test 3 - 2\n* Test 3 - 3\n{% /if %}\n{% /table %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Test 1 - 1\n* Test 1 - 2\n* Test 1 - 3\n---\n{% if $foo %}\n* Test 2 - 1\n* Test 2 - 2\n* Test 2 - 3\n---\n* Test 3 - 1\n* Test 3 - 2\n* Test 3 - 3\n{% /if %}\n---\n* Test 4 - 1\n* Test 4 - 2\n* Test 4 - 3\n{% /table %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Test 1 - 1\n* Test 1 - 2\n* Test 1 - 3\n---\n{% if $foo %}\n* Test 2 - 1\n* Test 2 - 2\n* Test 2 - 3\n{% else / %}\n* Test 2 - 1 - alternate\n* Test 2 - 2 - alternate\n* Test 2 - 3 - alternate\n{% /if %}\n---\n{% if $bar %}\n* Test 3 - 1\n* Test 3 - 2\n* Test 3 - 3\n{% /if %}\n{% /table %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n---\n* foo\n* \n    ```ruby\n    puts \"test\"\n    ```\n* bar\n---\n* foo\n*\n    bar\n* baz\n{% /table %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\nFoo | Bar\n--|--\nTest 1 - 1 | Test 1 - 2\nTest 2 - 1 | Test 2 - 2\n{% /table %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Heading 1\n* Heading 2\n---\n* Cell 1\n* {% if $foo %}Inline conditional content{% /if %}\n---\n* Cell 2\n* Some content\n\n  {% if $foo %}\n  Conditional block\n  {% else /%}\n  Alternate block\n  {% /if %}\n{% /table %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Heading 1\n* Heading 2\n---\nEscaped content\n{% /table %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% table %}\n* Heading 1\n* Heading 2\n---\n* Cell 1\n* Cell 2\n{% if $foo %}\nEscaped content\n{% /if %}\n{% /table %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test title=\"asdf\" %}\nThis is a test\n{% /test %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo bar=\"test \\\"testing\\\" test\" /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo=[\n  [1, 2],\n  [3, 4]\n] /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo=[\n  [1, 2],\n  [3, 4],\n] /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo=[[1, 2], [3, 4]] /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo=[] %}\ntesting\n{% /test %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo={} %}\ntesting\n{% /test %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% test foo={ bar: 1, baz: 2 } %}\ntesting\n{% /test %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "![Alt](/logo.png)\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a paragraph  \nwith a hardbreak",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a paragraph\\\nwith a hardbreak\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a paragraph\nwith a softbreak\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a test\n\n{% partial file=\"foo.md\" variables={foo: 1} /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is content from a partial",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a test\n\n{% partial file=\"foo.md\" /%}\n\n{% partial file=\"bar.md\" /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is content from a partial\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% example %}\nThis is content in another partial\n{% /example %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% example bar=$foo %}\nThis is a partial with a variable\n{% /example %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "This is a test\n\n{% if $foo %}\nNope\n{% /if %}\n\n{% if $bar %}\nNope\n{% /if %}\n\n{% if $baz %}\nNope\n{% /if %}\n\n{% if not(\"\") %}\nNope\n{% /if %}\n\n{% if and($foo, $bar) %}\nNope\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% if $foo %}\nfoo\n{% /if %}\n\n{% if $bar %}\nbar\n{% /if %}\n\n{% if $baz %}\nbaz\n{% /if %}\n\n{% if or(false, $foo) %}\nzero\n{% /if %}\n\n{% if and($foo, $bar, $baz) %}\nand\n{% /if %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "~~Strike~~",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\n    {% foo %}\n        This is a test\n    {% /foo %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\n    {% foo %}\n        ```javascript\n        console.log('test');\n        ```\n    {% /foo %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\n    {% foo %}\n   This is a test\n    {% /foo %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "test\n\n      * foo\n      * bar\n        * baz\n        * qux\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\n  {% foo %}\n      * foo\n      * bar\n        * baz\n        * qux\n        * ```javascript\n          console.log('test');\n          ```\n        * zxcv\n  {% /foo %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo bar={\"this is a test\": \"test\"} %}\ntesting\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo bar={\"this is a test\": \"test\", \"$$mdtype\": true} %}\ntesting\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "# Example <!-- foo -->\n\nThis is a test <!-- bar\n-->\n\n<!--\nbaz\n-->\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo bar=\"this is a test of \\\"quoted\\\" strings\" /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo bar=\"this is a test\\nof a newline in a tag\" /%}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\n  {% slot \"bar\" %}\n  This is a test\n  {% /slot %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo qux=\"test\" %}\n  {% slot \"bar\" %}\n  This is a test\n  {% /slot %}\n\n  {% slot \"baz\" %}\n  This is **another** test\n  {% /slot %}\n\n  This is additional content\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% slot %}\nbar\n{% /slot %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\n  {% slot %}\n  This is a test\n  {% /slot %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\n  {% slot 1 %}\n  This is a test\n  {% /slot %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo bar=\"test\" %}\n{% /foo %}\n\n{% foo bar=\"test\" %}\n  {% slot \"bar\" %}\n  test\n  {% /slot %}\n{% /foo %}\n\n{% foo %}\n  {% slot \"bar\" %}\n  test\n  {% /slot %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\nthis is a test\n\n{% slot \"bar\" %}\ntest\n{% /slot %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo %}\n  {% slot \"bar\" %}\n  This is a {% $example %}\n  {% /slot %}\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% \nfoo\n#bar\n%}\nThis is a test\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ },
+ {
+  "source": "{% foo\n#bar %}\nThis is a test\n{% /foo %}\n",
+  "options": {
+   "allowIndentation": true,
+   "allowComments": true
+  }
+ }
+]

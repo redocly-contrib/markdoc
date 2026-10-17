@@ -6,13 +6,24 @@
 // Only one build is ever loaded per process: with two copies of the library in
 // one process, whichever was required first ran ~35% faster on transform and
 // validate even when the two files were byte-identical.
-import { loadMarkdoc, prepare, stageFn, STAGES, PREPARED_STAGES } from './lib/pipeline.mjs';
+import {
+  loadMarkdoc,
+  prepare,
+  stageFn,
+  STAGES,
+  PREPARED_STAGES,
+  TOKEN_STAGES,
+} from './lib/pipeline.mjs';
 import { compare } from './lib/harness.mjs';
 
 const [which, corpusName, stageList] = process.argv.slice(2);
 const s = prepare(loadMarkdoc(which), corpusName);
-const stages = (stageList ? stageList.split(',') : [...STAGES, ...PREPARED_STAGES]).filter(
-  (name) => s.prepared || !PREPARED_STAGES.includes(name)
+const stages = (
+  stageList ? stageList.split(',') : [...STAGES, ...PREPARED_STAGES]
+).filter(
+  (name) =>
+    (s.prepared || !PREPARED_STAGES.includes(name)) &&
+    (s.tk || !TOKEN_STAGES.includes(name))
 );
 const results = compare(
   Object.fromEntries(stages.map((name) => [name, stageFn(name, s)])),
