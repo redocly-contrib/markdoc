@@ -1248,66 +1248,42 @@ function list(
 
 // ---------------------------------------------------------------- reference
 
-function reference(
-  state: BlockState,
-  startLine: number,
-  _endLine: number,
-  silent: boolean
-): boolean {
+type Definition = { label: string; href: string; title: string; lines: number };
+
+/** `parseDefinition` needs more lines than it was given to decide. */
+const MORE = 1;
+
+/**
+ * markdown-it's reference rule parses a definition from the text of its
+ * whole block (every line up to the next blank line or block start). Doing
+ * that for every definition in a run of them is quadratic (markdown-it#996).
+ *
+ * This parses the same text, but only as much of it as the definition
+ * needs: `str` is the block's first lines, and when the parse reaches into
+ * its last line — where a longer window could read differently — it asks
+ * for more (`MORE`) unless `str` already is the whole block. A typical
+ * definition is decided by its own line and the next one.
+ */
+function parseDefinition(
+  str: string,
+  whole: boolean
+): Definition | false | typeof MORE {
+  const max = str.length;
+  const lastLine = str.lastIndexOf('\n');
+  let far = 0;
+  const decided = <T>(result: T): T | typeof MORE =>
+    !whole && far > lastLine ? MORE : result;
+
   let lines = 0;
-  const src = state.src;
-  let pos = state.bMarks[startLine] + state.tShift[startLine];
-  let max = state.eMarks[startLine];
-  let nextLine = startLine + 1;
-  let ch: number;
   let labelEnd = -1;
-
-  if (indentedCode(state, startLine)) return false;
-
-  if (src.charCodeAt(pos) !== 0x5b /* [ */) return false;
-
-  // Simple check to quickly interrupt scan on [link](url) at the start of line.
-  // Can be useful on practice: https://github.com/markdown-it/markdown-it/issues/54
-  while (++pos < max) {
-    if (
-      src.charCodeAt(pos) === 0x5d /* ] */ &&
-      src.charCodeAt(pos - 1) !== 0x5c /* \ */
-    ) {
-      if (pos + 1 === max) return false;
-      if (src.charCodeAt(pos + 1) !== 0x3a /* : */) return false;
-      break;
-    }
-  }
-
-  const endLine = state.lineMax;
-
-  // jump line-by-line until empty one or EOF
-  const terminators = state.referenceTerminators;
-
-  const oldParentType = state.parentType;
-  state.parentType = 'reference';
-
-  for (; nextLine < endLine && !state.isEmpty(nextLine); nextLine++) {
-    // this would be a code block normally, but after paragraph
-    // it's considered a lazy continuation regardless of what's there
-    if (!state.allowIndentation && state.sCount[nextLine] - state.blkIndent > 3)
-      continue;
-
-    // quirk for blockquotes, this line should already be checked by that rule
-    if (state.sCount[nextLine] < 0) continue;
-
-    if (terminates(terminators, state, nextLine, endLine)) break;
-  }
-
-  const str = state
-    .getLines(startLine, nextLine, state.blkIndent, false)
-    .trim();
-  max = str.length;
+  let pos: number;
+  let ch: number;
 
   for (pos = 1; pos < max; pos++) {
     ch = str.charCodeAt(pos);
     if (ch === 0x5b /* [ */) {
-      return false;
+      far = pos;
+      return decided(false);
     } else if (ch === 0x5d /* ] */) {
       labelEnd = pos;
       break;
@@ -1318,9 +1294,11 @@ function reference(
       if (pos < max && str.charCodeAt(pos) === 0x0a) lines++;
     }
   }
+  far = pos;
 
-  if (labelEnd < 0 || str.charCodeAt(labelEnd + 1) !== 0x3a /* : */)
-    return false;
+  if (labelEnd < 0) return decided(false);
+  far = labelEnd + 1;
+  if (str.charCodeAt(labelEnd + 1) !== 0x3a /* : */) return decided(false);
 
   // [label]:   destination   'title'
   //         ^^^ skip optional whitespace here
@@ -1334,16 +1312,23 @@ function reference(
       break;
     }
   }
+  far = pos;
 
   // [label]:   destination   'title'
   //            ^^^^^^^^^^^ parse this
   let res = parseLinkDestination(str, pos, max);
-  if (!res.ok) return false;
+  if (!res.ok) {
+    // A destination never spans lines, so it was decided by its own line.
+    const newline = str.indexOf('\n', pos);
+    far = newline === -1 ? max : newline;
+    return decided(false);
+  }
 
   const href = normalizeLink(res.str);
-  if (!validateLink(href)) return false;
-
   pos = res.pos;
+  far = pos;
+  if (!validateLink(href)) return decided(false);
+
   lines += res.lines;
 
   // save cursor state, we could require to rollback later
@@ -1363,10 +1348,18 @@ function reference(
       break;
     }
   }
+  far = Math.max(far, pos);
 
   // [label]:   destination   'title'
   //                          ^^^^^^^ parse this
   res = parseLinkTitle(str, pos, max);
+  if (res.ok) far = Math.max(far, res.pos);
+  else {
+    const marker = str.charCodeAt(pos);
+    // A title that opened and failed may have scanned to the end.
+    if (marker === 0x22 || marker === 0x27 || marker === 0x28) far = max;
+  }
+
   let title: string;
   if (pos < max && start !== pos && res.ok) {
     title = res.str;
@@ -1384,6 +1377,7 @@ function reference(
     if (!isSpace(ch)) break;
     pos++;
   }
+  far = Math.max(far, pos);
 
   if (pos < max && str.charCodeAt(pos) !== 0x0a) {
     if (title) {
@@ -1397,24 +1391,106 @@ function reference(
         if (!isSpace(ch)) break;
         pos++;
       }
+      far = Math.max(far, pos);
     }
   }
 
   if (pos < max && str.charCodeAt(pos) !== 0x0a) {
     // garbage at the end of the line
-    return false;
+    return decided(false);
   }
 
   const label = normalizeReference(str.slice(1, labelEnd));
   if (!label) {
     // CommonMark 0.20 disallows empty labels
-    return false;
+    return decided(false);
   }
+
+  return decided({ label, href, title, lines });
+}
+
+function reference(
+  state: BlockState,
+  startLine: number,
+  _endLine: number,
+  silent: boolean
+): boolean {
+  const src = state.src;
+  let pos = state.bMarks[startLine] + state.tShift[startLine];
+  const max = state.eMarks[startLine];
+
+  if (indentedCode(state, startLine)) return false;
+
+  if (src.charCodeAt(pos) !== 0x5b /* [ */) return false;
+
+  // Simple check to quickly interrupt scan on [link](url) at the start of line.
+  // Can be useful on practice: https://github.com/markdown-it/markdown-it/issues/54
+  while (++pos < max) {
+    if (
+      src.charCodeAt(pos) === 0x5d /* ] */ &&
+      src.charCodeAt(pos - 1) !== 0x5c /* \ */
+    ) {
+      if (pos + 1 === max) return false;
+      if (src.charCodeAt(pos + 1) !== 0x3a /* : */) return false;
+      break;
+    }
+  }
+
+  const endLine = state.lineMax;
+  const terminators = state.referenceTerminators;
+
+  const oldParentType = state.parentType;
+  // Like markdown-it, a failed definition leaves this set.
+  state.parentType = 'reference';
+
+  // The block runs line-by-line until an empty one, EOF or a terminator.
+  // It is found lazily, only as far as the definition needs.
+  let scanned = startLine + 1;
+  let blockEnd = -1;
+  function extend(target: number) {
+    while (blockEnd < 0 && scanned < target) {
+      if (scanned >= endLine || state.isEmpty(scanned)) {
+        blockEnd = scanned;
+        break;
+      }
+      // this would be a code block normally, but after paragraph
+      // it's considered a lazy continuation regardless of what's there;
+      // quirk for blockquotes, this line should already be checked by that rule
+      if (
+        !(
+          !state.allowIndentation && state.sCount[scanned] - state.blkIndent > 3
+        ) &&
+        !(state.sCount[scanned] < 0) &&
+        terminates(terminators, state, scanned, endLine)
+      ) {
+        blockEnd = scanned;
+        break;
+      }
+      scanned++;
+    }
+    return blockEnd >= 0 ? blockEnd : scanned;
+  }
+
+  let target = startLine + 3;
+  let definition: Definition | false | typeof MORE;
+  for (;;) {
+    const windowEnd = extend(target);
+    const whole = blockEnd >= 0;
+    const str = state
+      .getLines(startLine, windowEnd, state.blkIndent, false)
+      .trim();
+    definition = parseDefinition(str, whole);
+    if (definition !== MORE) break;
+    target = startLine + (target - startLine) * 2;
+  }
+
+  if (!definition) return false;
 
   // Reference can not terminate anything. This check is for safety only.
   /*istanbul ignore if*/
   if (silent) return true;
 
+  const { label, href, title, lines } = definition;
   if (state.references === undefined) state.references = {};
   if (state.references[label] === undefined) {
     state.references[label] = { title, href };

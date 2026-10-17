@@ -50,3 +50,19 @@ describe('parse(string) fast path', function () {
     expect(JSON.stringify(ast)).toContain('"href":"https://example.com"');
   });
 });
+
+describe('link reference definitions', function () {
+  it('parse in linear time (markdown-it#996)', function () {
+    const definitions = (n: number) => {
+      let src = '';
+      for (let i = 0; i < n; i++) src += `[r${i}]: https://x.y/${i} "T ${i}"\n`;
+      return src + '\nSee [r1].\n';
+    };
+    Markdoc.parse(definitions(2000));
+    const start = Date.now();
+    const ast = Markdoc.parse(definitions(20000));
+    // markdown-it takes well over a minute for this; quadratic growth would too.
+    expect(Date.now() - start).toBeLessThan(2000);
+    expect(JSON.stringify(ast)).toContain('"href":"https://x.y/1"');
+  });
+});
