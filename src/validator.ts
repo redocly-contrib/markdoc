@@ -23,11 +23,44 @@ const TypeMappings = {
 
 type TypeParam = NonNullable<SchemaAttribute['type']>;
 
+/**
+ * The config that one node's validators see during `validateTree`: a copy of
+ * the config with the node's own `validation.parents`, as each node got from
+ * `walkWithParents`, so a validator that changes it cannot affect another
+ * node. It is built the first time a validator of the node needs it; most
+ * nodes (text, inline, paragraphs) have none and never pay for the copy.
+ */
+class NodeConfig {
+  private own: Config | undefined;
+  private parents: Node[] = [];
+
+  constructor(private readonly base: Config) {}
+
+  /** Moves on to a node with these ancestors (shared, never handed out). */
+  next(parents: Node[]) {
+    this.parents = parents;
+    this.own = undefined;
+  }
+
+  get(): Config {
+    return (this.own ??= {
+      ...this.base,
+      validation: { ...this.base.validation, parents: this.parents.slice() },
+    });
+  }
+}
+
+/** What user code is given: the node's own config in `validateTree`. */
+function userConfig(config: Config, scope: NodeConfig | undefined): Config {
+  return scope ? scope.get() : config;
+}
+
 export function validateType(
   type: TypeParam,
   value: Value,
   config: Config,
-  key: string
+  key: string,
+  scope?: NodeConfig
 ): boolean | ValidationError[] {
   if (!type) return true;
 
@@ -43,14 +76,14 @@ export function validateType(
   if (Ast.isAst(value)) return true;
 
   if (Array.isArray(type))
-    return type.some((t) => validateType(t, value, config, key));
+    return type.some((t) => validateType(t, value, config, key, scope));
 
   if (typeof type === 'string') type = TypeMappings[type];
 
   if (typeof type === 'function') {
     const instance = typeInstance(type);
     if (instance.validate) {
-      return instance.validate(value, config, key);
+      return instance.validate(value, userConfig(config, scope), key);
     }
   }
 
@@ -65,7 +98,11 @@ function typeToString(type: TypeParam): string {
   return type.name;
 }
 
-function validateFunction(fn: Function, config: Config): ValidationError[] {
+function validateFunction(
+  fn: Function,
+  config: Config,
+  scope: NodeConfig | undefined
+): ValidationError[] {
   const schema = config.functions?.[fn.name];
   const errors: ValidationError[] = [];
 
@@ -78,7 +115,8 @@ function validateFunction(fn: Function, config: Config): ValidationError[] {
       },
     ];
 
-  if (schema.validate) errors.push(...schema.validate(fn, config));
+  if (schema.validate)
+    errors.push(...schema.validate(fn, userConfig(config, scope)));
 
   if (schema.parameters) {
     for (const [key, value] of Object.entries(fn.parameters)) {
@@ -97,7 +135,7 @@ function validateFunction(fn: Function, config: Config): ValidationError[] {
       if (Ast.isAst(value) && !Ast.isFunction(value)) continue;
 
       if (param.type) {
-        const valid = validateType(param.type, value, config, key);
+        const valid = validateType(param.type, value, config, key, scope);
         if (valid === false) {
           errors.push({
             id: 'parameter-type-invalid',
@@ -131,6 +169,14 @@ function displayMatches(matches: any[], n: number) {
 }
 
 export default function validator(node: Node, config: Config) {
+  return validateNode(node, config, undefined);
+}
+
+function validateNode(
+  node: Node,
+  config: Config,
+  scope: NodeConfig | undefined
+) {
   const schema = node.findSchema(config);
   const errors: ValidationError[] = [...(node.errors || [])];
 
@@ -199,7 +245,7 @@ export default function validator(node: Node, config: Config) {
 
     if (Ast.isAst(value)) {
       if (Ast.isFunction(value) && config.validation?.validateFunctions)
-        errors.push(...validateFunction(value, config));
+        errors.push(...validateFunction(value, config, scope));
       else if (Ast.isVariable(value) && config.variables) {
         let missing = false;
         let variables = config.variables;
@@ -225,7 +271,7 @@ export default function validator(node: Node, config: Config) {
     value = value as string;
 
     if (type) {
-      const valid = validateType(type, value, config, key);
+      const valid = validateType(type, value, config, key, scope);
       if (valid === false) {
         errors.push({
           id: 'attribute-type-invalid',
@@ -238,7 +284,8 @@ export default function validator(node: Node, config: Config) {
       }
     }
 
-    if (typeof matches === 'function') matches = matches(config);
+    if (typeof matches === 'function')
+      matches = matches(userConfig(config, scope));
 
     if (Array.isArray(matches) && !matches.includes(value))
       errors.push({
@@ -258,7 +305,11 @@ export default function validator(node: Node, config: Config) {
       });
 
     if (typeof attrib.validate === 'function') {
-      const attribErrors = attrib.validate(value, config, key);
+      const attribErrors = attrib.validate(
+        value,
+        userConfig(config, scope),
+        key
+      );
       if (Array.isArray(attribErrors)) errors.push(...attribErrors);
     }
   }
@@ -298,7 +349,7 @@ export default function validator(node: Node, config: Config) {
   }
 
   if (schema.validate) {
-    const schemaErrors = schema.validate(node, config);
+    const schemaErrors = schema.validate(node, userConfig(config, scope));
     if (isPromise(schemaErrors)) {
       return schemaErrors.then((e) => errors.concat(e));
     }
@@ -365,45 +416,46 @@ function checkRequired(
 }
 
 /**
- * Every node, and the config its validator sees, in document order (a node,
- * its slots, then its children), as two parallel arrays. Each node gets its
- * own config and `validation.parents`, as each did from `walkWithParents`, so
- * a validator that changes them cannot affect another node's.
+ * Every node with its ancestors, in document order (a node, its slots, then
+ * its children), as two parallel arrays. Siblings share one ancestors array;
+ * `NodeConfig` copies it for any validator that sees it.
  */
 function collectForValidation(
   node: Node,
   parents: Node[],
-  config: Config,
   nodes: Node[],
-  configs: Config[]
+  ancestors: Node[][]
 ) {
   nodes.push(node);
-  configs.push({ ...config, validation: { ...config.validation, parents } });
+  ancestors.push(parents);
 
   const slots = node.slots;
   const hasSlots = !!slots && hasOwnKeys(slots);
   if (!hasSlots && node.children.length === 0) return;
 
+  const childParents = [...parents, node];
   if (hasSlots)
     for (const child of Object.values(slots))
-      collectForValidation(child, [...parents, node], config, nodes, configs);
+      collectForValidation(child, childParents, nodes, ancestors);
   for (const child of node.children)
-    collectForValidation(child, [...parents, node], config, nodes, configs);
+    collectForValidation(child, childParents, nodes, ancestors);
 }
 
 export function validateTree(content: Node, config: Config) {
   const nodes: Node[] = [];
-  const configs: Config[] = [];
-  collectForValidation(content, [], config, nodes, configs);
+  const ancestors: Node[][] = [];
+  collectForValidation(content, [], nodes, ancestors);
 
   // Every validator runs first, in order, as before; the results are then
   // flattened into one list (or one promise, if any validator is async).
   const results: (ValidationError[] | Promise<ValidationError[]>)[] = new Array(
     nodes.length
   );
+  const scope = new NodeConfig(config);
   let async = false;
   for (let i = 0; i < nodes.length; i++) {
-    const errors = validator(nodes[i], configs[i]);
+    scope.next(ancestors[i]);
+    const errors = validateNode(nodes[i], config, scope);
     if (isPromise(errors)) async = true;
     results[i] = errors;
   }
