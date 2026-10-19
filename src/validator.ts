@@ -166,15 +166,16 @@ export default function validator(node: Node, config: Config) {
   // answer, without building that merged object for every node.
   const schemaAttributes = schema.attributes;
 
-  for (const key of Object.keys(node.slots ?? {})) {
-    const slot = schema.slots?.[key];
-    if (!slot)
-      errors.push({
-        id: 'slot-undefined',
-        level: 'error',
-        message: `Invalid slot: '${key}'`,
-      });
-  }
+  if (node.slots && hasOwnKeys(node.slots))
+    for (const key of Object.keys(node.slots)) {
+      const slot = schema.slots?.[key];
+      if (!slot)
+        errors.push({
+          id: 'slot-undefined',
+          level: 'error',
+          message: `Invalid slot: '${key}'`,
+        });
+    }
 
   for (const key of Object.keys(node.attributes)) {
     let value = node.attributes[key];
@@ -308,32 +309,6 @@ export default function validator(node: Node, config: Config) {
   return errors;
 }
 
-export function* walkWithParents(
-  node: Node,
-  parents: Node[] = []
-): Generator<[Node, Node[]]> {
-  yield* collectWithParents(node, parents, []);
-}
-
-/**
- * Every node with its ancestors, in `walkWithParents` order, collected
- * without a generator per node. Siblings share one `parents` array.
- */
-function collectWithParents(
-  node: Node,
-  parents: Node[],
-  out: [Node, Node[]][]
-): [Node, Node[]][] {
-  out.push([node, parents]);
-  const slots = Object.values(node.slots ?? {});
-  if (slots.length === 0 && node.children.length === 0) return out;
-  const childParents = [...parents, node];
-  for (const child of slots) collectWithParents(child, childParents, out);
-  for (const child of node.children)
-    collectWithParents(child, childParents, out);
-  return out;
-}
-
 function hasValidLocation(
   error: ValidationError
 ): error is ValidationError & { location: Location } {
@@ -390,59 +365,36 @@ function checkRequired(
 }
 
 /**
- * Every node, and the config its validator sees, in `walkWithParents` order,
- * as two parallel arrays. The config (with `validation.parents`) is built once
- * per parent and shared by all of its children, instead of once per node.
+ * Every node, and the config its validator sees, in document order (a node,
+ * its slots, then its children), as two parallel arrays. Each node gets its
+ * own config and `validation.parents`, as each did from `walkWithParents`, so
+ * a validator that changes them cannot affect another node's.
  */
 function collectForValidation(
   node: Node,
   parents: Node[],
-  nodeConfig: Config,
   config: Config,
   nodes: Node[],
   configs: Config[]
 ) {
   nodes.push(node);
-  configs.push(nodeConfig);
+  configs.push({ ...config, validation: { ...config.validation, parents } });
 
   const slots = node.slots;
   const hasSlots = !!slots && hasOwnKeys(slots);
   if (!hasSlots && node.children.length === 0) return;
 
-  const childParents = [...parents, node];
-  const childConfig = {
-    ...config,
-    validation: { ...config.validation, parents: childParents },
-  };
   if (hasSlots)
     for (const child of Object.values(slots))
-      collectForValidation(
-        child,
-        childParents,
-        childConfig,
-        config,
-        nodes,
-        configs
-      );
+      collectForValidation(child, [...parents, node], config, nodes, configs);
   for (const child of node.children)
-    collectForValidation(
-      child,
-      childParents,
-      childConfig,
-      config,
-      nodes,
-      configs
-    );
+    collectForValidation(child, [...parents, node], config, nodes, configs);
 }
 
 export function validateTree(content: Node, config: Config) {
-  const rootConfig = {
-    ...config,
-    validation: { ...config.validation, parents: [] },
-  };
   const nodes: Node[] = [];
   const configs: Config[] = [];
-  collectForValidation(content, [], rootConfig, config, nodes, configs);
+  collectForValidation(content, [], config, nodes, configs);
 
   // Every validator runs first, in order, as before; the results are then
   // flattened into one list (or one promise, if any validator is async).

@@ -30,6 +30,12 @@ export function hasPosition(location?: Location): boolean {
  * in the same order as `resolve` (children, then attributes, then slots).
  */
 export function resolveNodeShared(node: Node, config: Config): Node {
+  // A Node whose `resolve` was replaced keeps resolving its own way.
+  if (
+    typeof node.resolve === 'function' &&
+    node.resolve !== Node.prototype.resolve
+  )
+    return node.resolve(config);
   const children = resolveShared(node.children, config, resolveNodeShared);
   const attributes = resolveShared(node.attributes, config, resolveNodeShared);
   let slots = node.slots;
@@ -152,8 +158,17 @@ export default class Node implements AstType {
       }
       const child = list[positions[top]++];
       yield child;
-      lists.push(walkTargets(child));
-      positions.push(0);
+      if (
+        child.walk === Node.prototype.walk ||
+        typeof child.walk !== 'function'
+      ) {
+        lists.push(walkTargets(child));
+        positions.push(0);
+      } else {
+        // A child whose `walk` was replaced walks its own way, as each child's
+        // `walk` did before.
+        yield* child.walk();
+      }
     }
   }
 

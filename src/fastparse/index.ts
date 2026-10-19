@@ -9,6 +9,7 @@
  */
 import Node from '../ast/node';
 import { BlockState } from './block';
+import type { HeadingStop } from './block';
 import { InlineState } from './inline';
 import { build } from './build';
 import * as T from './tokens';
@@ -16,12 +17,18 @@ import * as T from './tokens';
 import type { ParserArgs } from '../types';
 
 type Parser = {
+  key: number;
   block: BlockState;
   inline: InlineState;
   busy: boolean;
 };
 
 const parsers = new Map<number, Parser>();
+
+// A parser that grew past these is not kept for the next document, so one
+// very large document does not hold on to its memory for good.
+const MAX_KEPT_TOKENS = 1 << 16;
+const MAX_KEPT_LINES = 1 << 17;
 
 function parserFor(options: ParserArgs): Parser {
   const key =
@@ -33,6 +40,7 @@ function parserFor(options: ParserArgs): Parser {
   let parser = parsers.get(key);
   if (!parser || parser.busy) {
     const created = {
+      key,
       block: new BlockState({
         html: !!options.html,
         allowIndentation: !!options.allowIndentation,
@@ -51,7 +59,19 @@ function parserFor(options: ParserArgs): Parser {
     if (!parser) parsers.set(key, created);
     parser = created;
   }
+  parser.busy = true;
   return parser;
+}
+
+function release(parser: Parser) {
+  parser.busy = false;
+  if (
+    parser.block.pool.length > MAX_KEPT_TOKENS ||
+    parser.inline.pool.length > MAX_KEPT_TOKENS ||
+    parser.block.bMarks.length > MAX_KEPT_LINES
+  ) {
+    if (parsers.get(parser.key) === parser) parsers.delete(parser.key);
+  }
 }
 
 const NEWLINES_RE = /\r\n?|\n/g;
@@ -84,13 +104,12 @@ export function parseDocument(
   if (typeof args === 'string') args = { file: args };
 
   const parser = parserFor(args);
-  parser.busy = true;
   try {
     parser.block.reset(normalize(String(source)));
     parser.block.tokenize(0, parser.block.lineMax);
     return build(parser.block, parser.inline, buildOptions(args), args);
   } finally {
-    parser.busy = false;
+    release(parser);
   }
 }
 
@@ -119,10 +138,12 @@ const WINDOW_GROWTH = 8;
 
 export type FirstHeadingOptions = ParserArgs & {
   /**
-   * Called with each Markdoc tag (as a Node with its attributes) that a
-   * heading could be inside; a heading inside a tag it returns `true` for does
-   * not count. With `slots`, headings in slots never count, as slots are not
-   * part of the document's children.
+   * Called with each Markdoc tag that a heading could be inside; a heading
+   * inside a tag it returns `true` for does not count. It must decide from
+   * the tag's name and attributes (`tag.tag`, `tag.attributes`): the Node it
+   * gets has no children or location yet, as the parse has not reached them.
+   * With `slots`, headings in slots never count, as slots are not part of the
+   * document's children.
    */
   skip?: (tag: Node) => boolean;
 };
@@ -139,12 +160,12 @@ export type FirstHeadingOptions = ParserArgs & {
  */
 export function parseFirstHeading(
   source: string,
-  args: FirstHeadingOptions = {}
+  args: string | FirstHeadingOptions = {}
 ): Node | undefined {
+  if (typeof args === 'string') args = { file: args };
   source = String(source);
   const parser = parserFor(args);
   const block = parser.block;
-  parser.busy = true;
   try {
     // Index and parse a window at the start of the document, growing it
     // until the heading is found well inside it, or the window is the
@@ -155,20 +176,20 @@ export function parseFirstHeading(
         normalize(windowed ? source.slice(0, limit) : source),
         windowed
       );
-      block.stop = {
+      const stop: HeadingStop = {
         skip: args.skip,
         slots: !!args.slots,
         open: [],
         skipped: 0,
         found: -1,
       };
-      let found: number;
+      block.stop = stop;
       try {
         block.tokenize(0, block.lineMax);
       } finally {
-        found = block.stop.found;
         block.stop = null;
       }
+      const found = stop.found;
 
       if (block.windowed) {
         // A heading's next line decides whether it is a table header, and
@@ -185,28 +206,31 @@ export function parseFirstHeading(
 
       // Markdoc tags inside fences and paragraphs become Nodes too, and one
       // left open there holds every later block — this heading included —
-      // as its children. So do HTML elements under an HTML handler. When
-      // such content comes before the heading, the full parse decides.
+      // as its children. So do HTML blocks' elements under an HTML handler,
+      // which matters when such an element could be skipped or keep a slot
+      // open. When such content comes before the heading, the full parse
+      // decides. It also does for a heading in a table, which the table
+      // transform rewrites.
       if (
-        mayLeak(block, found - 2, !!args.skip && typeof args.html === 'object')
+        mayLeak(
+          block,
+          found - 2,
+          (!!args.skip || !!args.slots) && typeof args.html === 'object'
+        ) ||
+        stop.open.some((open) => open.tag === 'table')
       )
         break;
 
       // heading_open, inline, heading_close
-      const doc = build(
-        block,
-        parser.inline,
-        buildOptions(args),
-        args,
-        found - 2,
-        found + 1
-      );
-      if (!parser.inline.missedReference) return doc.children[0];
-      // The heading looks up a link reference the parse has not reached.
-      break;
+      const range = { from: found - 2, to: found + 1, unclosed: false };
+      const doc = build(block, parser.inline, buildOptions(args), args, range);
+      // A tag left open in the heading would hold the blocks after it, and a
+      // link reference the parse has not reached may be defined after it.
+      if (range.unclosed || parser.inline.missedReference) break;
+      return doc.children[0];
     }
   } finally {
-    parser.busy = false;
+    release(parser);
   }
   return findFirstHeading(parse(source, args), args.skip);
 }

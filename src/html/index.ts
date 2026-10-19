@@ -17,8 +17,8 @@
  * void elements), names are lowercased and entities in attributes decoded.
  *
  * - An element left open at the end of its run (the document's HTML blocks,
- *   or one paragraph's inline HTML) is closed there, after an `errorTag`
- *   tag carrying a `message` attribute.
+ *   or one paragraph's inline HTML) is closed there, innermost first, each
+ *   after an `errorTag` tag inside it carrying a `message` attribute.
  * - A tag whose name cannot be a React element name (`GridItem\<T\>` written
  *   in an HTML block, say) stays text, as written.
  * - Text inside HTML that is only whitespace is dropped.
@@ -48,6 +48,8 @@ function run(errorTag: string): HtmlRun {
   let output: HtmlToken[] = [];
   const openedStack: { name: string; element: boolean }[] = [];
   let written = '';
+  // Set at the end of the run, when htmlparser2 closes what is still open.
+  let ending = false;
   const writtenTag = () =>
     written.slice(parser.startIndex, parser.endIndex + 1);
 
@@ -87,6 +89,24 @@ function run(errorTag: string): HtmlRun {
         if (!isImplied) output.push({ type: 'text', content: writtenTag() });
         return;
       }
+      if (ending && opened)
+        output.push(
+          {
+            type: 'tag_open',
+            nesting: 1,
+            meta: {
+              tag: errorTag,
+              attributes: [
+                {
+                  type: 'attribute',
+                  name: 'message',
+                  value: `HTML element <${opened.name}> is not closed`,
+                },
+              ],
+            },
+          },
+          { type: 'tag_close', nesting: -1, meta: { tag: errorTag } }
+        );
       output.push({ type: 'tag_close', nesting: -1, meta: { tag: 'html' } });
     },
   });
@@ -100,29 +120,11 @@ function run(errorTag: string): HtmlRun {
       return tokens;
     },
     end() {
-      const tokens: HtmlToken[] = [];
-      for (const { name, element } of openedStack) {
-        if (!element) continue;
-        tokens.push(
-          {
-            type: 'tag_open',
-            nesting: 1,
-            meta: {
-              tag: errorTag,
-              attributes: [
-                {
-                  type: 'attribute',
-                  name: 'message',
-                  value: `HTML element <${name}> is not closed`,
-                },
-              ],
-            },
-          },
-          { type: 'tag_close', nesting: -1, meta: { tag: errorTag } },
-          { type: 'tag_close', nesting: -1, meta: { tag: 'html' } }
-        );
-      }
-      return tokens;
+      // htmlparser2 then emits the text it held back (a possible entity at
+      // the end) and closes the open elements, innermost first.
+      ending = true;
+      parser.end();
+      return output;
     },
   };
 }

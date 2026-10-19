@@ -189,7 +189,7 @@ export type ParserArgs = {
   // @default ['if'] - By default, only the markdoc native conditional tag (`if`) is set
   conditionalTags?: string[];
   // When true, the parser produces a compact AST:
-  //  - no `lines` or `location` is set on any Node
+  //  - no `location` is set on any Node
   //  - the implicit `inline` wrapper Node around inline content is dropped
   //  - the top-level `document` Node is dropped when it has a single child,
   //    no slots, no errors, and no frontmatter
@@ -216,7 +216,7 @@ export type ParserArgs = {
   githubAdmonitions?: boolean;
   // Recognize raw HTML. With `true`, HTML blocks and inline HTML become
   // `html_block` and `html_inline` nodes. With a handler — such as
-  // `htmlTags()` from `@redocly/markdoc/dist/html` — the handler turns the
+  // `htmlTags()` from `@redocly/markdoc/dist/html.js` — the handler turns the
   // HTML into nodes instead.
   // @default false
   html?: boolean | HtmlHandler;
@@ -260,7 +260,9 @@ export type HtmlToken =
  * One run of HTML: all of a document's HTML blocks, in order, or the inline
  * HTML of one paragraph (heading, table cell, ...). The parser writes each
  * piece of raw HTML to the run and puts the tokens it returns where the HTML
- * was; at the end of the run it puts the tokens `end()` returns.
+ * was; at the end of the run it puts the tokens `end()` returns. By then
+ * every tag the run opened should be closed, as `htmlTags()` closes them:
+ * `parseFirstHeading` counts on inline HTML not holding later blocks.
  */
 export type HtmlRun = {
   write(html: string): HtmlToken[];

@@ -43,8 +43,11 @@ describe('parser, against the markdown-it reference', function () {
         const actual = outcome(() =>
           Markdoc.parse(source, { ...parseArgs, ...options })
         );
-        // Where 0.6.4 itself throws, the parser returns an AST instead.
-        if (actual !== expected && !expected.startsWith('threw'))
+        // Where 0.6.4 throws (an unclosed inline tag in link text, below),
+        // the parser returns an AST instead.
+        const known =
+          expected === 'threw TypeError' && !actual.startsWith('threw');
+        if (actual !== expected && !known)
           fail(`differs for ${JSON.stringify({ source, options, parseArgs })}`);
         compared++;
       }
@@ -79,6 +82,14 @@ describe('parser, against the markdown-it reference', function () {
     expect(link).toBeDefined();
     const errors = Markdoc.validate(Markdoc.parse(source), {});
     expect(errors.map((e) => e.error.id)).toContain('missing-opening');
+  });
+});
+
+describe('comments', function () {
+  it('in link text do not hang the parser, as they do 0.6.4', function () {
+    const ast = Markdoc.parse('[<!--x-->](/u)', { allowComments: true });
+    const inline = ast.children[0].children[0];
+    expect(inline.children.map((n: any) => n.type)).toEqual(['link']);
   });
 });
 
@@ -117,5 +128,22 @@ describe('parseAndValidate', function () {
       'tag-undefined',
     ]);
     expect(errors[0].location?.file).toEqual('a.md');
+  });
+
+  it('returns a promise of both when a validator is asynchronous', async function () {
+    const config = {
+      tags: {
+        x: {
+          async validate() {
+            return [{ id: 'x', level: 'error' as const, message: 'x' }];
+          },
+        },
+      },
+    };
+    const result = Markdoc.parseAndValidate('{% x /%}', config);
+    expect(result instanceof Promise).toBe(true);
+    const { ast, errors } = await result;
+    expect(ast.type).toEqual('document');
+    expect(errors.map((e) => e.error.id)).toEqual(['x']);
   });
 });

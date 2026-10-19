@@ -707,5 +707,28 @@ bar
 
       validate(doc, config);
     });
+
+    it('gives each node its own parents', () => {
+      const doc =
+        '{% outer %}\n{% inner %}\n{% leaf /%}\n{% leaf /%}\n{% /inner %}\n{% /outer %}';
+      const seen: (string | undefined)[] = [];
+      const config: Config = {
+        tags: {
+          outer: {},
+          inner: {},
+          leaf: {
+            validate(node, config) {
+              // Reversing in place must not change what the next leaf sees.
+              const parents = config.validation?.parents?.reverse();
+              seen.push(parents?.find((p) => p.tag)?.tag);
+              return [];
+            },
+          },
+        },
+      };
+
+      validate(doc, config);
+      expect(seen).toEqual(['inner', 'inner']);
+    });
   });
 });

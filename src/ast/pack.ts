@@ -18,7 +18,9 @@ import type { Location, NodeType, ValidationError } from '../types';
  *   `$e` errors, `$a` annotations, `$s` slots, `$l` location, and `$t` for a
  *   tag name on a node whose type is not `tag`. A hand-built node whose own
  *   attribute names start with `$` keeps them whole under `$A`;
- * - a list of nodes is `{ "$list": [...] }`.
+ * - a list of nodes is `{ "$list": [...] }`;
+ * - anything in `children` that is not a Node (which some pipelines put
+ *   there) is `["$", value]`, as no node head is `$`.
  *
  * `unpack(pack(ast))` serializes exactly like `Ast.fromJSON(JSON.stringify(ast))`.
  */
@@ -27,6 +29,7 @@ export type Packed = PackedNode | { $list: PackedNode[] };
 
 const INLINE = '~';
 const TAG = '%';
+const RAW = '$';
 
 function isEmpty(object: object | undefined): boolean {
   if (object) for (const _ in object) return false;
@@ -114,8 +117,8 @@ function packNode(node: Node, compact: boolean): PackedNode {
 
 function packChildren(children: Node[], compact: boolean, output: unknown[]) {
   for (const child of children) {
-    // Defensive, as in `compact()`: pass anything that is not a Node through.
-    if (!isNode(child)) output.push(child);
+    // Defensive, as in `compact()`: keep anything that is not a Node as is.
+    if (!isNode(child)) output.push([RAW, child]);
     else if (compact && child.type === 'inline')
       packChildren(child.children, compact, output);
     else output.push(packNode(child, compact));
@@ -180,8 +183,17 @@ function copyAttributes(value: Record<string, any>): Record<string, any> {
   for (const key of Object.keys(value)) {
     if (key.charCodeAt(0) === 36 /* $ */) continue;
     const item = value[key];
-    output[key] =
+    const copy =
       item !== null && typeof item === 'object' ? reviveCopy(item) : item;
+    // Assigning `__proto__` would set the prototype rather than the attribute.
+    if (key === '__proto__')
+      Object.defineProperty(output, key, {
+        value: copy,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+    else output[key] = copy;
   }
   return output;
 }
@@ -194,6 +206,7 @@ function unpackNode(value: PackedNode): Node {
   }
 
   let head = value[0];
+  if (head === RAW) return value[1] as Node;
   let inline = false;
   if (head.charCodeAt(0) === 126 /* ~ */) {
     inline = true;

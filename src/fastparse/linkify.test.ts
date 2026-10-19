@@ -158,6 +158,15 @@ describe('linkify (GitHub-flavored autolinks)', function () {
     );
   });
 
+  it('takes linear time on runs of parentheses and at signs', function () {
+    const start = Date.now();
+    Markdoc.parse('https://example.com/' + ')'.repeat(50000), {
+      linkify: true,
+    });
+    Markdoc.parse('a@'.repeat(50000) + '.com', { linkify: true });
+    expect(Date.now() - start).toBeLessThan(500);
+  });
+
   it('links inside Markdoc tags and table cells', function () {
     const ast = Markdoc.parse(
       '{% note %}\nsee https://example.com\n{% /note %}\n\n| a |\n|---|\n| www.example.com |',

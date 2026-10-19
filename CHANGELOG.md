@@ -45,20 +45,31 @@ byte-identical to 0.6.4's.
   extension): the same boundaries, domain checks and trimming of trailing
   punctuation, unbalanced parentheses and entities. Text inside links and
   code is left alone.
-- **`htmlTags()` from `@redocly/markdoc/dist/html`**, ported from Redocly
+- **`htmlTags()` from `@redocly/markdoc/dist/html.js`**, ported from Redocly
   Realm. `parse(source, { html: htmlTags() })` turns raw HTML into `html`
   tags with React-converted attributes, the markdown between an element's
-  opening and closing tags as their children. Unclosed elements are closed
-  after a `markdoc-error` tag. The entry bundles htmlparser2, so the main
-  bundle does not grow. `html` also accepts any `HtmlHandler`.
-- **`parseAndValidate(source, config, args)`** returns `{ ast, errors }`.
+  opening and closing tags as their children. The entry bundles htmlparser2,
+  so the main bundle does not grow. `html` also accepts any `HtmlHandler`.
+  It fixes four bugs in Realm's version:
+  - an unclosed element is closed with its `markdoc-error` tag inside it,
+    innermost first (Realm put each error inside the element opened after
+    it);
+  - text at the end of the HTML that could start an entity (`&am`) is kept;
+  - boolean attributes are `true`, so `<details open>` and
+    `<input disabled>` render as written (React drops `''`);
+  - a `style` value keeps its colons and semicolons
+    (`background:url(https://…)`).
+- **`parseAndValidate(source, config, args)`** returns `{ ast, errors }`, or
+  a promise of it when a validator is asynchronous.
 - **`parseFirstHeading(source, { ...options, skip })`** returns a document's
   first heading Node without parsing the rest of it.
-  - It skips headings in slots and in tags `skip(tagNode)` rejects.
+  - It skips headings in slots and in tags `skip(tagNode)` rejects. `skip`
+    gets each tag before its children are parsed, so it must decide by the
+    tag's name and attributes.
   - It always returns the node `findFirstHeading(parse(source, options), skip)`
-    would. When the heading uses a link reference defined later, or content
-    before it could leave a tag open around it, it parses the whole document
-    to be sure.
+    would. When the heading uses a link reference defined later, is inside a
+    `table` tag, or it or content before it could leave a tag open around
+    later blocks, it parses the whole document to be sure.
   - The first heading of all 1,129 corpus pages takes 9 ms, against 41 ms for
     0.6.4's `tokenizeUntil` and 195 ms for a full parse.
 - **`frontmatter: false`** turns off frontmatter parsing. It is on by default,
@@ -77,6 +88,12 @@ byte-identical to 0.6.4's.
 - **An unclosed inline tag in link text (`[a {% t %}](/u)`) threw a
   `TypeError`.** The stray link close now becomes a node with a
   `missing-opening` error, like other unmatched closes.
+- **A comment in link text (`[<!--x-->](/u)`, with `allowComments`) hung the
+  parser.**
+- **The CommonJS builds name their exports for Node**, so
+  `import { parse } from '@redocly/markdoc'` and
+  `import { htmlTags } from '@redocly/markdoc/dist/html.js'` work from ES
+  modules.
 
 ### Performance
 

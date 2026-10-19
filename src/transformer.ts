@@ -67,28 +67,6 @@ function transformAttribute(
 }
 
 /**
- * The entries of `{ ...globalAttributes, ...attributes }`, in the same order,
- * without building the merged object for every node.
- */
-export function mergedAttributes(
-  attributes: AttributesSchema
-): [string, NonNullable<AttributesSchema>[string]][] {
-  if (!attributes) return Object.entries(globalAttributes!);
-  const entries: [string, NonNullable<AttributesSchema>[string]][] = [];
-  for (const key of Object.keys(globalAttributes!))
-    entries.push([
-      key,
-      Object.prototype.hasOwnProperty.call(attributes, key)
-        ? attributes[key]
-        : globalAttributes![key],
-    ]);
-  for (const key of Object.keys(attributes))
-    if (!Object.prototype.hasOwnProperty.call(globalAttributes, key))
-      entries.push([key, attributes[key]]);
-  return entries;
-}
-
-/**
  * In compact mode, a wrapper that carries no information of its own is dropped
  * and its children are returned in its place:
  *

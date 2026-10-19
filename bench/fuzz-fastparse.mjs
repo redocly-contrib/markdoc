@@ -354,9 +354,17 @@ const viaReference = (src, k) =>
   outcome(() => B.parse(tokenizers[k].tokenize(src), CONFIGS[k][1]));
 const viaParser = (src, k) =>
   outcome(() => M.parse(src, { ...CONFIGS[k][1], ...CONFIGS[k][0] }));
+// With comments on, 0.6.4 loops forever on a comment that a link label scan
+// reaches (`[<!--x-->](/u)`); the parser does not, and tests that itself. Skip
+// a paragraph with a `[` before a comment there.
+const hangsReference = (src, k) =>
+  CONFIGS[k][0].allowComments &&
+  src.split(/\n[ \t]*\n/).some((block) => /\[[^]*<!--[^]*-->/.test(block));
+
 // Where 0.6.4 itself throws (an unclosed inline tag in link text), the parser
 // returns an AST instead, so those inputs have nothing to compare.
 function mismatch(src, k) {
+  if (hangsReference(src, k)) return false;
   const expected = viaReference(src, k);
   return !expected.startsWith('THREW') && expected !== viaParser(src, k);
 }

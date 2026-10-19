@@ -31,6 +31,11 @@ describe('parseFirstHeading', function () {
     expect(heading?.attributes).toEqual({ level: 2, id: 'id' });
   });
 
+  it('takes a file name for options, as parse does', function () {
+    const heading = Markdoc.parseFirstHeading('# Heading', 'doc.md');
+    expect(heading?.location?.file).toEqual('doc.md');
+  });
+
   it('returns undefined without a heading', function () {
     expect(Markdoc.parseFirstHeading('No heading\n\n- here', OPTIONS)).toBe(
       undefined
@@ -128,6 +133,24 @@ describe('parseFirstHeading with tags Markdoc leaves open', function () {
   it('sees a tag that a list item cannot close', function () {
     expect(
       check('{% prompt %}\n- item\n\n  {% /prompt %}\n\n# still inside', args)
+    ).toBe(undefined);
+  });
+
+  it('sees a tag left open in the heading itself', function () {
+    const heading = check('# Hello {% t %}\n\n# second');
+    // The open tag holds the next heading, as in the full parse.
+    expect(JSON.stringify(heading)).toContain('second');
+  });
+
+  it('sees a heading inside a table, which the table transform rewrites', function () {
+    const heading = check('{% table %}\n# dropped\n{% /table %}\n\n# kept');
+    expect(JSON.stringify(heading)).toContain('kept');
+  });
+
+  it('sees an HTML element that keeps a slot open', function () {
+    const withHtml = { slots: true, html: htmlTags() };
+    expect(
+      check('{% slot "foo" %}\n\n<div>\n\n{% /slot %}\n\n# Heading', withHtml)
     ).toBe(undefined);
   });
 

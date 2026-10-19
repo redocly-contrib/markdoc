@@ -1335,11 +1335,15 @@ function comment(state: InlineState, silent: boolean): boolean {
   const close = state.src.indexOf(COMMENT_CLOSE, state.pos);
 
   if (close === -1) return false;
-  if (silent) return true;
 
-  const content = state.src.slice(state.pos + COMMENT_OPEN.length, close);
-  const token = state.push(T.COMMENT);
-  token.content = content.trim();
+  if (!silent) {
+    const content = state.src.slice(state.pos + COMMENT_OPEN.length, close);
+    const token = state.push(T.COMMENT);
+    token.content = content.trim();
+  }
+  // Markdoc's rule returns early when silent, without moving past the
+  // comment, which makes a link label holding one (`[<!--x-->](/u)`) loop
+  // forever.
   state.pos = close + COMMENT_CLOSE.length;
 
   return true;

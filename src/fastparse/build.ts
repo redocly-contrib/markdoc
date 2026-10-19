@@ -149,13 +149,18 @@ function processFence(token: BlockToken): any[] | undefined {
   return parseTags(token.content, token.map0);
 }
 
+/**
+ * The tokens `[from, to)` to build, for `parseFirstHeading`, and whether they
+ * left a Node open — one that would hold every later block in a full build.
+ */
+export type BuildRange = { from: number; to: number; unclosed: boolean };
+
 export function build(
   block: BlockState,
   inline: InlineState,
   options: BuildOptions,
   args?: ParserArgs,
-  from = 0,
-  to = block.length
+  range?: BuildRange
 ): Node {
   const doc = new Node('document');
   const nodes: Node[] = [doc];
@@ -166,7 +171,8 @@ export function build(
   const locate = !compact && addLocation !== false;
 
   const pool = block.pool;
-  const length = to;
+  const from = range ? range.from : 0;
+  const length = range ? range.to : block.length;
 
   // With an HTML handler, the document's HTML blocks form one run and each
   // inline content its own; the handler's tokens take the HTML's place.
@@ -174,7 +180,9 @@ export function build(
   const blockRun = html?.start();
 
   function handleHtml(tokens: HtmlToken[], inlineParent: Node | undefined) {
-    for (const token of tokens)
+    for (const token of tokens) {
+      if (token.type === 'tag_open' && token.meta.tag === 'table')
+        sawTable = true;
       handleObjectToken(
         token,
         nodes,
@@ -184,6 +192,7 @@ export function build(
         compact,
         inlineParent
       );
+    }
   }
 
   function handleInlineTokens(start: number, inlineParent: Node) {
@@ -285,8 +294,7 @@ export function build(
     node.inline = true;
 
     const attributes = meta ? meta.attributes : undefined;
-    if (attributes && (typeName === 'tag' || typeName === 'image'))
-      annotate(node, attributes);
+    if (attributes && typeName === 'tag') annotate(node, attributes);
 
     place(node, parent, tag);
 
@@ -466,6 +474,7 @@ export function build(
 
   if (blockRun) handleHtml(blockRun.end(), undefined);
 
+  if (range) range.unclosed = nodes.length > 1;
   if (nodes.length > 1)
     for (const node of nodes.slice(1))
       node.addError({

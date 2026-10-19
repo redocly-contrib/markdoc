@@ -101,6 +101,10 @@ function trimEnd(str: string, start: number, end: number): number {
     }
   }
 
+  // Parentheses in the link, counted at the first trailing `)`. Only that
+  // branch trims one, so the counts stay current without a recount.
+  let opening = -1;
+  let closing = 0;
   while (end > start) {
     const last = str.charCodeAt(end - 1);
     if ('?!.,:*_~\'"'.indexOf(str[end - 1]) !== -1) {
@@ -114,14 +118,16 @@ function trimEnd(str: string, start: number, end: number): number {
         end = entityStart;
       else end--;
     } else if (last === 0x29 /* ) */) {
-      let opening = 0;
-      let closing = 0;
-      for (let i = start; i < end; i++) {
-        const c = str.charCodeAt(i);
-        if (c === 0x28) opening++;
-        else if (c === 0x29) closing++;
+      if (opening < 0) {
+        opening = 0;
+        for (let i = start; i < end; i++) {
+          const c = str.charCodeAt(i);
+          if (c === 0x28) opening++;
+          else if (c === 0x29) closing++;
+        }
       }
       if (closing <= opening) break;
+      closing--;
       end--;
     } else break;
   }
@@ -249,8 +255,11 @@ function findEmail(str: string, offset: number): [number, number] | undefined {
       for (; end < str.length; end++) {
         const c = str.charCodeAt(end);
         if (isAlnum(c)) continue;
-        if (c === 0x40 /* @ */) at2++;
-        else if (
+        if (c === 0x40 /* @ */) {
+          // A second `@` rules the address out, so stop there rather than
+          // scan on: `a@a@a@…` would otherwise take quadratic time.
+          if (++at2 > 1) break;
+        } else if (
           c === 0x2e /* . */ &&
           end < str.length - 1 &&
           isAlnum(str.charCodeAt(end + 1))

@@ -213,9 +213,10 @@ footer { color: var(--muted); font-size: 0.86rem; display: grid; gap: 10px; }
         <p>Bare <code>www.</code>, <code>http(s)://</code> and <code>ftp://</code> URLs and email addresses become links by GitHub's own rules (cmark-gfm's autolink extension), not linkify-it's fuzzy matching. That covers the same boundaries and domain checks, trims trailing punctuation, entities and unbalanced parentheses, and never touches links, link text, images or code. Every GFM spec autolink example is a passing unit test.</p>
       </div>
       <div class="api-item">
-        <div class="sig">import { htmlTags } from '@redocly/markdoc/dist/html' · parse(source, { html: htmlTags() })</div>
+        <div class="sig">import { htmlTags } from '@redocly/markdoc/dist/html.js' · parse(source, { html: htmlTags() })</div>
         <p>Your Realm HTML handler, built in and optional. Elements become <code>html</code> tags with React-converted attributes and the markdown between their opening and closing tags as children. Unclosed elements close after a <code>markdoc-error</code> tag, and invalid names stay text. It runs inside the parser, with no extra token pass, and ships as a separate entry with <code>htmlparser2</code> 8.0.2 bundled, so the main bundle doesn't grow.</p>
-        <p class="num">Identical to Realm's own processHtmlTokens (bundled straight from the Redocly repo) on all 8,940 documents, 373 of them with HTML, and on 3,000 random HTML documents</p>
+        <p>It fixes four bugs in Realm's version. Boolean attributes are <code>true</code>: Realm passes <code>''</code>, which React drops, so <code>&lt;details open&gt;</code> rendered closed (three corpus pages lose <code>allowfullscreen</code> or <code>async</code> today). Unclosed elements close innermost first, each with its error inside it. Text at the end of the HTML that could start an entity is kept. A <code>style</code> value keeps its colons and semicolons.</p>
+        <p class="num">Identical to Realm's own processHtmlTokens, bundled straight from the Redocly repo with the same fixes patched in, on all 8,940 documents (373 with HTML) and on 3,000 random HTML documents</p>
       </div>
       <div class="api-item">
         <div class="sig">Link reference definitions in linear time (markdown-it#996)</div>
@@ -278,7 +279,7 @@ packed: ["paragraph","Hello ",["~em",{"marker":"*"},"world"]]</pre>
 
   <section aria-labelledby="h-move">
     <h2 id="h-move">Moving Redocly over</h2>
-<pre>import { htmlTags } from '@redocly/markdoc/dist/html';
+<pre>import { htmlTags } from '@redocly/markdoc/dist/html.js';
 const OPTIONS = { html: htmlTags(), allowIndentation: true, allowComments: true };
 
 // portal compiler.ts — was: Tokenizer + #996 patch + processHtmlTokens + parse(tokens)

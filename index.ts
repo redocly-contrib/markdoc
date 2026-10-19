@@ -16,7 +16,7 @@ import tags from './src/tags';
 import { truthy } from './src/tags/conditional';
 import transformer, { globalAttributes } from './src/transformer';
 import transforms from './src/transforms';
-import { parseTags } from './src/utils';
+import { isPromise, parseTags } from './src/utils';
 import validator, { validateTree } from './src/validator';
 
 import type { ParserArgs } from './src/types';
@@ -28,7 +28,7 @@ import type {
 } from './src/types';
 
 export * from './src/types';
-export type { Packed, PackedNode } from './src/ast/pack';
+export type { Packed, PackedNode, PackOptions } from './src/ast/pack';
 
 // Brands a config returned by `prepareConfig`. A symbol key so it never shows
 // up in `Object.keys` or JSON, and enumerable so it survives the
@@ -173,6 +173,9 @@ export function validate<C extends Config = Config>(
  * args)` and the same errors as `validate(ast, config)`, from one call.
  * Parse with locations (the default) when the errors should point at lines;
  * `Ast.pack(ast, { compact: true })` drops them when storing the AST.
+ *
+ * When a validator is asynchronous, the result is a promise of that object,
+ * just as `validate` then returns a promise (which its type also leaves out).
  */
 export function parseAndValidate<C extends Config = Config>(
   source: string,
@@ -180,7 +183,13 @@ export function parseAndValidate<C extends Config = Config>(
   args?: string | ParserArgs
 ): { ast: Node; errors: ValidateError[] } {
   const ast = parse(source, args);
-  return { ast, errors: validate(ast, config) };
+  const errors: ValidateError[] | Promise<ValidateError[]> = validate(
+    ast,
+    config
+  );
+  if (isPromise(errors))
+    return errors.then((errors) => ({ ast, errors })) as any;
+  return { ast, errors };
 }
 
 export function createElement(
@@ -247,4 +256,6 @@ export default class Markdoc {
     transform(content, this.config);
   validate = (content: Parameters<typeof validate>[0]) =>
     validate(content, this.config);
+  parseAndValidate = (source: string, args?: string | ParserArgs) =>
+    parseAndValidate(source, this.config, args);
 }

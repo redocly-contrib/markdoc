@@ -38,6 +38,33 @@ describe('htmlTags', function () {
     ).toEqual({ defaultValue: 'v', defaultChecked: true });
   });
 
+  it('makes boolean attributes true, as React drops empty strings', function () {
+    expect(
+      getJsxConvertedAttributes(
+        { open: '', disabled: 'disabled', readonly: '', 'aria-hidden': '' },
+        'details'
+      )
+    ).toEqual({
+      open: true,
+      disabled: true,
+      readOnly: true,
+      'aria-hidden': '',
+    });
+  });
+
+  it('keeps colons and semicolons inside style values', function () {
+    expect(
+      getJsxConvertedAttributes({
+        style:
+          'background:url(https://e.com/a.png); content: "a;b"; mask: url(data:image/png;base64,AA==)',
+      }).style
+    ).toEqual({
+      background: 'url(https://e.com/a.png)',
+      content: '"a;b"',
+      mask: 'url(data:image/png;base64,AA==)',
+    });
+  });
+
   it('handles inline HTML within a paragraph', function () {
     const ast = parse('Some <b>bold</b> and <br> text');
     const inline = ast.children[0].children[0];
@@ -57,6 +84,24 @@ describe('htmlTags', function () {
     expect(Markdoc.validate(ast, {}).map((e) => e.error.id)).not.toContain(
       'missing-closing'
     );
+  });
+
+  it('reports each unclosed element inside it, innermost first', function () {
+    const ast = parse('<div><span>\nx');
+    const [div] = ast.children;
+    const [span, divError] = div.children;
+    expect(span.attributes.name).toEqual('span');
+    expect(span.children[1].attributes).toEqual({
+      message: 'HTML element <span> is not closed',
+    });
+    expect(divError.attributes).toEqual({
+      message: 'HTML element <div> is not closed',
+    });
+  });
+
+  it('keeps text htmlparser2 holds back at the end of a run', function () {
+    const ast = parse('<div>\n&am');
+    expect(ast.children[0].children[0].attributes.content).toEqual('\n&am');
   });
 
   it('uses a custom error tag', function () {

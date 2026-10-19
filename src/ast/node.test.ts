@@ -27,6 +27,29 @@ describe('Node object', function () {
       const output = [...iter];
       expect(output.length).toEqual(6);
     });
+
+    it('with a child whose walk was replaced', function () {
+      const doc = markdoc.parse('a\n\nb');
+      doc.children[0].walk = function* () {
+        yield new Node('hr');
+      };
+      expect([...doc.walk()].map((node) => node.type)).toEqual([
+        'paragraph',
+        'hr',
+        'paragraph',
+        'inline',
+        'text',
+      ]);
+    });
+  });
+
+  it('resolves with a replaced resolve method, without cloning', function () {
+    const doc = markdoc.parse('Hello');
+    doc.children[0].resolve = () => new Node('text', { content: 'Resolved' });
+    const config = markdoc.prepareConfig({}, { cloneAst: false });
+    expect(markdoc.renderers.html(markdoc.transform(doc, config))).toEqual(
+      '<article>Resolved</article>'
+    );
   });
 
   it('without slots', function () {

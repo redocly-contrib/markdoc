@@ -100,6 +100,29 @@ const a = 1;
     });
   });
 
+  it('keeps children that are not Nodes as they are', function () {
+    const node = new Node('paragraph', {}, [
+      'hello' as any,
+      7 as any,
+      { plain: true } as any,
+      new Node('text', { content: 'x' }),
+    ]);
+    const copy = unpack(JSON.parse(JSON.stringify(pack(node)))) as Node;
+    expect(copy.children.slice(0, 3)).toEqual([
+      'hello',
+      7,
+      { plain: true },
+    ] as any);
+    expect(copy.children[3].attributes).toEqual({ content: 'x' });
+  });
+
+  it('keeps a __proto__ attribute as an attribute', function () {
+    const node = new Node('paragraph', JSON.parse('{"__proto__":{"x":1}}'));
+    const copy = unpack(JSON.parse(JSON.stringify(pack(node)))) as Node;
+    expect(Object.keys(copy.attributes)).toEqual(['__proto__']);
+    expect(Object.getPrototypeOf(copy.attributes)).toBe(Object.prototype);
+  });
+
   it('never mutates the value it unpacks', function () {
     const packed = JSON.parse(
       JSON.stringify(pack(Markdoc.parse(`{% tag a=$x %}text{% /tag %}`)))

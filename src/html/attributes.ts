@@ -12,6 +12,7 @@ const ATTRIBUTE_MAPPING: Record<string, string> = {
   allowfullscreen: 'allowFullScreen',
   allowtransparency: 'allowTransparency',
   autocomplete: 'autoComplete',
+  autofocus: 'autoFocus',
   autoplay: 'autoPlay',
   cellpadding: 'cellPadding',
   cellspacing: 'cellSpacing',
@@ -39,6 +40,7 @@ const ATTRIBUTE_MAPPING: Record<string, string> = {
   maxlength: 'maxLength',
   mediagroup: 'mediaGroup',
   minlength: 'minLength',
+  nomodule: 'noModule',
   novalidate: 'noValidate',
   playsinline: 'playsInline',
   radiogroup: 'radioGroup',
@@ -144,6 +146,34 @@ const ATTRIBUTE_MAPPING: Record<string, string> = {
   'xml:space': 'xmlSpace',
 };
 
+// React props that are booleans. React drops one set to `''`, so an HTML
+// boolean attribute (`<details open>`, `<input disabled>`) becomes `true`:
+// in HTML, any value means present.
+const BOOLEAN_PROPS = new Set([
+  'allowFullScreen',
+  'async',
+  'autoFocus',
+  'autoPlay',
+  'controls',
+  'default',
+  'defer',
+  'disabled',
+  'formNoValidate',
+  'hidden',
+  'itemScope',
+  'loop',
+  'multiple',
+  'muted',
+  'noModule',
+  'noValidate',
+  'open',
+  'playsInline',
+  'readOnly',
+  'required',
+  'reversed',
+  'selected',
+]);
+
 /** Convert raw HTML attributes to React props (names, style objects, controlled-input defaults). */
 export function getJsxConvertedAttributes(
   attrs: Record<string, string>,
@@ -169,8 +199,10 @@ export function getJsxConvertedAttributes(
       case 'style':
         result.style = convertStyleAttrs(value);
         break;
-      default:
-        result[ATTRIBUTE_MAPPING[name] || name] = value;
+      default: {
+        const prop = ATTRIBUTE_MAPPING[name] || name;
+        result[prop] = BOOLEAN_PROPS.has(prop) ? true : value;
+      }
     }
   }
   return result;
@@ -183,13 +215,37 @@ function replaceStyleName(styleName: string): string {
   return styleName.replace(/-[a-z]/g, (match) => match[1].toUpperCase());
 }
 
+/**
+ * A `style` attribute as a React style object. Declarations end at semicolons
+ * outside quotes and parentheses, and each splits at its first colon, so
+ * values such as `url(data:image/png;base64,…)` stay whole.
+ */
 function convertStyleAttrs(input: string): Record<string, string> {
-  return input
-    .split(';')
-    .filter((style) => style.trim().length)
-    .reduce((styleObj: Record<string, string>, style) => {
-      const [key, value = ''] = style.split(':');
-      styleObj[replaceStyleName(key.trim())] = value.trim();
-      return styleObj;
-    }, {});
+  const style: Record<string, string> = {};
+  const declaration = (text: string) => {
+    if (!text.trim().length) return;
+    const colon = text.indexOf(':');
+    const key = colon === -1 ? text : text.slice(0, colon);
+    style[replaceStyleName(key.trim())] =
+      colon === -1 ? '' : text.slice(colon + 1).trim();
+  };
+
+  let start = 0;
+  let depth = 0;
+  let quote = 0;
+  for (let i = 0; i < input.length; i++) {
+    const c = input.charCodeAt(i);
+    if (quote) {
+      if (c === 0x5c /* \ */) i++;
+      else if (c === quote) quote = 0;
+    } else if (c === 0x22 /* " */ || c === 0x27 /* ' */) quote = c;
+    else if (c === 0x28 /* ( */) depth++;
+    else if (c === 0x29 /* ) */ && depth > 0) depth--;
+    else if (c === 0x3b /* ; */ && depth === 0) {
+      declaration(input.slice(start, i));
+      start = i + 1;
+    }
+  }
+  declaration(input.slice(start));
+  return style;
 }

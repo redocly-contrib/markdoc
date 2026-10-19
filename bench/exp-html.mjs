@@ -1,4 +1,4 @@
-// The HTML handler (`htmlTags()` from dist/html) against Redocly Realm's own
+// The HTML handler (`htmlTags()` from dist/html.js) against Redocly Realm's own
 // `processHtmlTokens`, which it was ported from.
 //
 //   node bench/exp-html.mjs [fuzz iterations]
@@ -6,7 +6,14 @@
 // The reference is Realm's file as it is in the Redocly repo (REDOCLY_REPO),
 // bundled on the fly with esbuild and applied to published 0.6.4's tokens,
 // exactly as Realm's parse cache does. Nothing from it is copied here.
-import { buildSync } from 'esbuild';
+//
+// `htmlTags()` fixes three of Realm's bugs, so the bundle patches the same
+// fixes into Realm's code (each patch fails loudly if its target changes):
+// unclosed elements are closed innermost first, each with its error inside
+// it; boolean attributes are `true`; a style declaration splits at its first
+// colon. (The fourth fix, keeping text htmlparser2 holds back at the end of
+// a run, and semicolons inside style values, have their own tests.)
+import { build } from 'esbuild';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -20,14 +27,50 @@ const REPO = process.env.REDOCLY_REPO || '/Users/romanhotsiy/Projects/redocly';
 const SOURCE = path.join(REPO, 'packages/realm-plus/src/content-layer/markdown/utils/html-tokens.ts');
 const OUT = path.join(here, '.cache', 'realm-html-tokens.cjs');
 
+const BOOLEAN_PROPS = [
+  'allowFullScreen', 'async', 'autoFocus', 'autoPlay', 'controls', 'default', 'defer', 'disabled',
+  'formNoValidate', 'hidden', 'itemScope', 'loop', 'multiple', 'muted', 'noModule', 'noValidate',
+  'open', 'playsInline', 'readOnly', 'required', 'reversed', 'selected',
+];
+const PATCHES = {
+  'html-tokens.ts': [
+    ['for (const { name, element } of openedStack) {', 'for (const { name, element } of [...openedStack].reverse()) {'],
+  ],
+  'html-jsx-attributes.ts': [
+    [
+      'result[ATTRIBUTE_MAPPING[name] || name] = value;',
+      `{ const prop = ({ autofocus: 'autoFocus', nomodule: 'noModule' })[name] || ATTRIBUTE_MAPPING[name] || name;
+         result[prop] = ${JSON.stringify(BOOLEAN_PROPS)}.includes(prop) ? true : value; }`,
+    ],
+    [
+      "const [key, value = ''] = style.split(':');",
+      "const colon = style.indexOf(':'); const key = colon < 0 ? style : style.slice(0, colon); const value = colon < 0 ? '' : style.slice(colon + 1);",
+    ],
+  ],
+};
+const patchRealm = {
+  name: 'patch-realm',
+  setup(b) {
+    b.onLoad({ filter: /html-(tokens|jsx-attributes)\.ts$/ }, ({ path: file }) => {
+      let contents = fs.readFileSync(file, 'utf8');
+      for (const [from, to] of PATCHES[path.basename(file)]) {
+        if (!contents.includes(from)) throw new Error(`${path.basename(file)} no longer has: ${from}`);
+        contents = contents.replace(from, to);
+      }
+      return { contents, loader: 'ts' };
+    });
+  },
+};
+
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
-buildSync({
+await build({
   entryPoints: [SOURCE],
   bundle: true,
   platform: 'node',
   format: 'cjs',
   outfile: OUT,
   logLevel: 'error',
+  plugins: [patchRealm],
   // Realm imports Markdoc only for a schema it never runs here.
   alias: { '@markdoc/markdoc': require.resolve('markdoc-baseline') },
 });

@@ -184,7 +184,7 @@ default.
 ### `htmlTags()` — your Realm HTML handler, built in
 
 ```js
-import { htmlTags } from '@redocly/markdoc/dist/html';
+import { htmlTags } from '@redocly/markdoc/dist/html.js';
 Markdoc.parse(source, { html: htmlTags() });
 ```
 
@@ -194,14 +194,26 @@ Markdoc.parse(source, { html: htmlTags() });
   children.
 - An element still open at the end is closed after a `markdoc-error` tag (the
   name is configurable). Names that can't be React elements stay text.
+- It fixes four bugs in Realm's version:
+  - **Boolean attributes are `true`.** Realm passes `''`, which React drops.
+    Three corpus pages are affected: two `<iframe allowfullscreen>` embeds and
+    an `async` script.
+  - **Unclosed elements are closed innermost first**, each with its
+    `markdoc-error` inside it. Realm put each error inside the element opened
+    after it.
+  - **Text at the end of the HTML that could start an entity (`&am`) is
+    kept.** Realm lost it.
+  - **A `style` value keeps its colons and semicolons**
+    (`background:url(https://…)`). Realm cut it at the first colon.
 - It runs inside the parser: no extra pass over tokens, and the document's
   HTML blocks form one run, as in Realm.
 - It is a separate entry point that bundles `htmlparser2` 8.0.2, the version
   Redocly pins, so the main bundle doesn't grow.
 
 **Checked against Realm's actual code.** `bench/exp-html.mjs` bundles Realm's
-`html-tokens.ts` straight from the Redocly repo (nothing is copied) and runs it
-on 0.6.4's tokens, as Realm's parse cache does:
+`html-tokens.ts` straight from the Redocly repo (nothing is copied), patches in
+the same fixes for the first three bugs, and runs it on 0.6.4's tokens, as
+Realm's parse cache does. The other fixes have their own tests.
 
 | check | result |
 |---|---|
@@ -377,7 +389,7 @@ Per document, the way the portal uses Markdoc (`bench/e2e.mjs`):
 The four parse sites become one call each:
 
 ```js
-import { htmlTags } from '@redocly/markdoc/dist/html';
+import { htmlTags } from '@redocly/markdoc/dist/html.js';
 
 const OPTIONS = { html: htmlTags(), allowIndentation: true, allowComments: true };
 

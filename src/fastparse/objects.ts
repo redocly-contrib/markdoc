@@ -1,124 +1,27 @@
 /**
- * Turns token-shaped objects into Nodes: what `parser.ts` did for every
- * markdown-it token. The fast parser builds Nodes from its own tokens in
- * `build.ts`; this handles the plain objects it gets from elsewhere — tag
- * tokens found inside fence content by `parseTags`, and the tokens an HTML
- * handler emits.
+ * Turns token-shaped objects into Nodes, as Markdoc's `handleToken` did for
+ * markdown-it tokens. `build.ts` builds Nodes from the parser's own tokens;
+ * this handles the plain objects it gets from elsewhere, which are only ever
+ * the text, tag, variable, annotation and error tokens `parseTags` finds in
+ * fence content, and the text and tag tokens an HTML handler emits.
  */
 import Node from '../ast/node';
-import { OPEN } from '../utils';
+import { annotate } from './annotate';
 
-import type { AttributeValue, NodeType } from '../types';
+import type { NodeType } from '../types';
 
 /**
- * A markdown-it-style token. Producers set only what they have — a text token
- * from `parseTags` has no `nesting`, for one — so every field but `type` is
- * optional, exactly as `handleToken` has always treated them.
+ * A token from `parseTags` or an HTML handler. Producers set only what they
+ * have — a text token has no `nesting`, for one — so every field but `type`
+ * is optional.
  */
 export type ObjectToken = { type: string; [field: string]: any };
 
-const mappings: Record<string, string> = {
-  ordered_list: 'list',
-  bullet_list: 'list',
-  code_inline: 'code',
-  list_item: 'item',
-  variable: 'text',
-};
-
-/** `type.replace(/_(open|close)$/, '')`, without a regex per token. */
-function baseTypeName(type: string): string {
+/** `tag_open` and `tag_close` are `tag`s, and a variable is `text`. */
+function typeNameOf(type: string): string {
   if (type.endsWith('_open')) return type.slice(0, -5);
   if (type.endsWith('_close')) return type.slice(0, -6);
-  return type;
-}
-
-function annotate(node: Node, attributes: AttributeValue[]) {
-  for (const attribute of attributes) {
-    node.addAnnotation(attribute);
-
-    const { name, value, type } = attribute;
-    if (type === 'attribute') {
-      if (node.attributes[name] !== undefined)
-        node.addError({
-          id: 'duplicate-attribute',
-          level: 'warning',
-          message: `Attribute '${name}' already set`,
-        });
-      node.attributes[name] = value;
-    } else if (type === 'class')
-      if (node.attributes.class) node.attributes.class[name] = value;
-      else node.attributes.class = { [name]: value };
-  }
-}
-
-function handleAttrs(token: ObjectToken, type: string) {
-  switch (type) {
-    case 'heading':
-      return { level: Number(token.tag.replace('h', '')) };
-    case 'list': {
-      const attrs = token.attrs ? Object.fromEntries(token.attrs) : undefined;
-      const ordered = token.type.startsWith('ordered');
-      return ordered && attrs?.start
-        ? { ordered: true, start: attrs.start, marker: token.markup }
-        : { ordered, marker: token.markup };
-    }
-    case 'link': {
-      const attrs = Object.fromEntries(token.attrs);
-      return attrs.title
-        ? { href: attrs.href, title: attrs.title }
-        : { href: attrs.href };
-    }
-    case 'image': {
-      const attrs = Object.fromEntries(token.attrs);
-      return attrs.title
-        ? { alt: token.content, src: attrs.src, title: attrs.title }
-        : { alt: token.content, src: attrs.src };
-    }
-    case 'em':
-    case 'strong':
-      return { marker: token.markup };
-    case 'text':
-    case 'code':
-    case 'comment':
-      return { content: (token.meta || {}).variable || token.content };
-    case 'fence': {
-      const [language] = token.info.split(' ', 1);
-      return language === '' || language === OPEN
-        ? { content: token.content }
-        : { content: token.content, language };
-    }
-    case 'blockquote': {
-      if (token.attrs) {
-        const attrs = Object.fromEntries(token.attrs);
-        if (attrs.kind) return { kind: attrs.kind };
-      }
-      return {};
-    }
-    case 'td':
-    case 'th': {
-      if (token.attrs) {
-        const attrs = Object.fromEntries(token.attrs);
-
-        let align;
-        if (attrs.style) {
-          if (attrs.style.includes('left')) {
-            align = 'left';
-          } else if (attrs.style.includes('center')) {
-            align = 'center';
-          } else if (attrs.style.includes('right')) {
-            align = 'right';
-          }
-        }
-
-        if (align) {
-          return { align };
-        }
-      }
-      return {};
-    }
-    default:
-      return {};
-  }
+  return type === 'variable' ? 'text' : type;
 }
 
 export function handleToken(
@@ -130,16 +33,11 @@ export function handleToken(
   compact?: boolean,
   inlineParent?: Node
 ) {
-  if (token.type === 'frontmatter') {
-    nodes[0].attributes.frontmatter = token.content;
-    return;
-  }
+  if (token.type === 'text' && token.content === '') return;
 
-  if (token.hidden || (token.type === 'text' && token.content === '')) return;
-
-  const errors = token.errors || [];
+  const errors: any[] = [];
   const parent = nodes[nodes.length - 1];
-  const { tag, attributes, error } = token.meta || {};
+  const { tag, attributes, error, variable } = token.meta || {};
 
   if (token.type === 'annotation') {
     if (inlineParent) return annotate(inlineParent, attributes);
@@ -151,8 +49,7 @@ export function handleToken(
     });
   }
 
-  let typeName = baseTypeName(token.type);
-  if (mappings[typeName]) typeName = mappings[typeName];
+  const typeName = typeNameOf(token.type);
 
   if (typeName === 'error') {
     const { message, location } = error;
@@ -169,7 +66,8 @@ export function handleToken(
           line: token.map[1],
           character: token.position?.end ?? parent.location.end.character,
         };
-      return nodes.pop();
+      nodes.pop();
+      return;
     }
 
     errors.push({
@@ -179,35 +77,15 @@ export function handleToken(
     });
   }
 
-  // Compact mode: don't materialize the inline wrapper Node — recurse
-  // children straight into the surrounding parent (paragraph/heading/etc.).
-  if (compact && typeName === 'inline') {
-    if (Array.isArray(token.children)) {
-      const newInlineParent = parent;
-      for (const child of token.children)
-        handleToken(
-          child,
-          nodes,
-          file,
-          handleSlots,
-          addLocation,
-          compact,
-          newInlineParent
-        );
-    }
-    return;
-  }
-
-  const attrs = handleAttrs(token, typeName);
   const node = new Node(
     typeName as NodeType,
-    attrs,
+    typeName === 'text' ? { content: variable || token.content } : {},
     undefined,
     tag || undefined
   );
   const { position = {} } = token;
 
-  if (errors.length) for (const e of errors) node.addError(e);
+  for (const e of errors) node.addError(e);
 
   if (!compact && addLocation !== false) {
     // Inline tokens carry no `map` of their own, so they inherit the span of
@@ -232,11 +110,7 @@ export function handleToken(
 
   if (inlineParent) node.inline = true;
 
-  if (
-    attributes &&
-    (typeName === 'tag' || typeName === 'fence' || typeName === 'image')
-  )
-    annotate(node, attributes);
+  if (attributes && typeName === 'tag') annotate(node, attributes);
 
   if (
     handleSlots &&
@@ -247,26 +121,4 @@ export function handleToken(
   else parent.push(node);
 
   if (token.nesting > 0) nodes.push(node);
-
-  if (!Array.isArray(token.children)) return;
-
-  if (node.type === 'inline') inlineParent = parent;
-
-  nodes.push(node);
-
-  const isLeafNode = typeName === 'image';
-  if (!isLeafNode) {
-    for (const child of token.children)
-      handleToken(
-        child,
-        nodes,
-        file,
-        handleSlots,
-        addLocation,
-        compact,
-        inlineParent
-      );
-  }
-
-  nodes.pop();
 }

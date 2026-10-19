@@ -175,7 +175,6 @@ export class BlockState {
     this.listTerminators = [fence, blockquote, hr];
   }
 
-  /** Resets the state for `src` and indexes its lines. */
   /**
    * Resets the state for `src` and indexes its lines. With `windowed`, `src`
    * is only the start of the document, and a construct that might reach past
@@ -1977,17 +1976,15 @@ function trackContainer(stop: HeadingStop, type: number) {
 function trackTag(stop: HeadingStop, token: BlockToken) {
   if (token.type === T.TAG_OPEN) {
     const { tag, attributes } = token.meta;
+    const slot = stop.slots && tag === 'slot';
     let skipped = false;
-    if (stop.slots && tag === 'slot') {
+    if (slot || stop.skip) {
+      const node = new Node('tag', {}, undefined, tag);
+      if (attributes) annotate(node, attributes);
       // A slot's content goes to `slots`, not the document's children.
-      const node = new Node('tag', {}, undefined, tag);
-      if (attributes) annotate(node, attributes);
-      skipped = typeof node.attributes.primary === 'string';
-    }
-    if (!skipped && stop.skip) {
-      const node = new Node('tag', {}, undefined, tag);
-      if (attributes) annotate(node, attributes);
-      skipped = !!stop.skip(node);
+      skipped =
+        (slot && typeof node.attributes.primary === 'string') ||
+        !!stop.skip?.(node);
     }
     stop.open.push({ type: 'tag', tag, skipped });
     if (skipped) stop.skipped++;
