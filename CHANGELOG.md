@@ -6,7 +6,7 @@ fork releases. Upstream's own history is not repeated here.
 
 Current upstream base: **0.5.10**.
 
-## 0.7.0 (unreleased)
+## 0.7.0 (unreleased; preview: 0.7.0-beta.0 on the `next` tag)
 
 Markdoc now has its own parser, and markdown-it is gone. The AST is unchanged:
 on the 8,940 documents of the Redocly corpus, under six settings, it is
