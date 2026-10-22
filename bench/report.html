@@ -168,7 +168,7 @@ footer { color: var(--muted); font-size: 0.86rem; display: grid; gap: 10px; }
           <tr><td>Descriptions: runtime → React</td><td class="n">118 ms</td><td class="n">88.8 ms · 1.33×</td><td class="n">31.2 ms · 3.80×</td></tr>
           <tr><td>Descriptions: embedded → React</td><td class="n">124 ms</td><td class="n">92.8 ms · 1.33×</td><td class="n">22.0 ms · 5.62×</td></tr>
           <tr><td>Stored AST: pages / descriptions</td><td class="n">29.2 / 2.47 MB</td><td class="n">same</td><td class="n">10.1 / 0.70 MB</td></tr>
-          <tr><td>Bundle, gzipped</td><td class="n">67.5 KB</td><td class="n">59.4 KB</td><td class="n">59.4 KB</td></tr>
+          <tr><td>Bundle, gzipped</td><td class="n">67.5 KB</td><td class="n">63.2 KB</td><td class="n">63.2 KB</td></tr>
         </tbody>
       </table>
     </div>
@@ -180,7 +180,7 @@ footer { color: var(--muted); font-size: 0.86rem; display: grid; gap: 10px; }
     <p>The fastest JS markdown parsers beat markdown-it mostly through their machinery, not their grammar. <code>src/fastparse</code> keeps Markdoc's exact grammar and replaces the machinery. The grammar is markdown-it 12.3.2's CommonMark rules with tables and strikethrough, plus Markdoc's tags, annotations, indentation rules and plugins and <code>parser.ts</code>'s token-to-Node logic, odd cases included.</p>
     <ul>
       <li><strong>mdastic-style machinery:</strong> line offsets in reused typed arrays found with <code>indexOf</code>, pooled tokens, first-character rule dispatch, sticky regexes, and Nodes built directly with no tokens-to-AST pass.</li>
-      <li><strong>No markdown-it at all.</strong> Its few helpers are vendored over the same <code>entities</code>, <code>mdurl</code>, <code>punycode</code> and <code>uc.micro</code> packages, so results match. The bundle drops from 67.5 KB to 59.4 KB gzipped.</li>
+      <li><strong>No markdown-it at all.</strong> Its few helpers are vendored over the same <code>entities</code>, <code>mdurl</code>, <code>punycode</code> and <code>uc.micro</code> packages, so results match. The bundle drops from 67.5 KB to 63.2 KB gzipped (51.3 KB to 49.1 KB minified).</li>
     </ul>
 
     <div class="chart">

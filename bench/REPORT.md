@@ -17,7 +17,7 @@ is gone. The AST is byte-identical to 0.6.4's on the whole corpus.
 | **Runtime**, API descriptions | 118 ms | 89 ms (1.3×) | **31 ms (3.8×)** |
 | **Runtime**, API descriptions embedded in a parsed API definition | 124 ms | 93 ms (1.3×) | **22 ms (5.6×)** |
 | **Stored AST**, pages (6.66 MB of markdown) | 29.2 MB | 29.2 MB | **10.1 MB (2.9× smaller)** |
-| **Bundle** (gzip) | 67.5 KB | 59.4 KB | 59.4 KB |
+| **Bundle** (gzip) | 67.5 KB | 63.2 KB | 63.2 KB |
 
 - **Same steps:** the calls the portal makes today, written for this branch:
   `parse(source, options)`, `validate`, `compact` + `JSON.stringify`,
@@ -160,7 +160,9 @@ Breaking, compared with 0.6.x:
   safety limit. The parser keeps a fixed internal limit. `linkify` is now
   GitHub-style.
 
-The bundle is smaller than 0.6.4's: 59.4 KB gzipped, against 67.5 KB.
+The bundle is smaller than 0.6.4's: 63.2 KB gzipped, against 67.5 KB, or
+49.1 KB against 51.3 KB minified. A quarter of it is the table of HTML entity
+names, which 0.6.4 has too. The optional `htmlTags()` entry is 33.4 KB.
 
 ## 2. Redocly features
 

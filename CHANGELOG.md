@@ -103,7 +103,8 @@ Measured on the Redocly corpus against 0.6.4 (see `bench/REPORT.md`):
   `prepareConfig` and `Ast.pack`; source → AST alone is 2.2–3.5× faster;
 - loading and rendering at runtime is 1.3–1.6× faster with the same steps,
   and 3–5.6× faster with `prepareConfig` and `Ast.unpack`;
-- the bundle is 59 KB gzipped, down from 67.5 KB.
+- the bundle is 63 KB gzipped, down from 67.5 KB (49 KB against 51 KB
+  minified); the optional `dist/html.js` entry adds 33 KB.
 
 ## 0.6.4
 

@@ -21,15 +21,13 @@ buildSync({ ...shared, outExtension: { '.js': '.mjs' } });
 buildSync({ ...shared, entryPoints: ['src/renderers/react/react.ts'] });
 
 // The optional HTML handler, with htmlparser2 bundled in, so it costs nothing
-// to programs that do not import it.
-buildSync({
+// to programs that do not import it. Only its `Parser` is used, and the
+// package root would also pull in domutils and dom-serializer, which the
+// bundle cannot drop; htmlparser2 exports no path to `Parser` alone.
+const html = {
   ...shared,
   entryPoints: ['html.ts'],
-  format: 'cjs',
-  platform: 'node',
-});
-buildSync({
-  ...shared,
-  entryPoints: ['html.ts'],
-  outExtension: { '.js': '.mjs' },
-});
+  alias: { htmlparser2: './node_modules/htmlparser2/lib/esm/Parser.js' },
+};
+buildSync({ ...html, format: 'cjs', platform: 'node' });
+buildSync({ ...html, outExtension: { '.js': '.mjs' } });
