@@ -1,6 +1,6 @@
 import { diff } from 'jest-diff';
 
-import Markdoc from '../index';
+import Markdoc, { formatScalar } from '../index';
 import format from './formatter';
 
 const source = `---
@@ -91,6 +91,43 @@ function check(source, expected, options = {}) {
 function stable(source, options?) {
   return check(source, source, options);
 }
+
+describe('formatScalar', () => {
+  it('writes values as the formatter writes attribute values', () => {
+    const written = [
+      '"a \\"quoted\\" string"',
+      '-1.5',
+      'true',
+      'false',
+      'null',
+      '[1, "two", [true]]',
+      '{a: 1, "b c": [null], d: {e: "f"}}',
+      '$user.name',
+      '$items[0]',
+      'upper($user.name, "x")',
+    ];
+    for (const text of written) {
+      const doc = Markdoc.parse(`{% tag a=${text} /%}`);
+      const value = doc.children[0].attributes.a;
+      expect(Markdoc.formatScalar(value)).withContext(text).toEqual(text);
+      expect(Markdoc.format(doc)).toContain(`a=${text}`);
+    }
+  });
+
+  it('takes plain values too', () => {
+    expect(Markdoc.formatScalar('s')).toEqual('"s"');
+    expect(Markdoc.formatScalar(2)).toEqual('2');
+    expect(Markdoc.formatScalar(false)).toEqual('false');
+    expect(Markdoc.formatScalar(null)).toEqual('null');
+    expect(Markdoc.formatScalar(['a', 1])).toEqual('["a", 1]');
+    expect(Markdoc.formatScalar({ a: { b: true } })).toEqual('{a: {b: true}}');
+    expect(Markdoc.formatScalar(undefined as any)).toBeUndefined();
+  });
+
+  it('is a named export too', () => {
+    expect(formatScalar).toBe(Markdoc.formatScalar);
+  });
+});
 
 describe('Formatter', () => {
   it('empty', () => {

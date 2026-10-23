@@ -6,7 +6,7 @@ fork releases. Upstream's own history is not repeated here.
 
 Current upstream base: **0.5.10**.
 
-## 0.7.0 (unreleased; preview: 0.7.0-beta.0 on the `next` tag)
+## 0.7.0 (unreleased; preview: 0.7.0-beta.1 on the `next` tag)
 
 Markdoc now has its own parser, and markdown-it is gone. The AST is unchanged:
 on the 8,940 documents of the Redocly corpus, under six settings, it is
@@ -72,6 +72,8 @@ byte-identical to 0.6.4's.
     later blocks, it parses the whole document to be sure.
   - The first heading of all 1,129 corpus pages takes 9 ms, against 41 ms for
     0.6.4's `tokenizeUntil` and 195 ms for a full parse.
+- **`formatScalar(value)`** is exported: an attribute value as the formatter
+  writes it in a tag (`"text"`, `[1, 2]`, `{a: 1}`, `$var`, `fn(1)`).
 - **`frontmatter: false`** turns off frontmatter parsing. It is on by default,
   as before.
 - **`prepareConfig(config, { cloneAst })`**: merges the built-in schemas once,

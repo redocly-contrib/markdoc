@@ -47,7 +47,12 @@ function* formatTableRow(items: Array<string>) {
   yield `| ${items.join(' | ')} |`;
 }
 
-function formatScalar(v: Value): string | undefined {
+/**
+ * An attribute value as the formatter writes it in a tag: strings quoted,
+ * arrays and objects in Markdoc's syntax, variables and functions as
+ * written. `undefined` for `undefined`.
+ */
+export function formatScalar(v: Value): string | undefined {
   if (v === undefined) {
     return undefined;
   }

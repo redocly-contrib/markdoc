@@ -1,7 +1,7 @@
 import Ast from './src/ast';
 import Node, { resolveNodeShared } from './src/ast/node';
 import compact from './src/ast/compact';
-import format from './src/formatter';
+import format, { formatScalar } from './src/formatter';
 import functions from './src/functions';
 import {
   parse as parseSource,
@@ -215,6 +215,7 @@ export {
   validator,
   truthy,
   format,
+  formatScalar,
   compact,
   parseFirstHeading,
   findFirstHeading,
@@ -242,6 +243,7 @@ export default class Markdoc {
   static createElement = createElement;
   static truthy = truthy;
   static format = format;
+  static formatScalar = formatScalar;
   static compact = compact;
 
   config;
