@@ -216,7 +216,7 @@ export type ParserArgs = {
   githubAdmonitions?: boolean;
   // Recognize raw HTML. With `true`, HTML blocks and inline HTML become
   // `html_block` and `html_inline` nodes. With a handler — such as
-  // `htmlTags()` from `@redocly/markdoc/dist/html.js` — the handler turns the
+  // `htmlTags()` from `@redocly/markdoc/html` — the handler turns the
   // HTML into nodes instead.
   // @default false
   html?: boolean | HtmlHandler;

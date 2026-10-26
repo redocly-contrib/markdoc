@@ -6,7 +6,7 @@ fork releases. Upstream's own history is not repeated here.
 
 Current upstream base: **0.5.10**.
 
-## 0.7.0 (unreleased; preview: 0.7.0-beta.1 on the `next` tag)
+## 0.7.0 (unreleased; preview: 0.7.0-beta.2 on the `next` tag)
 
 Markdoc now has its own parser, and markdown-it is gone. The AST is unchanged:
 on the 8,940 documents of the Redocly corpus, under six settings, it is
@@ -37,6 +37,10 @@ byte-identical to 0.6.4's.
   editor emptied the `reference` rule's terminators to work around
   markdown-it#996. The parser fixes the underlying problem instead (see
   below), and keeps CommonMark's reference definition rules.
+- **The package has an `exports` map.** A path inside the package must now
+  name its file with the extension (`@redocly/markdoc/dist/react.js`). Two
+  extensionless paths still resolve: `@redocly/markdoc/dist/react` and the
+  type declarations under `@redocly/markdoc/dist/src/`.
 
 ### Added
 
@@ -45,11 +49,13 @@ byte-identical to 0.6.4's.
   extension): the same boundaries, domain checks and trimming of trailing
   punctuation, unbalanced parentheses and entities. Text inside links and
   code is left alone.
-- **`htmlTags()` from `@redocly/markdoc/dist/html.js`**, ported from Redocly
+- **`htmlTags()` from `@redocly/markdoc/html`**, ported from Redocly
   Realm. `parse(source, { html: htmlTags() })` turns raw HTML into `html`
   tags with React-converted attributes, the markdown between an element's
   opening and closing tags as their children. The entry bundles htmlparser2,
-  so the main bundle does not grow. `html` also accepts any `HtmlHandler`.
+  so the main bundle does not grow. Like the package root, it gives bundlers
+  the ES module build and Node the CommonJS build. `html` also accepts any
+  `HtmlHandler`.
   It fixes four bugs in Realm's version:
   - an unclosed element is closed with its `markdoc-error` tag inside it,
     innermost first (Realm put each error inside the element opened after
@@ -94,8 +100,7 @@ byte-identical to 0.6.4's.
   parser.**
 - **The CommonJS builds name their exports for Node**, so
   `import { parse } from '@redocly/markdoc'` and
-  `import { htmlTags } from '@redocly/markdoc/dist/html.js'` work from ES
-  modules.
+  `import { htmlTags } from '@redocly/markdoc/html'` work from ES modules.
 
 ### Performance
 
@@ -106,7 +111,7 @@ Measured on the Redocly corpus against 0.6.4 (see `bench/REPORT.md`):
 - loading and rendering at runtime is 1.3–1.6× faster with the same steps,
   and 3–5.6× faster with `prepareConfig` and `Ast.unpack`;
 - the bundle is 63 KB gzipped, down from 67.5 KB (49 KB against 51 KB
-  minified); the optional `dist/html.js` entry adds 33 KB.
+  minified); the optional `@redocly/markdoc/html` entry adds 33 KB.
 
 ## 0.6.4
 

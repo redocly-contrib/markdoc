@@ -1,2 +1,2 @@
-// Entry point for `@redocly/markdoc/dist/html.js`.
+// Entry point for `@redocly/markdoc/html`.
 export * from './src/html';
