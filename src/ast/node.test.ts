@@ -436,6 +436,13 @@ describe('default field values', function () {
     expect(n.slots).toEqual({});
   });
 
+  it('keeps the annotations given to the constructor', function () {
+    const annotation = { type: 'attribute', name: 'id', value: 'intro' };
+    const n = new Node('paragraph', {}, [], undefined, [annotation]);
+    expect(n.annotations).toEqual([annotation]);
+    expect(new Node('paragraph').annotations).toEqual([]);
+  });
+
   it('omits the empty defaults from JSON', function () {
     const n = new Node('paragraph');
     const json = JSON.stringify(n);

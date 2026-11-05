@@ -44,6 +44,9 @@ byte-identical to 0.6.4's.
 
 ### Added
 
+- **`new Ast.Node(type, attributes, children, tag, annotations)`** takes
+  the node's annotations as a fifth argument. Before, a caller had to
+  create the node and then assign `node.annotations`.
 - **`linkify: true`** turns bare `www.`, `http(s)://` and `ftp://` URLs and
   email addresses into links, following GitHub's rules (cmark-gfm's autolink
   extension): the same boundaries, domain checks and trimming of trailing

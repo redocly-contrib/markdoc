@@ -87,7 +87,8 @@ export default class Node implements AstType {
     type: NodeType = 'node',
     attributes: Record<string, any> = {},
     children: Node[] = [],
-    tag?: string
+    tag?: string,
+    annotations: AttributeValue[] = []
   ) {
     this.attributes = attributes;
     this.children = children;
@@ -98,7 +99,7 @@ export default class Node implements AstType {
     // in leaving them undefined — reading a field can then never change what
     // gets serialized.
     this.errors = [];
-    this.annotations = [];
+    this.annotations = annotations;
     this.slots = {};
   }
 
