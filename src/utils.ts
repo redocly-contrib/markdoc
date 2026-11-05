@@ -3,6 +3,7 @@ import Variable from './ast/variable';
 import Function from './ast/function';
 
 import type { ObjectToken } from './fastparse/objects';
+import type { Value } from './types';
 
 enum STATES {
   normal,
@@ -99,6 +100,22 @@ function parseTag(content: string, line: number, contentStart: number) {
     };
 
     return { type: 'error', meta: { error: { message, location } } };
+  }
+}
+
+/**
+ * Reads `source` as one attribute value, with the grammar a tag's attributes
+ * use: a string, a number, a boolean, `null`, an array, a hash, a variable or
+ * a function. Returns `undefined` when `source` is not exactly one value.
+ * A variable or a function comes back as an AST node, as in a parsed tag;
+ * `transform` resolves it.
+ */
+export function parseAttributeValue(source: string): Value | undefined {
+  try {
+    return parse(source.trim(), { startRule: 'Value', Variable, Function });
+  } catch (error) {
+    if (error instanceof SyntaxError) return undefined;
+    throw error;
   }
 }
 
