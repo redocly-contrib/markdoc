@@ -1,5 +1,6 @@
 import type AstVariable from '../ast/variable';
 import type AstFunction from '../ast/function';
+import type { Value } from '../types';
 
 type astTypes = {
   Variable?: typeof AstVariable;
@@ -8,8 +9,12 @@ type astTypes = {
 
 export function parse(
   input: string,
-  astTypes?: astTypes
+  options?: astTypes & { startRule?: 'Top' }
 ): { type: string; meta?: any; nesting?: number };
+export function parse(
+  input: string,
+  options: astTypes & { startRule: 'Value' }
+): Value;
 
 type PegLocation = {
   offset: number;

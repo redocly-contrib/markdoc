@@ -1,4 +1,6 @@
-import { findTagEnd, parseTags } from '../src/utils';
+import { findTagEnd, parseAttributeValue, parseTags } from '../src/utils';
+import Variable from '../src/ast/variable';
+import Function from '../src/ast/function';
 
 describe('Templating', function () {
   describe('parseTags', function () {
@@ -181,6 +183,51 @@ describe('Templating', function () {
           content: '```\n{%a %b %c}\n```',
         },
       ]);
+    });
+  });
+
+  describe('parseAttributeValue', function () {
+    it('reads each kind of literal', function () {
+      expect(parseAttributeValue('"a b"')).toEqual('a b');
+      expect(parseAttributeValue('3.5')).toEqual(3.5);
+      expect(parseAttributeValue('true')).toEqual(true);
+      expect(parseAttributeValue('null')).toEqual(null);
+      expect(parseAttributeValue('[1, "a", [2]]')).toEqual([1, 'a', [2]]);
+      expect(parseAttributeValue('{a: 1, "b": [true]}')).toEqual({
+        a: 1,
+        b: [true],
+      });
+    });
+
+    it('reads a variable and a function as AST nodes', function () {
+      expect(parseAttributeValue('$page.title')).toEqual(
+        new Variable(['page', 'title'])
+      );
+
+      const fn = parseAttributeValue('includes($tags, "api")');
+      expect(fn instanceof Function).toBe(true);
+      expect((fn as Function).name).toEqual('includes');
+      expect((fn as Function).parameters).toEqual({
+        0: new Variable(['tags']),
+        1: 'api',
+      });
+
+      expect(parseAttributeValue('{a: $x, b: [fn($y)]}')).toEqual({
+        a: new Variable(['x']),
+        b: [new Function('fn', { 0: new Variable(['y']) })],
+      });
+    });
+
+    it('ignores whitespace around the value', function () {
+      expect(parseAttributeValue('  42\n')).toEqual(42);
+    });
+
+    it('is undefined for text that is not one value', function () {
+      expect(parseAttributeValue('')).toBeUndefined();
+      expect(parseAttributeValue('abc')).toBeUndefined();
+      expect(parseAttributeValue('1 2')).toBeUndefined();
+      expect(parseAttributeValue('{a: }')).toBeUndefined();
+      expect(parseAttributeValue('"a" %}')).toBeUndefined();
     });
   });
 });

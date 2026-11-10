@@ -3,6 +3,7 @@ import Variable from './ast/variable';
 import Function from './ast/function';
 
 import type { ObjectToken } from './fastparse/objects';
+import type { Value } from './types';
 
 enum STATES {
   normal,
@@ -99,6 +100,15 @@ function parseTag(content: string, line: number, contentStart: number) {
     };
 
     return { type: 'error', meta: { error: { message, location } } };
+  }
+}
+
+export function parseAttributeValue(source: string): Value | undefined {
+  try {
+    return parse(source.trim(), { startRule: 'Value', Variable, Function });
+  } catch (error) {
+    if (error instanceof SyntaxError) return undefined;
+    throw error;
   }
 }
 

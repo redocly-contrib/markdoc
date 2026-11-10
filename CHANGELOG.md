@@ -44,6 +44,14 @@ byte-identical to 0.6.4's.
 
 ### Added
 
+- **`parseAttributeValue(source)`** reads one attribute value with the
+  grammar a tag's attributes use, and returns `undefined` when the text is
+  not exactly one value. A variable or a function comes back as an AST
+  node, as in a parsed tag. Before, a caller had to wrap the text in a
+  tag and parse a whole document to get the same result.
+- **`new Ast.Node(type, attributes, children, tag, annotations)`** takes
+  the node's annotations as a fifth argument. Before, a caller had to
+  create the node and then assign `node.annotations`.
 - **`linkify: true`** turns bare `www.`, `http(s)://` and `ftp://` URLs and
   email addresses into links, following GitHub's rules (cmark-gfm's autolink
   extension): the same boundaries, domain checks and trimming of trailing

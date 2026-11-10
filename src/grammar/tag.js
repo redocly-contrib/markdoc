@@ -150,7 +150,7 @@ function peg$parse(input, options) {
 
   var peg$FAILED = {};
 
-  var peg$startRuleFunctions = { Top: peg$parseTop };
+  var peg$startRuleFunctions = { Top: peg$parseTop, Value: peg$parseValue };
   var peg$startRuleFunction = peg$parseTop;
 
   var peg$c0 = '/';

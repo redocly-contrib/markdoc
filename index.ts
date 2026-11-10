@@ -16,7 +16,7 @@ import tags from './src/tags';
 import { truthy } from './src/tags/conditional';
 import transformer, { globalAttributes } from './src/transformer';
 import transforms from './src/transforms';
-import { isPromise, parseTags } from './src/utils';
+import { isPromise, parseAttributeValue, parseTags } from './src/utils';
 import validator, { validateTree } from './src/validator';
 
 import type { ParserArgs } from './src/types';
@@ -211,6 +211,7 @@ export {
   Node,
   Tag,
   parseTags,
+  parseAttributeValue,
   transformer,
   validator,
   truthy,
@@ -231,6 +232,7 @@ export default class Markdoc {
   static Ast = Ast;
   static Tag = Tag;
   static parseTags = parseTags;
+  static parseAttributeValue = parseAttributeValue;
   static transformer = transformer;
   static validator = validator;
   static parse = parse;
