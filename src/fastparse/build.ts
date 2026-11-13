@@ -177,7 +177,7 @@ export function build(
   // With an HTML handler, the document's HTML blocks form one run and each
   // inline content its own; the handler's tokens take the HTML's place.
   const html = options.html;
-  const blockRun = html?.start();
+  const blockRun = html?.start(false);
 
   function handleHtml(tokens: HtmlToken[], inlineParent: Node | undefined) {
     for (const token of tokens) {
@@ -202,7 +202,10 @@ export function build(
     for (let i = start; i < length; i++) {
       const token = tokens[i];
       if (html && token.type === T.HTML_INLINE)
-        handleHtml((run ??= html.start()).write(token.content), inlineParent);
+        handleHtml(
+          (run ??= html.start(true)).write(token.content),
+          inlineParent
+        );
       else handleInline(token, inlineParent);
     }
     if (run) handleHtml(run.end(), inlineParent);

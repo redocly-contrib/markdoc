@@ -202,20 +202,25 @@ export function parseFirstHeading(
         if (!settled) continue;
       }
 
-      if (found < 0) return undefined;
+      const html = typeof args.html === 'object' ? args.html : undefined;
+      if (found < 0) {
+        // An HTML block can hold a heading the HTML handler makes.
+        if (html?.headings && mayLeak(block, block.length, true)) break;
+        return undefined;
+      }
 
       // Markdoc tags inside fences and paragraphs become Nodes too, and one
       // left open there holds every later block — this heading included —
       // as its children. So do HTML blocks' elements under an HTML handler,
-      // which matters when such an element could be skipped or keep a slot
-      // open. When such content comes before the heading, the full parse
-      // decides. It also does for a heading in a table, which the table
-      // transform rewrites.
+      // which matters when such an element could be skipped, keep a slot
+      // open or be a heading itself. When such content comes before the
+      // heading, the full parse decides. It also does for a heading in a
+      // table, which the table transform rewrites.
       if (
         mayLeak(
           block,
           found - 2,
-          (!!args.skip || !!args.slots) && typeof args.html === 'object'
+          !!html && (!!args.skip || !!args.slots || !!html.headings)
         ) ||
         stop.open.some((open) => open.tag === 'table')
       )

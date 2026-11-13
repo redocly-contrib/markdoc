@@ -6,6 +6,19 @@ fork releases. Upstream's own history is not repeated here.
 
 Current upstream base: **0.5.10**.
 
+## 0.7.1
+
+### Added
+
+- **`htmlTags({ headings: true })`** makes an `<h1>`…`<h6>` in an HTML block a
+  `heading` node, as a Markdown heading is, with its `id` as the only
+  attribute. One inside a paragraph, or inside such a heading, stays an `html`
+  tag. `parseFirstHeading` finds these headings too. Off by default.
+- `HtmlHandler.start(inline)` says whether the run is a paragraph's inline
+  HTML or the document's HTML blocks; a handler may emit `heading_open`,
+  `inline_open` and their closing tokens in an HTML block run, and sets
+  `headings: true` when it does.
+
 ## 0.7.0
 
 Markdoc now has its own parser, and markdown-it is gone. The AST is unchanged:

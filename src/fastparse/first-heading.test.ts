@@ -164,6 +164,16 @@ describe('parseFirstHeading with tags Markdoc leaves open', function () {
       undefined
     );
   });
+
+  it('sees an HTML heading the handler makes', function () {
+    const withHeadings = { html: htmlTags({ headings: true }) };
+    const level = (source: string) =>
+      check(source, withHeadings)?.attributes.level;
+    expect(level('<h1>Only</h1>\n\nText.')).toBe(1);
+    expect(level('Intro\n\n<div>\n<h2>Nested</h2>\n</div>\n\n# Later')).toBe(2);
+    expect(level('A <h2>inline</h2> one.\n\n### Markdown')).toBe(3);
+    expect(level('<p>No heading</p>')).toBe(undefined);
+  });
 });
 
 describe('frontmatter option', function () {
