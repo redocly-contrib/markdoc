@@ -117,6 +117,25 @@ describe('htmlTags', function () {
     expect(JSON.stringify(ast)).toContain('<my@tag>');
   });
 
+  it('makes block HTML headings headings with headings: true, keeping only their id', function () {
+    const ast = Markdoc.parse(
+      '<h2 id="fields" class="wide">Response <code>x</code></h2>\n\n<div>\n<h3>Nested</h3>\n</div>\n\nText <h4>inline</h4> more.',
+      { html: htmlTags({ headings: true }) }
+    );
+    const [heading, div, paragraph] = ast.children;
+    expect([heading.type, heading.attributes]).toEqual([
+      'heading',
+      { level: 2, id: 'fields' },
+    ]);
+    expect(heading.children[0].type).toEqual('inline');
+    expect(tags(heading)).toEqual([['html', { name: 'code', attrs: {} }]]);
+    expect(div.children[0].attributes).toEqual({ level: 3 });
+    expect(tags(paragraph)).toEqual([['html', { name: 'h4', attrs: {} }]]);
+    expect(tags(parse('<h2>x</h2>'))).toEqual([
+      ['html', { name: 'h2', attrs: {} }],
+    ]);
+  });
+
   it('is opt-in: html: true still gives html_block and html_inline nodes', function () {
     const ast = Markdoc.parse('<div>\n\nx\n\n</div>\n\na <b>b</b>', {
       html: true,

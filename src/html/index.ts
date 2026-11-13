@@ -22,31 +22,40 @@
  * - A tag whose name cannot be a React element name (`GridItem\<T\>` written
  *   in an HTML block, say) stays text, as written.
  * - Text inside HTML that is only whitespace is dropped.
+ * - With `headings`, an `<h1>`…`<h6>` in an HTML block is a `heading` node.
  */
 import { Parser } from 'htmlparser2';
 import { getJsxConvertedAttributes } from './attributes';
 
-import type { HtmlHandler, HtmlRun, HtmlToken } from '../types';
+import type { AttributeValue, HtmlHandler, HtmlRun, HtmlToken } from '../types';
 
 export { getJsxConvertedAttributes };
 
 export type HtmlTagsOptions = {
   /** The tag that reports an unclosed element. @default 'markdoc-error' */
   errorTag?: string;
+  /**
+   * Make an `<h1>`…`<h6>` in an HTML block a `heading` node, as a Markdown
+   * heading is, with its `id` as the only attribute. One inside a paragraph,
+   * or inside such a heading, stays an `html` tag. @default false
+   */
+  headings?: boolean;
 };
 
 // React's rule: any other name fails the whole render.
 const ELEMENT_NAME_RE = /^[a-zA-Z][a-zA-Z:_.\-\d]*$/;
+const HEADING_NAME_RE = /^h([1-6])$/;
 
 export function htmlTags({
   errorTag = 'markdoc-error',
+  headings = false,
 }: HtmlTagsOptions = {}): HtmlHandler {
-  return { start: () => run(errorTag) };
+  return { start: (inline) => run(errorTag, headings && !inline), headings };
 }
 
-function run(errorTag: string): HtmlRun {
+function run(errorTag: string, headings: boolean): HtmlRun {
   let output: HtmlToken[] = [];
-  const openedStack: { name: string; element: boolean }[] = [];
+  const openedStack: { name: string; element: boolean; heading?: true }[] = [];
   let written = '';
   // Set at the end of the run, when htmlparser2 closes what is still open.
   let ending = false;
@@ -55,6 +64,20 @@ function run(errorTag: string): HtmlRun {
 
   const parser = new Parser({
     onopentag(name, attrs) {
+      const level = headings ? HEADING_NAME_RE.exec(name)?.[1] : undefined;
+      if (level && !openedStack.some((opened) => opened.heading)) {
+        openedStack.push({ name, element: true, heading: true });
+        const attributes: AttributeValue[] = [
+          { type: 'attribute', name: 'level', value: Number(level) },
+        ];
+        if (attrs.id)
+          attributes.push({ type: 'attribute', name: 'id', value: attrs.id });
+        output.push(
+          { type: 'heading_open', nesting: 1, meta: { attributes } },
+          { type: 'inline_open', nesting: 1 }
+        );
+        return;
+      }
       const element = ELEMENT_NAME_RE.test(name);
       openedStack.push({ name, element });
       if (!element) {
@@ -107,7 +130,13 @@ function run(errorTag: string): HtmlRun {
           },
           { type: 'tag_close', nesting: -1, meta: { tag: errorTag } }
         );
-      output.push({ type: 'tag_close', nesting: -1, meta: { tag: 'html' } });
+      if (opened?.heading)
+        output.push(
+          { type: 'inline_close', nesting: -1 },
+          { type: 'heading_close', nesting: -1 }
+        );
+      else
+        output.push({ type: 'tag_close', nesting: -1, meta: { tag: 'html' } });
     },
   });
 

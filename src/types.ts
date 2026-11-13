@@ -254,7 +254,14 @@ export type HtmlToken =
       nesting: 1;
       meta: { tag: string; attributes?: AttributeValue[] };
     }
-  | { type: 'tag_close'; nesting: -1; meta: { tag: string } };
+  | { type: 'tag_close'; nesting: -1; meta: { tag: string } }
+  | {
+      type: 'heading_open';
+      nesting: 1;
+      meta: { attributes: AttributeValue[] };
+    }
+  | { type: 'inline_open'; nesting: 1 }
+  | { type: 'heading_close' | 'inline_close'; nesting: -1 };
 
 /**
  * One run of HTML: all of a document's HTML blocks, in order, or the inline
@@ -270,4 +277,9 @@ export type HtmlRun = {
 };
 
 /** Turns raw HTML into Markdoc tokens (see `ParserArgs.html`). */
-export type HtmlHandler = { start(): HtmlRun };
+export type HtmlHandler = {
+  /** `inline` is true for the inline HTML of one paragraph, false for the document's HTML blocks. */
+  start(inline: boolean): HtmlRun;
+  /** True when HTML blocks can hold `heading` nodes, so `parseFirstHeading` must parse them. */
+  headings?: boolean;
+};

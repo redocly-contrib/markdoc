@@ -3,7 +3,7 @@
  * markdown-it tokens. `build.ts` builds Nodes from the parser's own tokens;
  * this handles the plain objects it gets from elsewhere, which are only ever
  * the text, tag, variable, annotation and error tokens `parseTags` finds in
- * fence content, and the text and tag tokens an HTML handler emits.
+ * fence content, and the text, tag and heading tokens an HTML handler emits.
  */
 import Node from '../ast/node';
 import { annotate } from './annotate';
@@ -111,6 +111,8 @@ export function handleToken(
   if (inlineParent) node.inline = true;
 
   if (attributes && typeName === 'tag') annotate(node, attributes);
+  else if (attributes)
+    for (const { name, value } of attributes) node.attributes[name] = value;
 
   if (
     handleSlots &&
