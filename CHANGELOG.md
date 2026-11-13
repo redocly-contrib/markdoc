@@ -6,7 +6,7 @@ fork releases. Upstream's own history is not repeated here.
 
 Current upstream base: **0.5.10**.
 
-## Unreleased
+## 0.7.1
 
 ### Added
 
