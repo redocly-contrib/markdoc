@@ -6,6 +6,19 @@ fork releases. Upstream's own history is not repeated here.
 
 Current upstream base: **0.5.10**.
 
+## 0.7.2
+
+### Fixed
+
+- `linkify` no longer swallows Markdoc syntax after a URL. A link ends at a
+  closing tag (`{% copy %}https://example.com{% /copy %}`), and a URL that
+  runs into a variable or any other tag (`https://example.com/{% $v %}`) is
+  not linked, since the tag's output may continue it. Before, the link took
+  `{%` and the rest of the tag became text or a parse error.
+- `linkify` does not link inside an HTML `<a>` element, as it already did not
+  inside a Markdown link. Before, `<a href="…">https://…</a>` rendered nested
+  anchors.
+
 ## 0.7.1
 
 ### Added

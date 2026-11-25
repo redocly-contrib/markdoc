@@ -1,14 +1,16 @@
 {
   "name": "@redocly/markdoc",
   "author": "Ryan Paul",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "A text markup language for documentation",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "typesVersions": {
     "*": {
-      "html": ["dist/html.d.ts"]
+      "html": [
+        "dist/html.d.ts"
+      ]
     }
   },
   "exports": {

@@ -1,4 +1,5 @@
 import Markdoc from '../../index';
+import { htmlTags } from '../../html';
 
 function html(source: string, linkify = true) {
   const out = Markdoc.renderers.html(
@@ -176,5 +177,51 @@ describe('linkify (GitHub-flavored autolinks)', function () {
     for (const node of ast.walk())
       if (node.type === 'link') hrefs.push(node.attributes.href);
     expect(hrefs).toEqual(['https://example.com', 'http://www.example.com']);
+  });
+
+  it('ends a link at a closing Markdoc tag', function () {
+    const ast = Markdoc.parse(
+      '{% copy %}https://example.com/v2{% /copy %} and {% copy %}see www.example.com{%/copy%}',
+      { linkify: true }
+    );
+    const links: string[] = [];
+    for (const node of ast.walk())
+      if (node.type === 'link') links.push(node.attributes.href);
+    expect(links).toEqual(['https://example.com/v2', 'http://www.example.com']);
+    expect([...ast.walk()].flatMap((node) => node.errors)).toEqual([]);
+  });
+
+  it('does not link a URL that runs into a Markdoc variable or tag', function () {
+    const render = (source: string) =>
+      Markdoc.renderers.html(
+        Markdoc.transform(Markdoc.parse(source, { linkify: true }), {
+          variables: { v: 'v2', host: 'example.com' },
+        })
+      );
+    expect(render('Base: https://example.com/{% $v %}/docs')).toEqual(
+      '<article><p>Base: https://example.com/v2/docs</p></article>'
+    );
+    expect(render('https://api.{% $host %}/v1')).toEqual(
+      '<article><p>https://api.example.com/v1</p></article>'
+    );
+    expect(render('www.example.com/{% $v %}')).toEqual(
+      '<article><p>www.example.com/v2</p></article>'
+    );
+  });
+
+  it('does not link inside an HTML link', function () {
+    const types = (source: string) =>
+      [
+        ...Markdoc.parse(source, { linkify: true, html: htmlTags() }).walk(),
+      ].map((node) => node.type);
+    expect(
+      types('<a href="https://example.com">https://example.com</a>')
+    ).not.toContain('link');
+    expect(
+      types('<a href="mailto:a@example.com">a@example.com</a>')
+    ).not.toContain('link');
+    expect(
+      types('<A HREF="/x">www.example.com</A> https://example.com')
+    ).toContain('link');
   });
 });
