@@ -79,7 +79,10 @@ export class InlineState {
   allowComments: boolean;
   linkify: boolean;
   terminator: Uint8Array;
-  /** How many link labels are being tokenized; autolinks stay out of them. */
+  /**
+   * How many link labels and HTML `<a>` elements are open; autolinks stay out
+   * of them.
+   */
   linkLevel = 0;
   /**
    * A link or image looked up a reference definition that was not there. A
@@ -1253,6 +1256,7 @@ function htmlInline(state: InlineState, silent: boolean): boolean {
   if (!silent) {
     const token = state.push(T.HTML_INLINE);
     token.content = state.src.slice(pos, pos + match[0].length);
+    state.linkLevel += linkify.htmlLinkDelta(token.content);
   }
   state.pos += match[0].length;
   return true;

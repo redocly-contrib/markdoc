@@ -135,13 +135,30 @@ function trimEnd(str: string, start: number, end: number): number {
   return end - start;
 }
 
+/**
+ * The end of a link that starts before `at`: the next whitespace or `<`, or a
+ * closing Markdoc tag. -1 when the link runs into any other Markdoc tag or a
+ * variable, whose output may continue the URL.
+ */
 function scanToEnd(str: string, at: number, end: number): number {
   while (at < end) {
     const c = str.charCodeAt(at);
     if (isSpace(c) || c === 0x3c /* < */) break;
+    if (c === 0x7b /* { */ && str.charCodeAt(at + 1) === 0x25 /* % */) {
+      let next = at + 2;
+      while (next < end && isSpace(str.charCodeAt(next))) next++;
+      return str.charCodeAt(next) === 0x2f /* / */ ? at : -1;
+    }
     at++;
   }
   return at;
+}
+
+/** +1 for an HTML `<a>` start tag, -1 for its end tag, else 0. */
+export function htmlLinkDelta(html: string): number {
+  if (/^<a[>\s]/i.test(html)) return 1;
+  if (/^<\/a\s*>/i.test(html)) return -1;
+  return 0;
 }
 
 function pushLink(state: InlineState, href: string, text: string) {
@@ -174,7 +191,9 @@ export function www(state: InlineState, silent: boolean): boolean {
 
   let length = checkDomain(src, start, end, false);
   if (length === 0) return false;
-  length = scanToEnd(src, start + length, end) - start;
+  const stop = scanToEnd(src, start + length, end);
+  if (stop < 0) return false;
+  length = stop - start;
   length = trimEnd(src, start, start + length);
   if (length === 0) return false;
 
@@ -215,7 +234,9 @@ export function url(state: InlineState, silent: boolean): boolean {
 
   const domain = checkDomain(src, colon + 3, end, true);
   if (domain === 0) return false;
-  let length = scanToEnd(src, colon + 3 + domain, end) - start;
+  const stop = scanToEnd(src, colon + 3 + domain, end);
+  if (stop < 0) return false;
+  let length = stop - start;
   length = trimEnd(src, start, start + length);
   if (length === 0) return false;
 
@@ -318,6 +339,8 @@ export function emails(state: InlineState) {
     const token = tokens[i];
     if (token.type === T.LINK_OPEN) linkDepth++;
     else if (token.type === T.LINK_CLOSE) linkDepth--;
+    else if (token.type === T.HTML_INLINE)
+      linkDepth += htmlLinkDelta(token.content);
 
     if (token.type !== T.TEXT || linkDepth > 0) {
       output.push(token);
