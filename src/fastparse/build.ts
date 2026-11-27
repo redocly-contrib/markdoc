@@ -18,6 +18,7 @@ import Variable from '../ast/variable';
 import Function from '../ast/function';
 import { ADMONITION_KINDS } from '../admonitions';
 import { annotate } from './annotate';
+import { isVoidElement, sameName, tagNameLength } from './common';
 import * as T from './tokens';
 import { NESTING, NODE_TYPE, BlockToken, InlineToken } from './tokens';
 import type { BlockState } from './block';
@@ -149,6 +150,81 @@ function processFence(token: BlockToken): any[] | undefined {
   return parseTags(token.content, token.map0);
 }
 
+// Open elements of `unclosedHtmlToText`: the token index of each and its name
+// length, 0 for a container. Kept between calls, as the token pools are.
+const openIndices: number[] = [];
+const openLengths: number[] = [];
+
+/**
+ * Turns into text each HTML tag in the inline tokens `[from, to)` that is not
+ * closed inside its Markdown container (link text, emphasis, strikethrough, an
+ * inline Markdoc tag, the whole inline content), and each closing tag with no
+ * opening in its container. An HTML run then never holds an element across a
+ * container's end, which would take that end in as its own child. So
+ * `[GET /users/<id>](/u)` keeps `<id>` as text, and `<b>x</b>` stays HTML.
+ */
+function unclosedHtmlToText(tokens: InlineToken[], from: number, to: number) {
+  const indices = openIndices;
+  const lengths = openLengths;
+  let depth = 0;
+  let containers = 0;
+  for (let i = from; i < to; i++) {
+    const token = tokens[i];
+    switch (token.type) {
+      case T.LINK_OPEN:
+      case T.EM_OPEN:
+      case T.STRONG_OPEN:
+      case T.S_OPEN:
+      case T.TAG_OPEN:
+        lengths[depth] = 0;
+        indices[depth++] = i;
+        containers++;
+        break;
+      case T.LINK_CLOSE:
+      case T.EM_CLOSE:
+      case T.STRONG_CLOSE:
+      case T.S_CLOSE:
+      case T.TAG_CLOSE:
+        if (containers === 0) break;
+        while (lengths[--depth] !== 0) tokens[indices[depth]].type = T.TEXT;
+        containers--;
+        break;
+      case T.HTML_INLINE: {
+        // `<name …>` or `</name>`; comments, declarations and processing
+        // instructions have no name.
+        const content = token.content;
+        if (content.charCodeAt(1) !== 0x2f /* / */) {
+          const length = tagNameLength(content, 1);
+          if (length > 0 && !isVoidElement(content, 1, length)) {
+            lengths[depth] = length;
+            indices[depth++] = i;
+          }
+          break;
+        }
+        // htmlparser2 drops a void element's closing tag, or makes `</br>` a
+        // `<br>`.
+        const length = tagNameLength(content, 2);
+        if (length === 0 || isVoidElement(content, 2, length)) break;
+        let open = depth - 1;
+        while (
+          open >= 0 &&
+          lengths[open] !== 0 &&
+          !(
+            lengths[open] === length &&
+            sameName(tokens[indices[open]].content, 1, content, 2, length)
+          )
+        )
+          open--;
+        // The elements opened after it close with it, as in htmlparser2.
+        if (open >= 0 && lengths[open] !== 0) depth = open;
+        else token.type = T.TEXT;
+      }
+    }
+  }
+  for (let i = 0; i < depth; i++)
+    if (lengths[i] !== 0) tokens[indices[i]].type = T.TEXT;
+}
+
 /**
  * The tokens `[from, to)` to build, for `parseFirstHeading`, and whether they
  * left a Node open — one that would hold every later block in a full build.
@@ -198,6 +274,8 @@ export function build(
   function handleInlineTokens(start: number, inlineParent: Node) {
     const tokens = inline.pool;
     const length = inline.length;
+    if (html && inline.htmlUnclosed !== 0)
+      unclosedHtmlToText(tokens, start, length);
     let run: HtmlRun | undefined;
     for (let i = start; i < length; i++) {
       const token = tokens[i];

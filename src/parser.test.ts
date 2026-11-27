@@ -588,6 +588,90 @@ describe('Markdown parser', function () {
           ],
         });
       });
+
+      describe('with an empty body on one line', function () {
+        function blockTag(source: string) {
+          const [node, ...rest] = Markdoc.parse(source).children;
+          expect(rest).toEqual([]);
+          return node;
+        }
+
+        it('is a block tag', function () {
+          for (const source of [
+            '{% admonition type="warning" %}{% /admonition %}',
+            '{% card %}{% /card %}',
+            '{% code language="javascript" %}{% /code %}',
+            '{%  admonition  type="warning"  %}  {%  /admonition  %}  ',
+            '{% my-tag %}{% /my-tag %}',
+          ]) {
+            const node = blockTag(source);
+            expect([node.type, node.inline, node.children])
+              .withContext(source)
+              .toEqual(['tag', false, []]);
+          }
+          expect(
+            blockTag('{% admonition type="warning" %}{% /admonition %}')
+              .attributes
+          ).toEqual({ type: 'warning' });
+        });
+
+        it('keeps the lines of what follows', function () {
+          const [tag, heading] = Markdoc.parse(
+            '{% card %}{% /card %}\n\n# Next'
+          ).children;
+          const lines = (node: any) => [
+            node.location.start.line,
+            node.location.end.line,
+          ];
+          expect(lines(tag)).toEqual([0, 1]);
+          expect(lines(heading)).toEqual([2, 3]);
+        });
+
+        it('is a block inside a tag, list item and blockquote', function () {
+          const [tabs] = Markdoc.parse(
+            '{% tabs %}\n{% tab %}{% /tab %}\n{% /tabs %}'
+          ).children;
+          expect(tabs.children.map((n) => [n.type, n.tag])).toEqual([
+            ['tag', 'tab'],
+          ]);
+          const [list] = Markdoc.parse('- {% card %}{% /card %}').children;
+          expect(list.children[0].children[0].tag).toEqual('card');
+          const [quote] = Markdoc.parse('> {% card %}{% /card %}').children;
+          expect(quote.children[0].tag).toEqual('card');
+        });
+
+        it('stays inline with anything else on the line', function () {
+          for (const source of [
+            '{% admonition %}text{% /admonition %}',
+            'Text {% card %}{% /card %} more',
+            '{% card %}{% /card %} more',
+            '{% a %}{% /b %}',
+            '{% a %}{% /a %}{% /a %}',
+            '{% foo %}{% bar %}{% /bar %}{% /foo %}',
+            '\n{% card %}{% /card %}.',
+          ]) {
+            const [node] = Markdoc.parse(source).children;
+            expect(node.type).withContext(source).toEqual('paragraph');
+          }
+        });
+
+        it('stays inline in a paragraph or blockquote it continues', function () {
+          for (const source of [
+            'Click\n{% icon %}{% /icon %}\nto continue.',
+            '> quote\n{% icon %}{% /icon %}',
+          ])
+            expect(Markdoc.parse(source).children.length)
+              .withContext(source)
+              .toEqual(1);
+        });
+
+        it('stays text in a fence', function () {
+          const [fence] = Markdoc.parse(
+            '```\n{% card %}{% /card %}\n```'
+          ).children;
+          expect(fence.attributes.content).toEqual('{% card %}{% /card %}\n');
+        });
+      });
     });
   });
 

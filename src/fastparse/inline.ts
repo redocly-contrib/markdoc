@@ -16,6 +16,7 @@ import { pushTag } from './block';
 import * as linkify from './linkify';
 import {
   HTML_TAG_RE,
+  isVoidElement,
   entities,
   fromCodePoint,
   isMdAsciiPunct,
@@ -89,6 +90,11 @@ export class InlineState {
    * parse that stopped early may not have seen that definition yet.
    */
   missedReference = false;
+  /**
+   * Opening HTML tags, void elements aside, less closing ones: when it is 0,
+   * every element is closed (`unclosedHtmlToText` has nothing to do).
+   */
+  htmlUnclosed = 0;
 
   constructor(options: InlineOptions) {
     this.html = options.html;
@@ -274,6 +280,7 @@ export class InlineState {
     this.references = references;
     this.linkLevel = 0;
     this.missedReference = false;
+    this.htmlUnclosed = 0;
 
     this.tokenize();
 
@@ -1257,6 +1264,12 @@ function htmlInline(state: InlineState, silent: boolean): boolean {
     const token = state.push(T.HTML_INLINE);
     token.content = state.src.slice(pos, pos + match[0].length);
     state.linkLevel += linkify.htmlLinkDelta(token.content);
+    const closing = ch === 0x2f; /* / */
+    if (
+      (closing || isLetter(ch)) &&
+      !isVoidElement(token.content, closing ? 2 : 1)
+    )
+      state.htmlUnclosed += closing ? -1 : 1;
   }
   state.pos += match[0].length;
   return true;

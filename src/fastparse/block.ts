@@ -1924,7 +1924,10 @@ function tag(
   const lastPossible =
     last > state.firstNonSpace ? last - state.firstNonSpace : 0;
 
-  if (!tagEnd || tagEnd < lastPossible - CLOSE.length) return false;
+  if (!tagEnd) return false;
+  // An empty tag pair does not end a paragraph or blockquote it continues.
+  if (tagEnd < lastPossible - CLOSE.length)
+    return !silent && emptyTag(state, startLine, tagEnd, last);
 
   const contentStart = start + OPEN.length;
   let lines = 1;
@@ -1944,6 +1947,66 @@ function tag(
   (token as BlockToken).map1 = startLine + lines;
   state.line += lines;
   if (state.stop !== null) trackTag(state.stop, token as BlockToken);
+  return true;
+}
+
+/**
+ * A line holding a tag and its own closing tag, `{% a %}{% /a %}`: a block
+ * tag with no body, as when the closing tag is on the next line. (Markdoc
+ * makes it an inline tag in a paragraph.) `openEnd` is where the opening
+ * tag's `%}` starts, and `lineEnd` is the end of the line's text.
+ */
+function emptyTag(
+  state: BlockState,
+  line: number,
+  openEnd: number,
+  lineEnd: number
+): boolean {
+  const src = state.src;
+  const finish = state.eMarks[line];
+  let closeStart = openEnd + CLOSE.length;
+  while (closeStart < finish && isSpace(src.charCodeAt(closeStart)))
+    closeStart++;
+  if (
+    src.charCodeAt(closeStart) !== 0x7b /* { */ ||
+    src.charCodeAt(closeStart + 1) !== 0x25 /* % */
+  )
+    return false;
+  const closeEnd = findTagEnd(src, closeStart + OPEN.length);
+  if (!closeEnd || closeEnd + CLOSE.length !== lineEnd) return false;
+
+  const closing = src.slice(closeStart + OPEN.length, closeEnd).trim();
+  if (closing[0] !== '/') return false;
+  const opening = src
+    .slice(state.bMarks[line] + state.tShift[line] + OPEN.length, openEnd)
+    .trim();
+  let open, close;
+  try {
+    open = parseTag(opening, { Variable, Function });
+    close = parseTag(closing, { Variable, Function });
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    return false;
+  }
+  if (
+    open.type !== 'tag_open' ||
+    close.type !== 'tag_close' ||
+    open.meta.tag !== close.meta.tag
+  )
+    return false;
+
+  for (const [type, info, meta] of [
+    [T.TAG_OPEN, opening, open.meta],
+    [T.TAG_CLOSE, closing, close.meta],
+  ] as const) {
+    const token = state.push(type);
+    token.info = info;
+    token.meta = meta;
+    token.map0 = line;
+    token.map1 = line + 1;
+    if (state.stop !== null) trackTag(state.stop, token);
+  }
+  state.line += 1;
   return true;
 }
 

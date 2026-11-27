@@ -272,6 +272,11 @@ bar
       expect(wrong[0]?.error.message).toContain('should be inline');
     });
 
+    it('accepts an inline tag with no children on a line of its own', () => {
+      for (const source of ['{% foo %}{% /foo %}', '{% foo /%}'])
+        expect(validate(source, config)).withContext(source).toEqual([]);
+    });
+
     it('validates block tag', () => {
       const correct = validate(
         `
