@@ -192,7 +192,13 @@ function validateNode(
     return errors;
   }
 
-  if (schema.inline != undefined && node.inline !== schema.inline)
+  // An inline tag with no children may stand on a line of its own, where it
+  // parses as a block: `{% badge /%}` or `{% badge %}{% /badge %}`.
+  if (
+    schema.inline != undefined &&
+    node.inline !== schema.inline &&
+    !(schema.inline && node.children.length === 0)
+  )
     errors.push({
       id: 'tag-placement-invalid',
       level: 'critical',
