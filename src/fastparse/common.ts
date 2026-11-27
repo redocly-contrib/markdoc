@@ -537,7 +537,6 @@ export const HTML_OPEN_CLOSE_TAG_RE = new RegExp(
   '^(?:' + openTag + '|' + closeTag + ')'
 );
 
-const NO_NAMES: string[] = [];
 // htmlparser2's void elements, which are never left open, by name length.
 const VOID_ELEMENTS: string[][] = [
   [],
@@ -550,11 +549,13 @@ const VOID_ELEMENTS: string[][] = [
   ['command', 'isindex'],
   ['basefont'],
 ];
+const NO_NAMES: string[] = [];
 // Which lowercase first letters a void element name can have.
 const VOID_FIRST = new Uint8Array(128);
 for (const names of VOID_ELEMENTS)
   for (const name of names) VOID_FIRST[name.charCodeAt(0)] = 1;
 
+/** The length of the tag name at `start`: letters, digits and `-`. */
 export function tagNameLength(content: string, start: number) {
   let end = start;
   for (; end < content.length; end++) {
