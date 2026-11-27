@@ -648,6 +648,7 @@ describe('Markdown parser', function () {
             '{% a %}{% /b %}',
             '{% a %}{% /a %}{% /a %}',
             '{% foo %}{% bar %}{% /bar %}{% /foo %}',
+            '\n{% card %}{% /card %}.',
           ]) {
             const [node] = Markdoc.parse(source).children;
             expect(node.type).withContext(source).toEqual('paragraph');

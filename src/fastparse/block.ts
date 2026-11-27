@@ -1927,7 +1927,7 @@ function tag(
   if (!tagEnd) return false;
   // An empty tag pair does not end a paragraph or blockquote it continues.
   if (tagEnd < lastPossible - CLOSE.length)
-    return !silent && emptyTag(state, startLine, tagEnd, lastPossible);
+    return !silent && emptyTag(state, startLine, tagEnd, last);
 
   const contentStart = start + OPEN.length;
   let lines = 1;
@@ -1951,17 +1951,16 @@ function tag(
 }
 
 /**
- * A tag followed on its line by its own closing tag, `{% a %}{% /a %}`: a
- * block tag with no body, as it is with the closing tag on the next line,
- * where Markdoc makes it a paragraph. `openEnd` is where the opening tag's
- * `%}` starts, and the closing tag must end at `lastPossible`, as `tag`
- * requires of a tag alone on its line.
+ * A line holding a tag and its own closing tag, `{% a %}{% /a %}`: a block
+ * tag with no body, as when the closing tag is on the next line. (Markdoc
+ * makes it an inline tag in a paragraph.) `openEnd` is where the opening
+ * tag's `%}` starts, and `lineEnd` is the end of the line's text.
  */
 function emptyTag(
   state: BlockState,
   line: number,
   openEnd: number,
-  lastPossible: number
+  lineEnd: number
 ): boolean {
   const src = state.src;
   const finish = state.eMarks[line];
@@ -1974,8 +1973,7 @@ function emptyTag(
   )
     return false;
   const closeEnd = findTagEnd(src, closeStart + OPEN.length);
-  if (!closeEnd || closeEnd > finish || closeEnd < lastPossible - CLOSE.length)
-    return false;
+  if (!closeEnd || closeEnd + CLOSE.length !== lineEnd) return false;
 
   const closing = src.slice(closeStart + OPEN.length, closeEnd).trim();
   if (closing[0] !== '/') return false;
