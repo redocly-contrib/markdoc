@@ -195,14 +195,16 @@ function unclosedHtmlToText(tokens: InlineToken[], from: number, to: number) {
         const content = token.content;
         if (content.charCodeAt(1) !== 0x2f /* / */) {
           const length = tagNameLength(content, 1);
-          if (length > 0 && !isVoidElement(content, length)) {
+          if (length > 0 && !isVoidElement(content, 1, length)) {
             lengths[depth] = length;
             indices[depth++] = i;
           }
           break;
         }
+        // htmlparser2 drops a void element's closing tag, or makes `</br>` a
+        // `<br>`.
         const length = tagNameLength(content, 2);
-        if (length === 0) break;
+        if (length === 0 || isVoidElement(content, 2, length)) break;
         let open = depth - 1;
         while (
           open >= 0 &&

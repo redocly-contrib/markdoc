@@ -537,6 +537,7 @@ export const HTML_OPEN_CLOSE_TAG_RE = new RegExp(
   '^(?:' + openTag + '|' + closeTag + ')'
 );
 
+const NO_NAMES: string[] = [];
 // htmlparser2's void elements, which are never left open, by name length.
 const VOID_ELEMENTS: string[][] = [
   [],
@@ -549,6 +550,10 @@ const VOID_ELEMENTS: string[][] = [
   ['command', 'isindex'],
   ['basefont'],
 ];
+// Which lowercase first letters a void element name can have.
+const VOID_FIRST = new Uint8Array(128);
+for (const names of VOID_ELEMENTS)
+  for (const name of names) VOID_FIRST[name.charCodeAt(0)] = 1;
 
 export function tagNameLength(content: string, start: number) {
   let end = start;
@@ -579,9 +584,21 @@ export function sameName(
   return true;
 }
 
-export function isVoidElement(content: string, length: number) {
-  const names = length < VOID_ELEMENTS.length ? VOID_ELEMENTS[length] : [];
+/**
+ * Whether the tag name at `start` in `content` names a void element; `length`
+ * is its length when the caller has it.
+ */
+export function isVoidElement(
+  content: string,
+  start: number,
+  length?: number
+): boolean {
+  const first = content.charCodeAt(start) | 0x20;
+  if (first >= 128 || VOID_FIRST[first] === 0) return false;
+  if (length === undefined) length = tagNameLength(content, start);
+  const names =
+    length < VOID_ELEMENTS.length ? VOID_ELEMENTS[length] : NO_NAMES;
   for (const name of names)
-    if (sameName(content, 1, name, 0, length)) return true;
+    if (sameName(content, start, name, 0, length)) return true;
   return false;
 }

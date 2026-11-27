@@ -17,7 +17,6 @@ import * as linkify from './linkify';
 import {
   HTML_TAG_RE,
   isVoidElement,
-  tagNameLength,
   entities,
   fromCodePoint,
   isMdAsciiPunct,
@@ -1265,11 +1264,12 @@ function htmlInline(state: InlineState, silent: boolean): boolean {
     const token = state.push(T.HTML_INLINE);
     token.content = state.src.slice(pos, pos + match[0].length);
     state.linkLevel += linkify.htmlLinkDelta(token.content);
-    if (ch === 0x2f /* / */) state.htmlUnclosed--;
-    else if (isLetter(ch)) {
-      const length = tagNameLength(token.content, 1);
-      if (!isVoidElement(token.content, length)) state.htmlUnclosed++;
-    }
+    const closing = ch === 0x2f; /* / */
+    if (
+      (closing || isLetter(ch)) &&
+      !isVoidElement(token.content, closing ? 2 : 1)
+    )
+      state.htmlUnclosed += closing ? -1 : 1;
   }
   state.pos += match[0].length;
   return true;

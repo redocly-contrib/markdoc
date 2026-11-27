@@ -192,6 +192,26 @@ describe('htmlTags', function () {
         ['html', { name: 'img', attrs: { src: 'i.png' } }],
       ]);
     });
+
+    it("leaves a void element's closing tag to htmlparser2", function () {
+      for (const [source, names] of [
+        ['Logo <img src="i.png"></img> here', ['img']],
+        [
+          'A <video><source src="a.mp4"></source></video> b',
+          ['video', 'source'],
+        ],
+        ['Line<br></br>next', ['br', 'br']],
+      ] as const) {
+        const paragraph = only(source, 'paragraph');
+        expect(tags(paragraph).map(([, attributes]) => attributes.name))
+          .withContext(source)
+          .toEqual(names);
+        expect(text(paragraph)).withContext(source).not.toContain('</');
+      }
+      expect(
+        text(only('[GET <id>](/x) <img src="i.png"></img>', 'link'))
+      ).toEqual('GET <id>');
+    });
   });
 
   it('uses a custom error tag', function () {
