@@ -23,8 +23,10 @@
  *   elements aside), an element not closed inside its Markdown container
  *   (link text, emphasis, an inline tag, the paragraph) stays text, as
  *   written, as does a closing tag whose element opened outside it:
- *   `[GET /users/<id>](/u)`. Inline content that closes as many elements as
- *   it opens is left to htmlparser2, even where one crosses a container.
+ *   `[GET /users/<id>](/u)`. Only a closing tag closes an element there, not
+ *   htmlparser2's implied closes (a second `<li>`) or a self-closing
+ *   `<svg/>`. Inline content that closes as many elements as it opens is
+ *   left to htmlparser2, even where one crosses a container.
  * - A tag whose name cannot be a React element name (`GridItem\<T\>` written
  *   in an HTML block, say) stays text, as written.
  * - Text inside HTML that is only whitespace is dropped.
