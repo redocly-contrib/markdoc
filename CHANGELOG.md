@@ -6,6 +6,29 @@ fork releases. Upstream's own history is not repeated here.
 
 Current upstream base: **0.5.10**.
 
+## 0.7.3
+
+### Changed
+
+- A line that holds only a tag and its own closing tag,
+  `{% admonition type="warning" %}{% /admonition %}`, is a block tag with no
+  body, as it is with the closing tag on the next line. Upstream makes it an
+  inline tag in a paragraph, which renders a block component inside `<p>`.
+  Such a line inside a paragraph or blockquote it continues stays inline.
+- A tag whose schema is `inline: true` and that has no children may stand on a
+  line of its own (`{% badge /%}`, `{% badge %}{% /badge %}`) without a
+  `tag-placement-invalid` error.
+
+### Fixed
+
+- With `htmlTags()`, an inline element that is not closed inside its Markdown
+  container (link text, emphasis, an inline tag, the paragraph) stays text, as
+  written: `[GET /users/<id>](/api/users)`. Before, `<id>` became an `html`
+  tag that took in the link's end, so the link, its paragraph and an enclosing
+  list item reported missing-opening and missing-closing errors. This applies
+  to inline content with more opening tags than closing ones (void elements
+  aside), and only a closing tag counts as closing an element there.
+
 ## 0.7.2
 
 ### Fixed
