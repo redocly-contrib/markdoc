@@ -27,6 +27,8 @@ const SETTINGS: Options[] = [
   { allowLinkValidation: true, githubAdmonitions: false },
 ];
 
+const EMPTY_TAG_LINE = /^[ \t]*\{%[^\n]*%\}[ \t]*\{%[ \t]*\/[^\n]*%\}[ \t]*$/m;
+
 describe('parser, against the markdown-it reference', function () {
   it('parses every test input like the reference', function () {
     let compared = 0;
@@ -44,9 +46,11 @@ describe('parser, against the markdown-it reference', function () {
           Markdoc.parse(source, { ...parseArgs, ...options })
         );
         // Where 0.6.4 throws (an unclosed inline tag in link text, below),
-        // the parser returns an AST instead.
+        // the parser returns an AST instead. A line `{% a %}{% /a %}` is a
+        // block tag, where 0.6.4 makes it a paragraph (see parser.test.ts).
         const known =
-          expected === 'threw TypeError' && !actual.startsWith('threw');
+          (expected === 'threw TypeError' && !actual.startsWith('threw')) ||
+          EMPTY_TAG_LINE.test(source);
         if (actual !== expected && !known)
           fail(`differs for ${JSON.stringify({ source, options, parseArgs })}`);
         compared++;
