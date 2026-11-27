@@ -104,8 +104,98 @@ describe('htmlTags', function () {
     expect(ast.children[0].children[0].attributes.content).toEqual('\n&am');
   });
 
+  describe('an inline element not closed in its Markdown container', function () {
+    function text(node: any): string {
+      return node.type === 'text'
+        ? node.attributes.content
+        : node.children.map(text).join('');
+    }
+    function only(source: string, type: string) {
+      const ast = parse(source);
+      const errors = Markdoc.validate(ast, {})
+        .map((e) => e.error.id)
+        .filter((id) => id !== 'tag-undefined');
+      expect(errors).withContext(source).toEqual([]);
+      expect(tags(ast).map(([tag]) => tag))
+        .withContext(source)
+        .not.toContain('markdoc-error');
+      const nodes = [...ast.walk()].filter((n: any) => n.type === type);
+      expect(nodes.length).withContext(source).toEqual(1);
+      return nodes[0];
+    }
+
+    it('is text in link text', function () {
+      expect(text(only('[GET /users/<id>](/api/users)', 'link'))).toEqual(
+        'GET /users/<id>'
+      );
+      expect(
+        text(only('[Multiple <angle> <brackets> here](http://e.com)', 'link'))
+      ).toEqual('Multiple <angle> <brackets> here');
+      expect(text(only('[GET <id>](/x) and more', 'paragraph'))).toEqual(
+        'GET <id> and more'
+      );
+    });
+
+    it('is text in emphasis, a list item and an inline tag', function () {
+      expect(text(only('**GET /users/<id>** after', 'strong'))).toEqual(
+        'GET /users/<id>'
+      );
+      expect(text(only('*a <id>* b', 'em'))).toEqual('a <id>');
+      const list = only('- [GET <id>](/x)\n- next', 'list');
+      expect(list.children.map(text)).toEqual(['GET <id>', 'next']);
+      expect(text(only('{% badge %}v<id>{% /badge %} x', 'tag'))).toEqual(
+        'v<id>'
+      );
+    });
+
+    it('is text in a paragraph, whatever its name', function () {
+      for (const source of [
+        'Text <id> outside a link',
+        'See <template> and <title> here',
+        'A <Foo /> mid',
+      ])
+        expect(text(only(source, 'paragraph'))).toEqual(source);
+    });
+
+    it('is text when it closes outside, or opens outside and closes inside', function () {
+      expect(text(only('<span>[x</span>](/u) <id>', 'paragraph'))).toEqual(
+        '<span>x</span> <id>'
+      );
+      expect(text(only('[<b>x](/u)</b> <id>', 'paragraph'))).toEqual(
+        '<b>x</b> <id>'
+      );
+    });
+
+    it('is left to htmlparser2 when the inline content closes every element', function () {
+      const ast = parse('<span>[x</span>](/u)');
+      expect(tags(ast)[0]).toEqual(['html', { name: 'span', attrs: {} }]);
+    });
+
+    it('leaves closed and void elements and inline code as they are', function () {
+      const link = only(
+        '[a <b>bold</b> <br> `code <name>` <i>x</i>](/u)',
+        'link'
+      );
+      expect(tags(link)).toEqual([
+        ['html', { name: 'b', attrs: {} }],
+        ['html', { name: 'br', attrs: {} }],
+        ['html', { name: 'i', attrs: {} }],
+      ]);
+      expect(
+        link.children.find((n: any) => n.type === 'code').attributes
+      ).toEqual({ content: 'code <name>' });
+      expect(
+        tags(parse('a <span><b>x</b></span> <img src="i.png"> b'))
+      ).toEqual([
+        ['html', { name: 'span', attrs: {} }],
+        ['html', { name: 'b', attrs: {} }],
+        ['html', { name: 'img', attrs: { src: 'i.png' } }],
+      ]);
+    });
+  });
+
   it('uses a custom error tag', function () {
-    const ast = Markdoc.parse('<span>open', {
+    const ast = Markdoc.parse('<div>\n\nopen', {
       html: htmlTags({ errorTag: 'oops' }),
     });
     expect(tags(ast).map(([tag]) => tag)).toEqual(['html', 'oops']);

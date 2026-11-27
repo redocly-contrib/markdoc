@@ -536,3 +536,52 @@ export const HTML_TAG_RE = new RegExp(
 export const HTML_OPEN_CLOSE_TAG_RE = new RegExp(
   '^(?:' + openTag + '|' + closeTag + ')'
 );
+
+// htmlparser2's void elements, which are never left open, by name length.
+const VOID_ELEMENTS: string[][] = [
+  [],
+  [],
+  ['br', 'hr'],
+  ['col', 'img', 'wbr'],
+  ['area', 'base', 'link', 'meta'],
+  ['embed', 'frame', 'input', 'param', 'track'],
+  ['keygen', 'source'],
+  ['command', 'isindex'],
+  ['basefont'],
+];
+
+export function tagNameLength(content: string, start: number) {
+  let end = start;
+  for (; end < content.length; end++) {
+    const code = content.charCodeAt(end);
+    const lower = code | 0x20;
+    if (
+      !(lower >= 0x61 /* a */ && lower <= 0x7a) /* z */ &&
+      !(code >= 0x30 /* 0 */ && code <= 0x39) /* 9 */ &&
+      code !== 0x2d /* - */
+    )
+      break;
+  }
+  return end - start;
+}
+
+/** Whether `a` at `aStart` and `b` at `bStart` hold the same `length` name, in any case. */
+export function sameName(
+  a: string,
+  aStart: number,
+  b: string,
+  bStart: number,
+  length: number
+) {
+  for (let i = 0; i < length; i++)
+    if ((a.charCodeAt(aStart + i) | 0x20) !== (b.charCodeAt(bStart + i) | 0x20))
+      return false;
+  return true;
+}
+
+export function isVoidElement(content: string, length: number) {
+  const names = length < VOID_ELEMENTS.length ? VOID_ELEMENTS[length] : [];
+  for (const name of names)
+    if (sameName(content, 1, name, 0, length)) return true;
+  return false;
+}
