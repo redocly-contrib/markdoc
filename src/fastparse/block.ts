@@ -1925,8 +1925,9 @@ function tag(
     last > state.firstNonSpace ? last - state.firstNonSpace : 0;
 
   if (!tagEnd) return false;
+  // An empty tag pair does not end a paragraph or blockquote it continues.
   if (tagEnd < lastPossible - CLOSE.length)
-    return emptyTag(state, startLine, silent, tagEnd, lastPossible);
+    return !silent && emptyTag(state, startLine, tagEnd, lastPossible);
 
   const contentStart = start + OPEN.length;
   let lines = 1;
@@ -1959,7 +1960,6 @@ function tag(
 function emptyTag(
   state: BlockState,
   line: number,
-  silent: boolean,
   openEnd: number,
   lastPossible: number
 ): boolean {
@@ -1996,8 +1996,6 @@ function emptyTag(
     open.meta.tag !== close.meta.tag
   )
     return false;
-
-  if (silent) return true;
 
   for (const [type, info, meta] of [
     [T.TAG_OPEN, opening, open.meta],

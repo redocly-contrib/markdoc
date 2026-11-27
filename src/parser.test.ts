@@ -654,6 +654,16 @@ describe('Markdown parser', function () {
           }
         });
 
+        it('stays inline in a paragraph or blockquote it continues', function () {
+          for (const source of [
+            'Click\n{% icon %}{% /icon %}\nto continue.',
+            '> quote\n{% icon %}{% /icon %}',
+          ])
+            expect(Markdoc.parse(source).children.length)
+              .withContext(source)
+              .toEqual(1);
+        });
+
         it('stays text in a fence', function () {
           const [fence] = Markdoc.parse(
             '```\n{% card %}{% /card %}\n```'
