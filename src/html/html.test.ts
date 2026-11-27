@@ -172,8 +172,9 @@ describe('htmlTags', function () {
     });
 
     it('leaves closed and void elements and inline code as they are', function () {
+      // `<id>` leaves an element open, so these are checked, not skipped.
       const link = only(
-        '[a <b>bold</b> <br> `code <name>` <i>x</i>](/u)',
+        '[a <b>bold</b> <br> `code <name>` <i>x</i> <id>](/u)',
         'link'
       );
       expect(tags(link)).toEqual([
@@ -185,7 +186,7 @@ describe('htmlTags', function () {
         link.children.find((n: any) => n.type === 'code').attributes
       ).toEqual({ content: 'code <name>' });
       expect(
-        tags(parse('a <span><b>x</b></span> <img src="i.png"> b'))
+        tags(parse('a <span><b>x</b></span> <img src="i.png"> <id> b'))
       ).toEqual([
         ['html', { name: 'span', attrs: {} }],
         ['html', { name: 'b', attrs: {} }],
