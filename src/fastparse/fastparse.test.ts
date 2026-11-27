@@ -27,7 +27,8 @@ const SETTINGS: Options[] = [
   { allowLinkValidation: true, githubAdmonitions: false },
 ];
 
-const EMPTY_TAG_LINE = /^[ \t]*\{%[^\n]*%\}[ \t]*\{%[ \t]*\/[^\n]*%\}[ \t]*$/m;
+const EMPTY_TAG_LINE =
+  /^[ \t]*\{%[ \t]*([\w-]+)(?:[^%\n]|%(?!\}))*%\}[ \t]*\{%[ \t]*\/\1[ \t]*%\}[ \t]*$/m;
 
 describe('parser, against the markdown-it reference', function () {
   it('parses every test input like the reference', function () {
